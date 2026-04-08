@@ -25,6 +25,8 @@ public class Node : INotifyPropertyChanged
     public double Width { get; internal set; }
     public double Height { get; internal set; }
 
+    public IPortProvider? PortProvider { get; set; }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)

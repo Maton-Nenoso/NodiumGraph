@@ -79,4 +79,11 @@ public class NodeTests
         Assert.Equal(0.0, node.Width);
         Assert.Equal(0.0, node.Height);
     }
+
+    [Fact]
+    public void PortProvider_defaults_to_null()
+    {
+        var node = new Node();
+        Assert.Null(node.PortProvider);
+    }
 }
