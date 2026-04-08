@@ -106,4 +106,60 @@ public class GraphTests
         var graph = new Graph();
         Assert.Throws<ArgumentNullException>(() => graph.AddConnection(null!));
     }
+
+    [Fact]
+    public void Select_node_not_in_graph_throws()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        Assert.Throws<InvalidOperationException>(() => graph.Select(node));
+    }
+
+    [Fact]
+    public void AddNode_duplicate_throws()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        Assert.Throws<InvalidOperationException>(() => graph.AddNode(node));
+    }
+
+    [Fact]
+    public void AddConnection_duplicate_throws()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        var source = new Port(node, new Avalonia.Point(0, 0));
+        var target = new Port(node, new Avalonia.Point(10, 0));
+        var conn = new Connection(source, target);
+        graph.AddConnection(conn);
+        Assert.Throws<InvalidOperationException>(() => graph.AddConnection(conn));
+    }
+
+    [Fact]
+    public void Deselect_removes_from_selection()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        graph.Select(node);
+        graph.Deselect(node);
+        Assert.Empty(graph.SelectedNodes);
+    }
+
+    [Fact]
+    public void ClearSelection_removes_all()
+    {
+        var graph = new Graph();
+        var node1 = new Node();
+        var node2 = new Node();
+        graph.AddNode(node1);
+        graph.AddNode(node2);
+        graph.Select(node1);
+        graph.Select(node2);
+        Assert.Equal(2, graph.SelectedNodes.Count);
+
+        graph.ClearSelection();
+        Assert.Empty(graph.SelectedNodes);
+    }
 }

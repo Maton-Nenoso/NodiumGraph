@@ -76,4 +76,10 @@ public class ResultOfTTests
         Result<string> result = new Error("fail");
         Assert.Null(result.Value);
     }
+
+    [Fact]
+    public void Implicit_conversion_from_null_throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => { Result<string> result = (string)null!; });
+    }
 }

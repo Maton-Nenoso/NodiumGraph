@@ -8,11 +8,13 @@ public class Graph
 
     public ObservableCollection<Node> Nodes { get; } = new();
     public ObservableCollection<Connection> Connections { get; } = new();
-    public IReadOnlyList<Node> SelectedNodes => _selectedNodes.AsReadOnly();
+    public IReadOnlyList<Node> SelectedNodes => _selectedNodes;
 
     public void AddNode(Node node)
     {
         ArgumentNullException.ThrowIfNull(node);
+        if (Nodes.Contains(node))
+            throw new InvalidOperationException("Node is already in the graph.");
         Nodes.Add(node);
     }
 
@@ -34,6 +36,8 @@ public class Graph
     public void AddConnection(Connection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
+        if (Connections.Contains(connection))
+            throw new InvalidOperationException("Connection is already in the graph.");
         Connections.Add(connection);
     }
 
@@ -46,6 +50,8 @@ public class Graph
     public void Select(Node node)
     {
         ArgumentNullException.ThrowIfNull(node);
+        if (!Nodes.Contains(node))
+            throw new InvalidOperationException("Node is not part of this graph.");
         if (!_selectedNodes.Contains(node))
             _selectedNodes.Add(node);
     }

@@ -13,6 +13,7 @@ public class ConnectionStyle : IConnectionStyle
         double thickness = 2.0,
         IDashStyle? dashPattern = null)
     {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(thickness);
         Stroke = stroke ?? Brushes.Gray;
         Thickness = thickness;
         DashPattern = dashPattern;

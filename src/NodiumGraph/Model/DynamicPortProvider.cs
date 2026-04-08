@@ -12,7 +12,7 @@ public class DynamicPortProvider : IPortProvider
     private readonly double _reuseThreshold;
     private readonly double _maxDistance;
 
-    public IReadOnlyList<Port> Ports => _ports.AsReadOnly();
+    public IReadOnlyList<Port> Ports => _ports;
 
     public DynamicPortProvider(Node owner, double reuseThreshold = DefaultReuseThreshold, double maxDistance = DefaultMaxDistance)
     {

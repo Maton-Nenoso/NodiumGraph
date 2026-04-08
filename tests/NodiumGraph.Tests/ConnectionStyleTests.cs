@@ -25,4 +25,16 @@ public class ConnectionStyleTests
         Assert.Equal(3.0, style.Thickness);
         Assert.Same(dash, style.DashPattern);
     }
+
+    [Fact]
+    public void Zero_thickness_throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ConnectionStyle(thickness: 0));
+    }
+
+    [Fact]
+    public void Negative_thickness_throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new ConnectionStyle(thickness: -1));
+    }
 }
