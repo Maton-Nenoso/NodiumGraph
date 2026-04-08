@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Markup.Xaml;
 
-namespace NodiumGraph.Avalonia.Tests;
+namespace NodiumGraph.Tests;
 
 public class App : Application
 {

@@ -4,8 +4,4 @@
     <PackageReference Include="Avalonia" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\NodiumGraph.Core\NodiumGraph.Core.csproj" />
-  </ItemGroup>
-
 </Project>

@@ -1,9 +1,9 @@
 using Avalonia;
 using Avalonia.Headless;
 
-[assembly: AvaloniaTestApplication(typeof(NodiumGraph.Avalonia.Tests.TestAppBuilder))]
+[assembly: AvaloniaTestApplication(typeof(NodiumGraph.Tests.TestAppBuilder))]
 
-namespace NodiumGraph.Avalonia.Tests;
+namespace NodiumGraph.Tests;
 
 public class TestAppBuilder
 {

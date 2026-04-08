@@ -1,6 +1,6 @@
 using Avalonia.Controls.Primitives;
 
-namespace NodiumGraph.Avalonia;
+namespace NodiumGraph;
 
 /// <summary>
 /// The primary graph editor canvas control.

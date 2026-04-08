@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\NodiumGraph.Avalonia\NodiumGraph.Avalonia.csproj" />
+    <ProjectReference Include="..\..\src\NodiumGraph\NodiumGraph.csproj" />
   </ItemGroup>
 
 </Project>

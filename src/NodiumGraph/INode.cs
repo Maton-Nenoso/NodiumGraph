@@ -1,4 +1,4 @@
-namespace NodiumGraph.Core;
+namespace NodiumGraph;
 
 /// <summary>
 /// Represents a node in the graph. Implemented by consumer types.

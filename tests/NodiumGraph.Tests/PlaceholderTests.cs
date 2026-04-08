@@ -1,7 +1,7 @@
-using NodiumGraph.Core;
+using NodiumGraph;
 using Xunit;
 
-namespace NodiumGraph.Core.Tests;
+namespace NodiumGraph.Tests;
 
 public class PlaceholderTests
 {
