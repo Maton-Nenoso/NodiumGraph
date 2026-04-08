@@ -1,6 +1,7 @@
+using NodiumGraph.Model;
 using Avalonia;
 
-namespace NodiumGraph;
+namespace NodiumGraph.Interactions;
 
 public interface IConnectionRouter
 {

@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 
-namespace NodiumGraph;
+namespace NodiumGraph.Model;
 
 public class Graph
 {

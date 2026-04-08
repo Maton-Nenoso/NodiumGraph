@@ -1,4 +1,5 @@
-namespace NodiumGraph;
+using NodiumGraph.Model;
+namespace NodiumGraph.Interactions;
 
 public interface INodeInteractionHandler
 {

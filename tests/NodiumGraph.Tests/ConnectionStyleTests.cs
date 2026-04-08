@@ -1,3 +1,4 @@
+using NodiumGraph.Interactions;
 using Avalonia.Media;
 using Xunit;
 

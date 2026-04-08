@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace NodiumGraph;
+namespace NodiumGraph.Model;
 
 public class Node : INotifyPropertyChanged
 {

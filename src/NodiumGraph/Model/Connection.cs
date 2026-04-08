@@ -1,4 +1,4 @@
-namespace NodiumGraph;
+namespace NodiumGraph.Model;
 
 public class Connection
 {

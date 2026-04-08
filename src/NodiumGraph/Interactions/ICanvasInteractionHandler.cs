@@ -1,6 +1,6 @@
 using Avalonia;
 
-namespace NodiumGraph;
+namespace NodiumGraph.Interactions;
 
 public interface ICanvasInteractionHandler
 {

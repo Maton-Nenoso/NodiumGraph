@@ -1,6 +1,6 @@
 using Avalonia.Media;
 
-namespace NodiumGraph;
+namespace NodiumGraph.Interactions;
 
 public class ConnectionStyle : IConnectionStyle
 {
