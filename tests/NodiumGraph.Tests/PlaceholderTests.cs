@@ -6,9 +6,9 @@ namespace NodiumGraph.Tests;
 public class PlaceholderTests
 {
     [Fact]
-    public void INode_interface_is_accessible()
+    public void Node_class_is_accessible()
     {
-        var type = typeof(INode);
+        var type = typeof(Node);
         Assert.NotNull(type);
     }
 }
