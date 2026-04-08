@@ -17,6 +17,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodiumGraph.Core.Tests", "tests\NodiumGraph.Core.Tests\NodiumGraph.Core.Tests.csproj", "{C0684DBC-99D1-4A36-AA37-DCF0B4561FAB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodiumGraph.Avalonia.Tests", "tests\NodiumGraph.Avalonia.Tests\NodiumGraph.Avalonia.Tests.csproj", "{13716180-FA08-4ACD-8BEB-1410378176C2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -75,6 +77,18 @@ Global
 		{C0684DBC-99D1-4A36-AA37-DCF0B4561FAB}.Release|x64.Build.0 = Release|Any CPU
 		{C0684DBC-99D1-4A36-AA37-DCF0B4561FAB}.Release|x86.ActiveCfg = Release|Any CPU
 		{C0684DBC-99D1-4A36-AA37-DCF0B4561FAB}.Release|x86.Build.0 = Release|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Debug|x64.Build.0 = Debug|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Debug|x86.Build.0 = Debug|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Release|x64.ActiveCfg = Release|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Release|x64.Build.0 = Release|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Release|x86.ActiveCfg = Release|Any CPU
+		{13716180-FA08-4ACD-8BEB-1410378176C2}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -84,5 +98,6 @@ Global
 		{5793FB86-8A15-4B33-9C40-BA3F1955374C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{179EA804-DD0F-411E-91F1-14C691298A05} = {5D20AA90-6969-D8BD-9DCD-8634F4692FDA}
 		{C0684DBC-99D1-4A36-AA37-DCF0B4561FAB} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{13716180-FA08-4ACD-8BEB-1410378176C2} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal
