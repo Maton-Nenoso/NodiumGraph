@@ -10,7 +10,7 @@
 The original two-project split (`NodiumGraph.Core` + `NodiumGraph.Avalonia`) is merged into a single `NodiumGraph` project. Since this is an Avalonia extension library, every consumer is already an Avalonia app — keeping Core Avalonia-free just creates friction with custom geometric types and conversions.
 
 - Single project: `src/NodiumGraph/`
-- Single namespace: `NodiumGraph`
+- Sub-namespaces by concern: `NodiumGraph` (root utilities), `NodiumGraph.Model`, `NodiumGraph.Interactions`, `NodiumGraph.Controls`
 - References Avalonia directly — uses `Avalonia.Point`, `IBrush`, `IDashStyle`
 - Single test project: `tests/NodiumGraph.Tests/`
 
