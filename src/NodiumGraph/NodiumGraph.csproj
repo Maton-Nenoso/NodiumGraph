@@ -4,4 +4,8 @@
     <PackageReference Include="Avalonia" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="NodiumGraph.Tests" />
+  </ItemGroup>
+
 </Project>
