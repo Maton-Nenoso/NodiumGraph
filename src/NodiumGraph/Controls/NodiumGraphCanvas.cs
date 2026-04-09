@@ -26,6 +26,9 @@ public class NodiumGraphCanvas : TemplatedControl
     private bool _isSpaceHeld;
     private Point _panStartScreen;
     private Point _panStartOffset;
+    private bool _isDragging;
+    private Point _dragStartWorld;
+    private Dictionary<Node, Point>? _dragStartPositions;
     public static readonly StyledProperty<Graph?> GraphProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, Graph?>(nameof(Graph));
 
@@ -204,6 +207,8 @@ public class NodiumGraphCanvas : TemplatedControl
 
     internal bool IsPanning => _isPanning;
 
+    internal bool IsDragging => _isDragging;
+
     internal Node? HitTestNode(Point screenPosition)
     {
         // Check containers in reverse order (top-most first, i.e. last-added)
@@ -287,7 +292,15 @@ public class NodiumGraphCanvas : TemplatedControl
 
         if (hitNode != null)
         {
-            SelectNode(hitNode, isCtrl);
+            if (!hitNode.IsSelected)
+                SelectNode(hitNode, isCtrl);
+
+            _isDragging = true;
+            var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+            _dragStartWorld = transform.ScreenToWorld(position);
+            _dragStartPositions = Graph!.SelectedNodes.ToDictionary(
+                n => n,
+                n => new Point(n.X, n.Y));
             e.Handled = true;
         }
         else if (!isCtrl)
@@ -303,6 +316,33 @@ public class NodiumGraphCanvas : TemplatedControl
     {
         base.OnPointerMoved(e);
 
+        if (_isDragging && _dragStartPositions != null)
+        {
+            var position = e.GetPosition(this);
+            var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+            var currentWorld = transform.ScreenToWorld(position);
+            var delta = currentWorld - _dragStartWorld;
+
+            foreach (var (node, startPos) in _dragStartPositions)
+            {
+                var newX = startPos.X + delta.X;
+                var newY = startPos.Y + delta.Y;
+
+                if (SnapToGrid && GridSize > 0)
+                {
+                    newX = Math.Round(newX / GridSize) * GridSize;
+                    newY = Math.Round(newY / GridSize) * GridSize;
+                }
+
+                node.X = newX;
+                node.Y = newY;
+            }
+
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
+
         if (_isPanning)
         {
             var position = e.GetPosition(this);
@@ -315,6 +355,26 @@ public class NodiumGraphCanvas : TemplatedControl
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+
+        if (_isDragging && _dragStartPositions != null)
+        {
+            _isDragging = false;
+
+            var moves = _dragStartPositions
+                .Select(kvp => new NodeMoveInfo(
+                    kvp.Key,
+                    kvp.Value,
+                    new Point(kvp.Key.X, kvp.Key.Y)))
+                .Where(m => m.OldPosition != m.NewPosition)
+                .ToList();
+
+            if (moves.Count > 0)
+                NodeHandler?.OnNodesMoved(moves);
+
+            _dragStartPositions = null;
+            e.Handled = true;
+            return;
+        }
 
         if (_isPanning)
         {
