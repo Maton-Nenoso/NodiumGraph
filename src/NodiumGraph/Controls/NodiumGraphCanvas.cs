@@ -19,6 +19,8 @@ public class NodiumGraphCanvas : TemplatedControl
     {
         ClipToBoundsProperty.OverrideDefaultValue<NodiumGraphCanvas>(true);
         FocusableProperty.OverrideDefaultValue<NodiumGraphCanvas>(true);
+        DragDrop.AllowDropProperty.OverrideDefaultValue<NodiumGraphCanvas>(true);
+        DragDrop.DropEvent.AddClassHandler<NodiumGraphCanvas>((canvas, e) => canvas.OnDrop(e));
     }
 
     private const double AutoPanMargin = 40.0;
@@ -403,6 +405,25 @@ public class NodiumGraphCanvas : TemplatedControl
         var props = e.GetCurrentPoint(this).Properties;
         var position = e.GetPosition(this);
 
+        if (e.ClickCount == 2 && props.IsLeftButtonPressed)
+        {
+            var dblClickNode = HitTestNode(position);
+            if (dblClickNode != null)
+            {
+                NodeHandler?.OnNodeDoubleClicked(dblClickNode);
+                e.Handled = true;
+                return;
+            }
+            else
+            {
+                var dblTransform = new ViewportTransform(ViewportZoom, ViewportOffset);
+                var worldPos = dblTransform.ScreenToWorld(position);
+                CanvasHandler?.OnCanvasDoubleClicked(worldPos);
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (ShowMinimap && Graph != null && props.IsLeftButtonPressed)
         {
             var worldPos = MinimapRenderer.MinimapToWorld(position, Bounds, Graph, MinimapPosition);
@@ -698,6 +719,16 @@ public class NodiumGraphCanvas : TemplatedControl
         e.Handled = true;
     }
 
+    private void OnDrop(DragEventArgs e)
+    {
+        if (CanvasHandler == null) return;
+        var position = e.GetPosition(this);
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+        var worldPos = transform.ScreenToWorld(position);
+        CanvasHandler.OnCanvasDropped(worldPos, e.DataTransfer);
+        e.Handled = true;
+    }
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
@@ -717,6 +748,24 @@ public class NodiumGraphCanvas : TemplatedControl
             foreach (var connection in Graph.Connections)
             {
                 ConnectionRenderer.Render(context, connection, router, style, transform);
+            }
+
+            // Render port visuals
+            var portBrush = new SolidColorBrush(Color.FromRgb(160, 160, 170));
+            const double portRadius = 4.0;
+
+            foreach (var node in Graph.Nodes)
+            {
+                if (node.PortProvider == null) continue;
+                foreach (var port in node.PortProvider.Ports)
+                {
+                    var screenPos = transform.WorldToScreen(port.AbsolutePosition);
+                    var scaledRadius = portRadius * ViewportZoom;
+
+                    // Default: filled circle
+                    context.DrawEllipse(portBrush, new Pen(Brushes.White, 1),
+                        screenPos, scaledRadius, scaledRadius);
+                }
             }
         }
 
