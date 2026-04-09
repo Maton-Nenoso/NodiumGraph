@@ -845,7 +845,19 @@ public class NodiumGraphCanvas : TemplatedControl
             ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
             return true;
 
+        // Collinear overlap check
+        if (d1 == 0 && OnSegment(b1, a1, b2)) return true;
+        if (d2 == 0 && OnSegment(b1, a2, b2)) return true;
+        if (d3 == 0 && OnSegment(a1, b1, a2)) return true;
+        if (d4 == 0 && OnSegment(a1, b2, a2)) return true;
+
         return false;
+    }
+
+    internal static bool OnSegment(Point p, Point q, Point r)
+    {
+        return q.X <= Math.Max(p.X, r.X) && q.X >= Math.Min(p.X, r.X) &&
+               q.Y <= Math.Max(p.Y, r.Y) && q.Y >= Math.Min(p.Y, r.Y);
     }
 
     private static double CrossProduct(Vector a, Vector b) => a.X * b.Y - a.Y * b.X;

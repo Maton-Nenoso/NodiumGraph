@@ -40,6 +40,14 @@ public class NodiumGraphCanvasCuttingTests
     }
 
     [Fact]
+    public void LinesIntersect_detects_collinear_overlap()
+    {
+        Assert.True(NodiumGraphCanvas.LinesIntersect(
+            new Point(0, 0), new Point(10, 0),
+            new Point(5, 0), new Point(15, 0)));
+    }
+
+    [Fact]
     public void BezierPoint_at_t0_returns_start()
     {
         var result = NodiumGraphCanvas.BezierPoint(
