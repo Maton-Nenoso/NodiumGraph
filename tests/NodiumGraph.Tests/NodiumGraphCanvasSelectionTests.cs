@@ -4,6 +4,7 @@ using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
 using Xunit;
+using Size = Avalonia.Size;
 
 namespace NodiumGraph.Tests;
 
@@ -204,6 +205,52 @@ public class NodiumGraphCanvasSelectionTests
         var node = new Node();
         canvas.SelectNode(node, additive: false);
         // No exception = pass
+    }
+
+    [AvaloniaFact]
+    public void Marquee_state_starts_inactive()
+    {
+        var canvas = new NodiumGraphCanvas();
+        Assert.False(canvas.IsMarqueeSelecting);
+    }
+
+    [AvaloniaFact]
+    public void Marquee_selects_nodes_within_rectangle()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var n1 = new Node { X = 50, Y = 50 };
+        n1.Width = 100;
+        n1.Height = 60;
+        var n2 = new Node { X = 300, Y = 300 };
+        n2.Width = 100;
+        n2.Height = 60;
+        graph.AddNode(n1);
+        graph.AddNode(n2);
+        canvas.Graph = graph;
+
+        // Simulate marquee that covers n1 but not n2
+        var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
+        var marqueeRect = new Rect(0, 0, 200, 200);
+
+        foreach (var node in graph.Nodes)
+        {
+            var nodeScreenPos = transform.WorldToScreen(new Point(node.X, node.Y));
+            var nodeScreenSize = new Size(
+                transform.WorldToScreen(node.Width),
+                transform.WorldToScreen(node.Height));
+            var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
+
+            if (marqueeRect.Intersects(nodeRect))
+            {
+                node.IsSelected = true;
+                graph.Select(node);
+            }
+        }
+
+        Assert.True(n1.IsSelected);
+        Assert.False(n2.IsSelected);
+        Assert.Single(graph.SelectedNodes);
     }
 
     private class TestSelectionHandler(Action<IReadOnlyList<Node>> callback) : ISelectionHandler

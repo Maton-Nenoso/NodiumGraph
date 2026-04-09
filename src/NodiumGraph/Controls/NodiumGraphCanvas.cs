@@ -41,6 +41,9 @@ public class NodiumGraphCanvas : TemplatedControl
     private bool _isCuttingConnections;
     private Point _cuttingStart;
     private Point _cuttingEnd;
+    private bool _isMarqueeSelecting;
+    private Point _marqueeStart;
+    private Point _marqueeEnd;
 
     // Cached render-path brushes and pens to avoid per-frame allocations
     private static readonly SolidColorBrush s_gridBrush = new(Color.FromArgb(40, 128, 128, 128));
@@ -49,6 +52,8 @@ public class NodiumGraphCanvas : TemplatedControl
     private static readonly Pen s_previewPenValid = new(Brushes.Green, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
     private static readonly Pen s_previewPenInvalid = new(Brushes.Gray, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
     private static readonly Pen s_cuttingPen = new(Brushes.Red, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
+    private static readonly SolidColorBrush s_marqueeFill = new(Color.FromArgb(30, 100, 150, 255));
+    private static readonly Pen s_marqueePen = new(new SolidColorBrush(Color.FromArgb(150, 100, 150, 255)), 1);
 
     public static readonly StyledProperty<Graph?> GraphProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, Graph?>(nameof(Graph));
@@ -233,6 +238,8 @@ public class NodiumGraphCanvas : TemplatedControl
     internal bool IsDrawingConnection => _isDrawingConnection;
 
     internal bool IsCuttingConnections => _isCuttingConnections;
+
+    internal bool IsMarqueeSelecting => _isMarqueeSelecting;
 
     internal Port? HitTestPort(Point screenPosition)
     {
@@ -496,10 +503,14 @@ public class NodiumGraphCanvas : TemplatedControl
                 n => new Point(n.X, n.Y));
             e.Handled = true;
         }
-        else if (!isCtrl)
+        else
         {
-            ClearSelection();
-            // TODO: Start marquee selection in a later task
+            if (!isCtrl)
+                ClearSelection();
+
+            _isMarqueeSelecting = true;
+            _marqueeStart = position;
+            _marqueeEnd = position;
         }
 
         Focus();
@@ -508,6 +519,14 @@ public class NodiumGraphCanvas : TemplatedControl
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
+
+        if (_isMarqueeSelecting)
+        {
+            _marqueeEnd = e.GetPosition(this);
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
 
         if (_isCuttingConnections)
         {
@@ -573,6 +592,42 @@ public class NodiumGraphCanvas : TemplatedControl
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+
+        if (_isMarqueeSelecting)
+        {
+            _isMarqueeSelecting = false;
+
+            if (Graph != null)
+            {
+                var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+                var marqueeRect = new Rect(
+                    Math.Min(_marqueeStart.X, _marqueeEnd.X),
+                    Math.Min(_marqueeStart.Y, _marqueeEnd.Y),
+                    Math.Abs(_marqueeEnd.X - _marqueeStart.X),
+                    Math.Abs(_marqueeEnd.Y - _marqueeStart.Y));
+
+                foreach (var node in Graph.Nodes)
+                {
+                    var nodeScreenPos = transform.WorldToScreen(new Point(node.X, node.Y));
+                    var nodeScreenSize = new Size(
+                        transform.WorldToScreen(node.Width),
+                        transform.WorldToScreen(node.Height));
+                    var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
+
+                    if (marqueeRect.Intersects(nodeRect))
+                    {
+                        node.IsSelected = true;
+                        Graph.Select(node);
+                    }
+                }
+
+                SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
+            }
+
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
 
         if (_isCuttingConnections)
         {
@@ -670,7 +725,12 @@ public class NodiumGraphCanvas : TemplatedControl
         }
         else if (e.Key == Key.Escape)
         {
-            if (_isCuttingConnections)
+            if (_isMarqueeSelecting)
+            {
+                _isMarqueeSelecting = false;
+                InvalidateVisual();
+            }
+            else if (_isCuttingConnections)
             {
                 _isCuttingConnections = false;
                 InvalidateVisual();
@@ -793,6 +853,17 @@ public class NodiumGraphCanvas : TemplatedControl
         if (_isCuttingConnections)
         {
             context.DrawLine(s_cuttingPen, _cuttingStart, _cuttingEnd);
+        }
+
+        if (_isMarqueeSelecting)
+        {
+            var marqueeRect = new Rect(
+                Math.Min(_marqueeStart.X, _marqueeEnd.X),
+                Math.Min(_marqueeStart.Y, _marqueeEnd.Y),
+                Math.Abs(_marqueeEnd.X - _marqueeStart.X),
+                Math.Abs(_marqueeEnd.Y - _marqueeStart.Y));
+
+            context.DrawRectangle(s_marqueeFill, s_marqueePen, marqueeRect);
         }
 
         if (ShowMinimap && Graph != null)
