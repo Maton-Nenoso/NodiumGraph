@@ -46,7 +46,7 @@ public class NodiumGraphCanvasDragTests
         canvas.Graph = graph;
 
         IReadOnlyList<NodeMoveInfo>? reportedMoves = null;
-        canvas.NodeHandler = new TestNodeHandler(moves => reportedMoves = moves);
+        canvas.NodeHandler = new TestNodeHandler(onMoved: moves => reportedMoves = moves);
 
         // Simulate: select node, move it, complete drag
         canvas.SelectNode(node, additive: false);
@@ -66,11 +66,4 @@ public class NodiumGraphCanvasDragTests
         Assert.Equal(new Point(150, 200), reportedMoves[0].NewPosition);
     }
 
-    private class TestNodeHandler(Action<IReadOnlyList<NodeMoveInfo>> onMoved)
-        : INodeInteractionHandler
-    {
-        public void OnNodesMoved(IReadOnlyList<NodeMoveInfo> moves) => onMoved(moves);
-        public void OnDeleteRequested(IReadOnlyList<Node> nodes, IReadOnlyList<Connection> connections) { }
-        public void OnNodeDoubleClicked(Node node) { }
-    }
 }

@@ -25,7 +25,7 @@ public class NodiumGraphCanvasApiWiringTests
     public void NodeHandler_OnNodeDoubleClicked_is_callable()
     {
         Node? reported = null;
-        var handler = new TestNodeHandler(n => reported = n);
+        var handler = new TestNodeHandler(onDoubleClick: n => reported = n);
 
         var node = new Node();
         handler.OnNodeDoubleClicked(node);
@@ -59,10 +59,4 @@ public class NodiumGraphCanvasApiWiringTests
         public void OnCanvasDropped(Point worldPosition, IDataTransfer data) { }
     }
 
-    private class TestNodeHandler(Action<Node> onDoubleClick) : INodeInteractionHandler
-    {
-        public void OnNodesMoved(IReadOnlyList<NodeMoveInfo> moves) { }
-        public void OnDeleteRequested(IReadOnlyList<Node> nodes, IReadOnlyList<Connection> connections) { }
-        public void OnNodeDoubleClicked(Node node) => onDoubleClick(node);
-    }
 }

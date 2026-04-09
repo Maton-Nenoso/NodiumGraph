@@ -72,7 +72,7 @@ public class NodiumGraphCanvasKeyboardTests
 
         IReadOnlyList<Node>? deletedNodes = null;
         IReadOnlyList<Connection>? deletedConns = null;
-        canvas.NodeHandler = new TestNodeHandler((nodes, conns) =>
+        canvas.NodeHandler = new TestNodeHandler(onDelete: (nodes, conns) =>
         {
             deletedNodes = nodes;
             deletedConns = conns;
@@ -105,7 +105,7 @@ public class NodiumGraphCanvasKeyboardTests
         canvas.SelectNode(nodeA, false);
 
         IReadOnlyList<Connection>? reportedConns = null;
-        canvas.NodeHandler = new TestNodeHandler((_, conns) => reportedConns = conns);
+        canvas.NodeHandler = new TestNodeHandler(onDelete: (_, conns) => reportedConns = conns);
 
         canvas.DeleteSelected();
 
@@ -124,7 +124,7 @@ public class NodiumGraphCanvasKeyboardTests
         canvas.Graph = graph;
         canvas.SelectNode(node, false);
 
-        canvas.NodeHandler = new TestNodeHandler((_, _) => { });
+        canvas.NodeHandler = new TestNodeHandler(onDelete: (_, _) => { });
 
         canvas.DeleteSelected();
 
@@ -142,7 +142,7 @@ public class NodiumGraphCanvasKeyboardTests
         canvas.Graph = graph;
 
         var called = false;
-        canvas.NodeHandler = new TestNodeHandler((_, _) => called = true);
+        canvas.NodeHandler = new TestNodeHandler(onDelete: (_, _) => called = true);
 
         canvas.DeleteSelected();
 
@@ -175,19 +175,4 @@ public class NodiumGraphCanvasKeyboardTests
         Assert.Empty(graph.SelectedNodes);
     }
 
-    private class TestNodeHandler(Action<IReadOnlyList<Node>, IReadOnlyList<Connection>> onDelete)
-        : INodeInteractionHandler
-    {
-        public void OnNodesMoved(IReadOnlyList<NodeMoveInfo> moves) { }
-
-        public void OnDeleteRequested(IReadOnlyList<Node> nodes, IReadOnlyList<Connection> connections) =>
-            onDelete(nodes, connections);
-
-        public void OnNodeDoubleClicked(Node node) { }
-    }
-
-    private class TestSelectionHandler(Action<IReadOnlyList<Node>> callback) : ISelectionHandler
-    {
-        public void OnSelectionChanged(IReadOnlyList<Node> selectedNodes) => callback(selectedNodes);
-    }
 }

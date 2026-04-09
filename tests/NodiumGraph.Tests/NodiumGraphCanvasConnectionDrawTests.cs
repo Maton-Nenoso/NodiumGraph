@@ -76,13 +76,13 @@ public class NodiumGraphCanvasConnectionDrawTests
 
         Port? requestedSource = null;
         Port? requestedTarget = null;
-        canvas.ConnectionHandler = new TestConnectionHandler((s, t) =>
+        canvas.ConnectionHandler = new TestConnectionHandler(onRequested: (s, t) =>
         {
             requestedSource = s;
             requestedTarget = t;
             var conn = new Connection(s, t);
             graph.AddConnection(conn);
-            return conn;
+            return (Result<Connection>)conn;
         });
 
         // Simulate: programmatically test the handler call
@@ -120,12 +120,6 @@ public class NodiumGraphCanvasConnectionDrawTests
     {
         public Result<Connection> OnConnectionRequested(Port source, Port target)
             => new Error("Rejected", "TEST");
-        public void OnConnectionDeleteRequested(Connection connection) { }
-    }
-
-    private class TestConnectionHandler(Func<Port, Port, Connection> onRequested) : IConnectionHandler
-    {
-        public Result<Connection> OnConnectionRequested(Port source, Port target) => onRequested(source, target);
         public void OnConnectionDeleteRequested(Connection connection) { }
     }
 }

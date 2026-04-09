@@ -253,8 +253,4 @@ public class NodiumGraphCanvasSelectionTests
         Assert.Single(graph.SelectedNodes);
     }
 
-    private class TestSelectionHandler(Action<IReadOnlyList<Node>> callback) : ISelectionHandler
-    {
-        public void OnSelectionChanged(IReadOnlyList<Node> selectedNodes) => callback(selectedNodes);
-    }
 }
