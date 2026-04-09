@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
+using Avalonia.Media;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
 
@@ -13,6 +14,11 @@ namespace NodiumGraph.Controls;
 /// </summary>
 public class NodiumGraphCanvas : TemplatedControl
 {
+    static NodiumGraphCanvas()
+    {
+        ClipToBoundsProperty.OverrideDefaultValue<NodiumGraphCanvas>(true);
+    }
+
     private readonly Dictionary<Node, ContentControl> _nodeContainers = new();
     public static readonly StyledProperty<Graph?> GraphProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, Graph?>(nameof(Graph));
@@ -190,12 +196,46 @@ public class NodiumGraphCanvas : TemplatedControl
 
     internal int NodeContainerCount => _nodeContainers.Count;
 
+    public override void Render(DrawingContext context)
+    {
+        base.Render(context);
+
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+
+        if (ShowGrid)
+        {
+            var gridBrush = new SolidColorBrush(Color.FromArgb(40, 128, 128, 128));
+            GridRenderer.Render(context, Bounds, transform, GridSize, gridBrush);
+        }
+
+        if (Graph != null)
+        {
+            var router = ConnectionRouter;
+            var style = DefaultConnectionStyle;
+            foreach (var connection in Graph.Connections)
+            {
+                ConnectionRenderer.Render(context, connection, router, style, transform);
+            }
+        }
+    }
+
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
+
         if (change.Property == GraphProperty)
         {
             OnGraphChanged(change.GetOldValue<Graph?>(), change.GetNewValue<Graph?>());
+            InvalidateVisual();
+        }
+        else if (change.Property == ViewportZoomProperty ||
+                 change.Property == ViewportOffsetProperty ||
+                 change.Property == ShowGridProperty ||
+                 change.Property == GridSizeProperty ||
+                 change.Property == ConnectionRouterProperty ||
+                 change.Property == DefaultConnectionStyleProperty)
+        {
+            InvalidateVisual();
         }
     }
 
