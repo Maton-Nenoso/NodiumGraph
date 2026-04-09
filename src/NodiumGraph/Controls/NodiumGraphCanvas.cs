@@ -810,8 +810,12 @@ public class NodiumGraphCanvas : TemplatedControl
             InvalidateVisual();
         }
         else if (change.Property == ViewportZoomProperty ||
-                 change.Property == ViewportOffsetProperty ||
-                 change.Property == ShowGridProperty ||
+                 change.Property == ViewportOffsetProperty)
+        {
+            InvalidateArrange();
+            InvalidateVisual();
+        }
+        else if (change.Property == ShowGridProperty ||
                  change.Property == GridSizeProperty ||
                  change.Property == ConnectionRouterProperty ||
                  change.Property == DefaultConnectionStyleProperty ||
@@ -825,10 +829,19 @@ public class NodiumGraphCanvas : TemplatedControl
     private void OnGraphChanged(Graph? oldGraph, Graph? newGraph)
     {
         if (oldGraph != null)
+        {
             ((INotifyCollectionChanged)oldGraph.Nodes).CollectionChanged -= OnNodesCollectionChanged;
+            foreach (var node in oldGraph.Nodes)
+                node.PropertyChanged -= OnNodePropertyChanged;
+        }
+
+        foreach (var container in _nodeContainers.Values)
+        {
+            LogicalChildren.Remove(container);
+            VisualChildren.Remove(container);
+        }
 
         _nodeContainers.Clear();
-        // TODO: Remove visual children when visual tree management is added
 
         if (newGraph != null)
         {
@@ -852,6 +865,13 @@ public class NodiumGraphCanvas : TemplatedControl
         }
         else if (e.Action == NotifyCollectionChangedAction.Reset)
         {
+            foreach (var (node, container) in _nodeContainers)
+            {
+                node.PropertyChanged -= OnNodePropertyChanged;
+                LogicalChildren.Remove(container);
+                VisualChildren.Remove(container);
+            }
+
             _nodeContainers.Clear();
         }
     }
@@ -866,10 +886,60 @@ public class NodiumGraphCanvas : TemplatedControl
             ContentTemplate = template
         };
         _nodeContainers[node] = container;
+        LogicalChildren.Add(container);
+        VisualChildren.Add(container);
+
+        node.PropertyChanged += OnNodePropertyChanged;
+
+        InvalidateMeasure();
     }
 
     private void RemoveNodeContainer(Node node)
     {
-        _nodeContainers.Remove(node);
+        if (_nodeContainers.TryGetValue(node, out var container))
+        {
+            node.PropertyChanged -= OnNodePropertyChanged;
+            LogicalChildren.Remove(container);
+            VisualChildren.Remove(container);
+            _nodeContainers.Remove(node);
+            InvalidateMeasure();
+        }
+    }
+
+    private void OnNodePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(Node.X) or nameof(Node.Y))
+            InvalidateArrange();
+        else if (e.PropertyName is nameof(Node.IsSelected))
+            InvalidateVisual();
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        foreach (var (_, container) in _nodeContainers)
+        {
+            container.Measure(Size.Infinity);
+        }
+
+        return availableSize;
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+
+        foreach (var (node, container) in _nodeContainers)
+        {
+            var desired = container.DesiredSize;
+            if (desired.Width > 0) node.Width = desired.Width;
+            if (desired.Height > 0) node.Height = desired.Height;
+
+            var screenPos = transform.WorldToScreen(new Point(node.X, node.Y));
+
+            container.RenderTransform = new ScaleTransform(ViewportZoom, ViewportZoom);
+            container.Arrange(new Rect(screenPos, desired));
+        }
+
+        return finalSize;
     }
 }

@@ -1,4 +1,7 @@
+using System.Linq;
+using Avalonia;
 using Avalonia.Headless.XUnit;
+using Avalonia.VisualTree;
 using NodiumGraph.Controls;
 using NodiumGraph.Model;
 using Xunit;
@@ -73,5 +76,73 @@ public class NodiumGraphCanvasGraphBindingTests
         canvas.Graph = null;
 
         Assert.Equal(0, canvas.NodeContainerCount);
+    }
+
+    [AvaloniaFact]
+    public void Node_container_is_in_visual_tree()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        canvas.Graph = graph;
+
+        Assert.Equal(1, canvas.GetVisualChildren().Count());
+    }
+
+    [AvaloniaFact]
+    public void Removing_node_removes_from_visual_tree()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        canvas.Graph = graph;
+
+        graph.RemoveNode(node);
+
+        Assert.Equal(0, canvas.GetVisualChildren().Count());
+    }
+
+    [AvaloniaFact]
+    public void Changing_graph_removes_old_containers_from_visual_tree()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph1 = new Graph();
+        graph1.AddNode(new Node());
+        graph1.AddNode(new Node());
+        canvas.Graph = graph1;
+
+        var graph2 = new Graph();
+        graph2.AddNode(new Node());
+        canvas.Graph = graph2;
+
+        Assert.Equal(1, canvas.GetVisualChildren().Count());
+    }
+
+    [AvaloniaFact]
+    public void Arrange_writes_measured_size_back_to_node()
+    {
+        var canvas = new NodiumGraphCanvas();
+        canvas.NodeTemplate = new Avalonia.Controls.Templates.FuncDataTemplate<Node>(
+            (_, _) => new Avalonia.Controls.Border { Width = 150, Height = 80 },
+            supportsRecycling: false);
+        var graph = new Graph();
+        var node = new Node { Title = "Test Node" };
+        graph.AddNode(node);
+        canvas.Graph = graph;
+
+        // Embed in a Window so the visual tree is rooted and templates expand
+        var window = new Avalonia.Controls.Window { Content = canvas };
+        window.Show();
+
+        // Force a layout pass on the window
+        window.Measure(new Size(800, 600));
+        window.Arrange(new Rect(0, 0, 800, 600));
+
+        Assert.True(node.Width > 0, $"Expected Width > 0, got {node.Width}");
+        Assert.True(node.Height > 0, $"Expected Height > 0, got {node.Height}");
+
+        window.Close();
     }
 }
