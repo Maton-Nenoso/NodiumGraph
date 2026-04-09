@@ -21,6 +21,9 @@ public class NodiumGraphCanvas : TemplatedControl
         FocusableProperty.OverrideDefaultValue<NodiumGraphCanvas>(true);
     }
 
+    private const double AutoPanMargin = 40.0;
+    private const double AutoPanSpeed = 10.0;
+
     private readonly Dictionary<Node, ContentControl> _nodeContainers = new();
     private bool _isPanning;
     private bool _isSpaceHeld;
@@ -365,6 +368,29 @@ public class NodiumGraphCanvas : TemplatedControl
             Bounds.Height / 2 - centerY * ViewportZoom);
     }
 
+    internal void ApplyAutoPan(Point screenPosition)
+    {
+        if (Bounds.Width <= 0 || Bounds.Height <= 0) return;
+
+        var dx = 0.0;
+        var dy = 0.0;
+
+        if (screenPosition.X < AutoPanMargin)
+            dx = AutoPanSpeed;
+        else if (screenPosition.X > Bounds.Width - AutoPanMargin)
+            dx = -AutoPanSpeed;
+
+        if (screenPosition.Y < AutoPanMargin)
+            dy = AutoPanSpeed;
+        else if (screenPosition.Y > Bounds.Height - AutoPanMargin)
+            dy = -AutoPanSpeed;
+
+        if (dx != 0 || dy != 0)
+        {
+            ViewportOffset = new Point(ViewportOffset.X + dx, ViewportOffset.Y + dy);
+        }
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
@@ -435,6 +461,7 @@ public class NodiumGraphCanvas : TemplatedControl
                 targetPort != _connectionSourcePort &&
                 (ConnectionValidator?.CanConnect(_connectionSourcePort, targetPort) ?? true);
 
+            ApplyAutoPan(_connectionPreviewEnd);
             InvalidateVisual();
             e.Handled = true;
             return;
@@ -462,6 +489,7 @@ public class NodiumGraphCanvas : TemplatedControl
                 node.Y = newY;
             }
 
+            ApplyAutoPan(position);
             InvalidateVisual();
             e.Handled = true;
             return;
