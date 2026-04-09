@@ -35,6 +35,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private const double AutoPanSpeed = 10.0;
 
     private readonly Dictionary<Node, ContentControl> _nodeContainers = new();
+    private Node? _hoveredNode;
     private bool _isPanning;
     private bool _isSpaceHeld;
     private Point _panStartScreen;
@@ -62,6 +63,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal static readonly Pen s_cuttingPen = new(Brushes.Red, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
     internal static readonly SolidColorBrush s_marqueeFill = new(Color.FromArgb(30, 100, 150, 255));
     internal static readonly Pen s_marqueePen = new(new SolidColorBrush(Color.FromArgb(150, 100, 150, 255)), 1);
+    internal static readonly Pen s_selectedBorderPen = new(new SolidColorBrush(Color.FromRgb(80, 160, 255)), 2);
+    internal static readonly Pen s_hoveredBorderPen = new(new SolidColorBrush(Color.FromArgb(120, 150, 190, 255)), 1.5);
 
     private readonly CanvasOverlay _overlay;
 
@@ -250,6 +253,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal bool IsCuttingConnections => _isCuttingConnections;
 
     internal bool IsMarqueeSelecting => _isMarqueeSelecting;
+
+    internal Node? HoveredNode => _hoveredNode;
 
     // Overlay state accessors
     internal Port? ConnectionSourcePort => _connectionSourcePort;
@@ -640,6 +645,16 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             var delta = position - _panStartScreen;
             ViewportOffset = new Point(_panStartOffset.X + delta.X, _panStartOffset.Y + delta.Y);
             e.Handled = true;
+            return;
+        }
+
+        // Hover tracking (no active interaction)
+        var hoverPos = e.GetPosition(this);
+        var newHovered = HitTestNode(hoverPos);
+        if (newHovered != _hoveredNode)
+        {
+            _hoveredNode = newHovered;
+            InvalidateVisual();
         }
     }
 
@@ -863,6 +878,16 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     {
         base.InvalidateVisual();
         _overlay.InvalidateVisual();
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        if (_hoveredNode != null)
+        {
+            _hoveredNode = null;
+            InvalidateVisual();
+        }
     }
 
     // ICustomHitTest makes the canvas hit-testable across its entire area,

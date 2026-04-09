@@ -24,6 +24,26 @@ internal class CanvasOverlay : Control
         if (graph == null) return;
 
         var transform = new ViewportTransform(_canvas.ViewportZoom, _canvas.ViewportOffset);
+        var zoom = _canvas.ViewportZoom;
+
+        // Node state borders (hovered + selected)
+        foreach (var node in graph.Nodes)
+        {
+            if (!node.IsSelected && node != _canvas.HoveredNode) continue;
+
+            var screenPos = transform.WorldToScreen(new Point(node.X, node.Y));
+            var scaledSize = new Size(node.Width * zoom, node.Height * zoom);
+            var nodeRect = new Rect(screenPos, scaledSize).Inflate(2);
+
+            if (node.IsSelected)
+            {
+                context.DrawRectangle(null, NodiumGraphCanvas.s_selectedBorderPen, nodeRect, 6, 6);
+            }
+            else if (node == _canvas.HoveredNode)
+            {
+                context.DrawRectangle(null, NodiumGraphCanvas.s_hoveredBorderPen, nodeRect, 6, 6);
+            }
+        }
 
         // Port visuals (only default when no custom template)
         if (_canvas.PortTemplate == null)
