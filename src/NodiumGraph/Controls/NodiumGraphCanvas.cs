@@ -261,9 +261,9 @@ public class NodiumGraphCanvas : TemplatedControl
     internal Node? HitTestNode(Point screenPosition)
     {
         var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+        Node? result = null;
 
-        // Check containers in reverse order (top-most first, i.e. last-added)
-        foreach (var (node, container) in _nodeContainers.Reverse())
+        foreach (var (node, container) in _nodeContainers)
         {
             var nodeScreenPos = transform.WorldToScreen(new Point(node.X, node.Y));
             var nodeScreenSize = new Size(
@@ -272,10 +272,10 @@ public class NodiumGraphCanvas : TemplatedControl
             var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
 
             if (nodeRect.Contains(screenPosition))
-                return node;
+                result = node; // keep last match (topmost)
         }
 
-        return null;
+        return result;
     }
 
     internal void SelectNode(Node node, bool additive)
