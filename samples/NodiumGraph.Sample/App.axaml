@@ -5,4 +5,12 @@
         <FluentTheme />
         <StyleInclude Source="avares://NodiumGraph/Themes/Generic.axaml" />
     </Application.Styles>
+
+    <Application.Resources>
+        <!-- Override node header to red -->
+        <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FFCC4444" />
+        <!-- Override selected border to gold -->
+        <SolidColorBrush x:Key="NodiumGraphNodeSelectedBorderBrush" Color="#FFFFD700" />
+    </Application.Resources>
+
 </Application>
