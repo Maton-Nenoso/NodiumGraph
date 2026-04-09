@@ -87,4 +87,56 @@ public class NodeTests
         var node = new Node();
         Assert.Null(node.PortProvider);
     }
+
+    [Fact]
+    public void Title_defaults_to_type_name()
+    {
+        var node = new Node();
+        Assert.Equal("Node", node.Title);
+    }
+
+    [Fact]
+    public void Title_can_be_set_and_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var fired = false;
+        ((INotifyPropertyChanged)node).PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Node.Title)) fired = true;
+        };
+
+        node.Title = "My Node";
+        Assert.Equal("My Node", node.Title);
+        Assert.True(fired);
+    }
+
+    [Fact]
+    public void IsSelected_defaults_to_false()
+    {
+        var node = new Node();
+        Assert.False(node.IsSelected);
+    }
+
+    [Fact]
+    public void IsSelected_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var fired = false;
+        ((INotifyPropertyChanged)node).PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Node.IsSelected)) fired = true;
+        };
+
+        node.IsSelected = true;
+        Assert.True(fired);
+    }
+
+    [Fact]
+    public void Subclass_title_defaults_to_subclass_name()
+    {
+        var node = new TestNode();
+        Assert.Equal("TestNode", node.Title);
+    }
+
+    private class TestNode : Node { }
 }

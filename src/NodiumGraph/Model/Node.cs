@@ -11,6 +11,13 @@ public class Node : INotifyPropertyChanged
 {
     private double _x;
     private double _y;
+    private string _title;
+    private bool _isSelected;
+
+    public Node()
+    {
+        _title = GetType().Name;
+    }
 
     public Guid Id { get; } = Guid.NewGuid();
 
@@ -30,6 +37,18 @@ public class Node : INotifyPropertyChanged
     public double Height { get; internal set; }
 
     public IPortProvider? PortProvider { get; set; }
+
+    public string Title
+    {
+        get => _title;
+        set => SetField(ref _title, value);
+    }
+
+    public bool IsSelected
+    {
+        get => _isSelected;
+        internal set => SetField(ref _isSelected, value);
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
