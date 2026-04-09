@@ -70,6 +70,9 @@ internal static class MinimapRenderer
             new Pen(Brushes.Gray, 1),
             minimapBounds, 4, 4);
 
+        // Clip all subsequent drawing to minimap bounds
+        using var _ = context.PushClip(new RoundedRect(minimapBounds, 4));
+
         // Draw nodes as small rectangles
         var nodeBrush = new SolidColorBrush(Color.FromArgb(180, 100, 150, 200));
         var selectedBrush = new SolidColorBrush(Color.FromArgb(220, 80, 180, 255));
