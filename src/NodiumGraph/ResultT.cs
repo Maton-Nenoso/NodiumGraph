@@ -1,6 +1,9 @@
 namespace NodiumGraph;
 
-public record Result<T> : Result
+/// <summary>
+/// Represents the outcome of an operation that returns a value of type <typeparamref name="T"/> on success.
+/// </summary>
+public class Result<T> : Result
 {
     public T? Value { get; }
 

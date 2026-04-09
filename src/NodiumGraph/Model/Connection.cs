@@ -1,5 +1,8 @@
 namespace NodiumGraph.Model;
 
+/// <summary>
+/// A directed link between two ports. Subclass to attach labels or weights.
+/// </summary>
 public class Connection
 {
     public Guid Id { get; } = Guid.NewGuid();

@@ -73,4 +73,36 @@ public class DynamicPortProviderTests
 
         Assert.Null(port);
     }
+
+    [Fact]
+    public void ResolvePort_returns_null_for_zero_size_node()
+    {
+        var node = new Node { X = 0, Y = 0 };
+        // Width and Height default to 0 (unmeasured node)
+        var provider = new DynamicPortProvider(node);
+
+        var port = provider.ResolvePort(new Point(0, 0));
+
+        Assert.Null(port);
+    }
+
+    [Fact]
+    public void Constructor_throws_on_null_owner()
+    {
+        Assert.Throws<ArgumentNullException>(() => new DynamicPortProvider(null!));
+    }
+
+    [Fact]
+    public void Constructor_throws_on_zero_reuseThreshold()
+    {
+        var node = new Node();
+        Assert.Throws<ArgumentOutOfRangeException>(() => new DynamicPortProvider(node, reuseThreshold: 0));
+    }
+
+    [Fact]
+    public void Constructor_throws_on_negative_maxDistance()
+    {
+        var node = new Node();
+        Assert.Throws<ArgumentOutOfRangeException>(() => new DynamicPortProvider(node, maxDistance: -1));
+    }
 }

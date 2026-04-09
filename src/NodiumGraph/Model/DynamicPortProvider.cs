@@ -2,6 +2,10 @@ using Avalonia;
 
 namespace NodiumGraph.Model;
 
+/// <summary>
+/// Port provider that creates ports dynamically at the nearest node boundary point.
+/// Reuses existing ports within a distance threshold.
+/// </summary>
 public class DynamicPortProvider : IPortProvider
 {
     private const double DefaultReuseThreshold = 15.0;
@@ -9,20 +13,26 @@ public class DynamicPortProvider : IPortProvider
 
     private readonly Node _owner;
     private readonly List<Port> _ports = new();
-    private readonly double _reuseThreshold;
-    private readonly double _maxDistance;
+    private readonly double _reuseThresholdSq;
+    private readonly double _maxDistanceSq;
 
-    public IReadOnlyList<Port> Ports => _ports;
+    public IReadOnlyList<Port> Ports => _ports.AsReadOnly();
 
     public DynamicPortProvider(Node owner, double reuseThreshold = DefaultReuseThreshold, double maxDistance = DefaultMaxDistance)
     {
-        _owner = owner ?? throw new ArgumentNullException(nameof(owner));
-        _reuseThreshold = reuseThreshold;
-        _maxDistance = maxDistance;
+        ArgumentNullException.ThrowIfNull(owner);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(reuseThreshold);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDistance);
+        _owner = owner;
+        _reuseThresholdSq = reuseThreshold * reuseThreshold;
+        _maxDistanceSq = maxDistance * maxDistance;
     }
 
     public Port? ResolvePort(Point position)
     {
+        if (_owner.Width <= 0 || _owner.Height <= 0)
+            return null;
+
         var boundary = FindNearestBoundaryPoint(position);
         if (boundary is null)
             return null;
@@ -32,7 +42,7 @@ public class DynamicPortProvider : IPortProvider
             var abs = existing.AbsolutePosition;
             var dx = abs.X - boundary.Value.X;
             var dy = abs.Y - boundary.Value.Y;
-            if (Math.Sqrt(dx * dx + dy * dy) < _reuseThreshold)
+            if (dx * dx + dy * dy < _reuseThresholdSq)
                 return existing;
         }
 
@@ -71,7 +81,7 @@ public class DynamicPortProvider : IPortProvider
 
         var dx = position.X - boundaryPoint.X;
         var dy = position.Y - boundaryPoint.Y;
-        if (Math.Sqrt(dx * dx + dy * dy) > _maxDistance)
+        if (dx * dx + dy * dy > _maxDistanceSq)
             return null;
 
         return boundaryPoint;

@@ -67,4 +67,24 @@ public class FixedPortProviderTests
         Assert.Empty(provider.Ports);
         Assert.Null(provider.ResolvePort(new Point(0, 0)));
     }
+
+    [Fact]
+    public void Constructor_throws_on_null_ports()
+    {
+        Assert.Throws<ArgumentNullException>(() => new FixedPortProvider(null!));
+    }
+
+    [Fact]
+    public void Constructor_throws_on_zero_hitRadius()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => new FixedPortProvider(Array.Empty<Port>(), hitRadius: 0));
+    }
+
+    [Fact]
+    public void Constructor_throws_on_negative_hitRadius()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => new FixedPortProvider(Array.Empty<Port>(), hitRadius: -5));
+    }
 }

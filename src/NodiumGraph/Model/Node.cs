@@ -3,6 +3,10 @@ using System.Runtime.CompilerServices;
 
 namespace NodiumGraph.Model;
 
+/// <summary>
+/// A visual node in the graph. Subclass to attach domain data.
+/// Width and Height are set internally by the canvas after measure.
+/// </summary>
 public class Node : INotifyPropertyChanged
 {
     private double _x;

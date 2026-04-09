@@ -82,4 +82,18 @@ public class ResultOfTTests
     {
         Assert.Throws<ArgumentNullException>(() => { Result<string> result = (string)null!; });
     }
+
+    [Fact]
+    public void Implicit_conversion_from_connection_creates_success()
+    {
+        var node = new Model.Node();
+        var source = new Model.Port(node, new Avalonia.Point(0, 0));
+        var target = new Model.Port(node, new Avalonia.Point(10, 0));
+        var connection = new Model.Connection(source, target);
+
+        Result<Model.Connection> result = connection;
+
+        Assert.True(result.IsSuccess);
+        Assert.Same(connection, result.Value);
+    }
 }

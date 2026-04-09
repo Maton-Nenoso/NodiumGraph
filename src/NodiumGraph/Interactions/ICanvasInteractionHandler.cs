@@ -2,6 +2,9 @@ using Avalonia;
 
 namespace NodiumGraph.Interactions;
 
+/// <summary>
+/// Receives canvas-level interactions (double-click, external drag-drop).
+/// </summary>
 public interface ICanvasInteractionHandler
 {
     void OnCanvasDoubleClicked(Point worldPosition);

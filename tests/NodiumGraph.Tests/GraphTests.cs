@@ -162,4 +162,44 @@ public class GraphTests
         graph.ClearSelection();
         Assert.Empty(graph.SelectedNodes);
     }
+
+    [Fact]
+    public void RemoveConnection_is_idempotent()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        var source = new Port(node, new Point(0, 0));
+        var target = new Port(node, new Point(10, 0));
+        var conn = new Connection(source, target);
+        graph.AddConnection(conn);
+        graph.RemoveConnection(conn);
+        // Second remove should not throw
+        graph.RemoveConnection(conn);
+        Assert.Empty(graph.Connections);
+    }
+
+    [Fact]
+    public void Deselect_is_idempotent()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        // Deselect without prior select should not throw
+        graph.Deselect(node);
+        Assert.Empty(graph.SelectedNodes);
+    }
+
+    [Fact]
+    public void Nodes_collection_is_read_only()
+    {
+        var graph = new Graph();
+        Assert.IsType<System.Collections.ObjectModel.ReadOnlyObservableCollection<Node>>(graph.Nodes);
+    }
+
+    [Fact]
+    public void Connections_collection_is_read_only()
+    {
+        var graph = new Graph();
+        Assert.IsType<System.Collections.ObjectModel.ReadOnlyObservableCollection<Connection>>(graph.Connections);
+    }
 }

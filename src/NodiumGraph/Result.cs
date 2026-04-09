@@ -1,6 +1,9 @@
 namespace NodiumGraph;
 
-public record Result
+/// <summary>
+/// Represents the outcome of an operation that can succeed or fail.
+/// </summary>
+public class Result
 {
     public bool IsSuccess { get; }
     public Error? Error { get; }
