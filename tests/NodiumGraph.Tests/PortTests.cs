@@ -49,4 +49,36 @@ public class PortTests
     {
         Assert.Throws<ArgumentNullException>(() => new Port(null!, new Point(0, 0)));
     }
+
+    [Fact]
+    public void Port_stores_name()
+    {
+        var node = new Node();
+        var port = new Port(node, "MyPort", PortFlow.Input, new Point(0, 0));
+        Assert.Equal("MyPort", port.Name);
+    }
+
+    [Fact]
+    public void Port_stores_flow()
+    {
+        var node = new Node();
+        var port = new Port(node, "Out", PortFlow.Output, new Point(0, 0));
+        Assert.Equal(PortFlow.Output, port.Flow);
+    }
+
+    [Fact]
+    public void Port_name_defaults_to_empty_string()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+        Assert.Equal(string.Empty, port.Name);
+    }
+
+    [Fact]
+    public void Port_flow_defaults_to_Input()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+        Assert.Equal(PortFlow.Input, port.Flow);
+    }
 }
