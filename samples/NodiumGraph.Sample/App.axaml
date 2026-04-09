@@ -3,5 +3,6 @@
              x:Class="NodiumGraph.Sample.App">
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://NodiumGraph/Themes/Generic.axaml" />
     </Application.Styles>
 </Application>
