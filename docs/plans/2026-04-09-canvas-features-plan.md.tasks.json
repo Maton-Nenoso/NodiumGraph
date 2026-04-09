@@ -1,0 +1,31 @@
+{
+  "planPath": "docs/plans/2026-04-09-canvas-features-plan.md",
+  "tasks": [
+    {"id": 1, "subject": "Task 1: PortFlow enum", "status": "pending"},
+    {"id": 2, "subject": "Task 2: Port.Name, Port.Flow", "status": "pending", "blockedBy": [1]},
+    {"id": 3, "subject": "Task 3: Node.Title, Node.IsSelected", "status": "pending"},
+    {"id": 4, "subject": "Task 4: StraightRouter", "status": "pending"},
+    {"id": 5, "subject": "Task 5: BezierRouter", "status": "pending"},
+    {"id": 6, "subject": "Task 6: StepRouter", "status": "pending"},
+    {"id": 7, "subject": "Task 7: Canvas StyledProperties", "status": "pending", "blockedBy": [3, 5]},
+    {"id": 8, "subject": "Task 8: ViewportTransform", "status": "pending"},
+    {"id": 9, "subject": "Task 9: Canvas graph subscription", "status": "pending", "blockedBy": [7]},
+    {"id": 10, "subject": "Task 10: Grid rendering", "status": "pending", "blockedBy": [8]},
+    {"id": 11, "subject": "Task 11: Connection rendering", "status": "pending", "blockedBy": [4, 5, 6, 8]},
+    {"id": 12, "subject": "Task 12: Canvas OnRender compositing", "status": "pending", "blockedBy": [9, 10, 11]},
+    {"id": 13, "subject": "Task 13: Pan interaction", "status": "pending", "blockedBy": [8, 12]},
+    {"id": 14, "subject": "Task 14: Zoom interaction", "status": "pending", "blockedBy": [8, 12]},
+    {"id": 15, "subject": "Task 15: Node selection", "status": "pending", "blockedBy": [9, 12]},
+    {"id": 16, "subject": "Task 16: Node drag", "status": "pending", "blockedBy": [15]},
+    {"id": 17, "subject": "Task 17: Connection draw", "status": "pending", "blockedBy": [11, 15]},
+    {"id": 18, "subject": "Task 18: Keyboard shortcuts", "status": "pending", "blockedBy": [15]},
+    {"id": 19, "subject": "Task 19: Public methods", "status": "pending", "blockedBy": [14, 15]},
+    {"id": 20, "subject": "Task 20: Auto-pan", "status": "pending", "blockedBy": [13, 16, 17]},
+    {"id": 21, "subject": "Task 21: Connection cutting", "status": "pending", "blockedBy": [11, 17]},
+    {"id": 22, "subject": "Task 22: Minimap", "status": "pending", "blockedBy": [9, 14]},
+    {"id": 23, "subject": "Task 23: GroupNode, CommentNode", "status": "pending", "blockedBy": [3]},
+    {"id": 24, "subject": "Task 24: Default templates & theme", "status": "pending", "blockedBy": [7, 9, 23]},
+    {"id": 25, "subject": "Task 25: Sample app integration", "status": "pending", "blockedBy": [24]}
+  ],
+  "lastUpdated": "2026-04-09T09:30:00Z"
+}
