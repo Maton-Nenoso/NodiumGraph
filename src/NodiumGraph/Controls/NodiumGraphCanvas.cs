@@ -244,10 +244,11 @@ public class NodiumGraphCanvas : TemplatedControl
 
     internal Node? HitTestNode(Point screenPosition)
     {
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+
         // Check containers in reverse order (top-most first, i.e. last-added)
         foreach (var (node, container) in _nodeContainers.Reverse())
         {
-            var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
             var nodeScreenPos = transform.WorldToScreen(new Point(node.X, node.Y));
             var nodeScreenSize = new Size(
                 transform.WorldToScreen(node.Width),
