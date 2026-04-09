@@ -1084,12 +1084,8 @@ public class NodiumGraphCanvas : TemplatedControl
             if (desired.Height > 0) node.Height = desired.Height;
 
             var screenPos = transform.WorldToScreen(new Point(node.X, node.Y));
-
-            // Scale the container content by zoom
-            container.RenderTransform = new ScaleTransform(ViewportZoom, ViewportZoom);
-
-            // Arrange with the scaled size so layout slot matches visual footprint
             var scaledSize = new Size(desired.Width * ViewportZoom, desired.Height * ViewportZoom);
+            container.RenderTransform = null; // Remove any previous transform
             container.Arrange(new Rect(screenPos, scaledSize));
         }
 
