@@ -11,6 +11,8 @@ public class Node : INotifyPropertyChanged
 {
     private double _x;
     private double _y;
+    private double _width;
+    private double _height;
     private string _title;
     private bool _isSelected;
 
@@ -33,8 +35,17 @@ public class Node : INotifyPropertyChanged
         set => SetField(ref _y, value);
     }
 
-    public double Width { get; internal set; }
-    public double Height { get; internal set; }
+    public double Width
+    {
+        get => _width;
+        internal set => SetField(ref _width, value);
+    }
+
+    public double Height
+    {
+        get => _height;
+        internal set => SetField(ref _height, value);
+    }
 
     public IPortProvider? PortProvider { get; set; }
 

@@ -132,6 +132,32 @@ public class NodeTests
     }
 
     [Fact]
+    public void Setting_Width_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var fired = false;
+        ((INotifyPropertyChanged)node).PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Node.Width)) fired = true;
+        };
+        node.Width = 100.0;
+        Assert.True(fired);
+    }
+
+    [Fact]
+    public void Setting_Height_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var fired = false;
+        ((INotifyPropertyChanged)node).PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Node.Height)) fired = true;
+        };
+        node.Height = 80.0;
+        Assert.True(fired);
+    }
+
+    [Fact]
     public void Subclass_title_defaults_to_subclass_name()
     {
         var node = new TestNode();
