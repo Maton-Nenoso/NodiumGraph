@@ -55,6 +55,10 @@ public class Graph
         ArgumentNullException.ThrowIfNull(connection);
         if (_connections.Contains(connection))
             throw new InvalidOperationException("Connection is already in the graph.");
+        if (!_nodes.Contains(connection.SourcePort.Owner))
+            throw new InvalidOperationException("Source port's owner node is not in the graph.");
+        if (!_nodes.Contains(connection.TargetPort.Owner))
+            throw new InvalidOperationException("Target port's owner node is not in the graph.");
         _connections.Add(connection);
     }
 

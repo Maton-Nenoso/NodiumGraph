@@ -60,6 +60,7 @@ public class GraphTests
     {
         var graph = new Graph();
         var node = new Node();
+        graph.AddNode(node);
         var source = new Port(node, new Point(0, 0));
         var target = new Port(node, new Point(10, 0));
         var conn = new Connection(source, target);
@@ -72,6 +73,7 @@ public class GraphTests
     {
         var graph = new Graph();
         var node = new Node();
+        graph.AddNode(node);
         var source = new Port(node, new Point(0, 0));
         var target = new Port(node, new Point(10, 0));
         var conn = new Connection(source, target);
@@ -129,6 +131,7 @@ public class GraphTests
     {
         var graph = new Graph();
         var node = new Node();
+        graph.AddNode(node);
         var source = new Port(node, new Avalonia.Point(0, 0));
         var target = new Port(node, new Avalonia.Point(10, 0));
         var conn = new Connection(source, target);
@@ -168,6 +171,7 @@ public class GraphTests
     {
         var graph = new Graph();
         var node = new Node();
+        graph.AddNode(node);
         var source = new Port(node, new Point(0, 0));
         var target = new Port(node, new Point(10, 0));
         var conn = new Connection(source, target);
@@ -201,5 +205,33 @@ public class GraphTests
     {
         var graph = new Graph();
         Assert.IsType<System.Collections.ObjectModel.ReadOnlyObservableCollection<Connection>>(graph.Connections);
+    }
+
+    [Fact]
+    public void AddConnection_throws_when_source_owner_not_in_graph()
+    {
+        var graph = new Graph();
+        var nodeA = new Node();
+        var nodeB = new Node();
+        graph.AddNode(nodeB); // only B in graph
+        var portA = new Port(nodeA, new Point(0, 0));
+        var portB = new Port(nodeB, new Point(0, 0));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            graph.AddConnection(new Connection(portA, portB)));
+    }
+
+    [Fact]
+    public void AddConnection_throws_when_target_owner_not_in_graph()
+    {
+        var graph = new Graph();
+        var nodeA = new Node();
+        var nodeB = new Node();
+        graph.AddNode(nodeA); // only A in graph
+        var portA = new Port(nodeA, new Point(0, 0));
+        var portB = new Port(nodeB, new Point(0, 0));
+
+        Assert.Throws<InvalidOperationException>(() =>
+            graph.AddConnection(new Connection(portA, portB)));
     }
 }
