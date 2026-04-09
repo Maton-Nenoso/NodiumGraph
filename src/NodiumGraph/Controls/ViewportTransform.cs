@@ -14,9 +14,17 @@ public readonly struct ViewportTransform(double zoom, Point offset)
     public Point WorldToScreen(Point world) =>
         new(world.X * Zoom + Offset.X, world.Y * Zoom + Offset.Y);
 
-    public Point ScreenToWorld(Point screen) =>
-        new((screen.X - Offset.X) / Zoom, (screen.Y - Offset.Y) / Zoom);
+    public Point ScreenToWorld(Point screen)
+    {
+        if (Zoom == 0) return screen;
+        return new((screen.X - Offset.X) / Zoom, (screen.Y - Offset.Y) / Zoom);
+    }
 
     public double WorldToScreen(double worldLength) => worldLength * Zoom;
-    public double ScreenToWorld(double screenLength) => screenLength / Zoom;
+
+    public double ScreenToWorld(double screenLength)
+    {
+        if (Zoom == 0) return screenLength;
+        return screenLength / Zoom;
+    }
 }

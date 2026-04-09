@@ -52,6 +52,21 @@ public class ViewportTransformTests
     }
 
     [Fact]
+    public void ScreenToWorld_with_zero_zoom_returns_input()
+    {
+        var vt = new ViewportTransform(zoom: 0, offset: default);
+        var screen = new Point(100, 200);
+        Assert.Equal(screen, vt.ScreenToWorld(screen));
+    }
+
+    [Fact]
+    public void ScreenToWorld_length_with_zero_zoom_returns_input()
+    {
+        var vt = new ViewportTransform(zoom: 0, offset: default);
+        Assert.Equal(42.0, vt.ScreenToWorld(42.0));
+    }
+
+    [Fact]
     public void Roundtrip_preserves_point()
     {
         var vt = new ViewportTransform(zoom: 1.5, offset: new Point(37, -42));
