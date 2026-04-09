@@ -403,6 +403,19 @@ public class NodiumGraphCanvas : TemplatedControl
         var props = e.GetCurrentPoint(this).Properties;
         var position = e.GetPosition(this);
 
+        if (ShowMinimap && Graph != null && props.IsLeftButtonPressed)
+        {
+            var worldPos = MinimapRenderer.MinimapToWorld(position, Bounds, Graph, MinimapPosition);
+            if (worldPos.HasValue)
+            {
+                ViewportOffset = new Point(
+                    Bounds.Width / 2 - worldPos.Value.X * ViewportZoom,
+                    Bounds.Height / 2 - worldPos.Value.Y * ViewportZoom);
+                e.Handled = true;
+                return;
+            }
+        }
+
         if (props.IsMiddleButtonPressed ||
             (props.IsLeftButtonPressed && _isSpaceHeld))
         {
@@ -722,6 +735,11 @@ public class NodiumGraphCanvas : TemplatedControl
             var cuttingPen = new Pen(Brushes.Red, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
             context.DrawLine(cuttingPen, _cuttingStart, _cuttingEnd);
         }
+
+        if (ShowMinimap && Graph != null)
+        {
+            MinimapRenderer.Render(context, Bounds, Graph, transform, MinimapPosition);
+        }
     }
 
     private bool CuttingLineIntersectsGeometry(
@@ -796,7 +814,9 @@ public class NodiumGraphCanvas : TemplatedControl
                  change.Property == ShowGridProperty ||
                  change.Property == GridSizeProperty ||
                  change.Property == ConnectionRouterProperty ||
-                 change.Property == DefaultConnectionStyleProperty)
+                 change.Property == DefaultConnectionStyleProperty ||
+                 change.Property == ShowMinimapProperty ||
+                 change.Property == MinimapPositionProperty)
         {
             InvalidateVisual();
         }
