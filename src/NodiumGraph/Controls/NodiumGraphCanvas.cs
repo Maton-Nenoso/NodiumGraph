@@ -858,7 +858,13 @@ public class NodiumGraphCanvas : TemplatedControl
 
     private void AddNodeContainer(Node node)
     {
-        var container = new ContentControl { DataContext = node, Content = node };
+        var template = DefaultTemplates.ResolveTemplate(node, NodeTemplate);
+        var container = new ContentControl
+        {
+            DataContext = node,
+            Content = node,
+            ContentTemplate = template
+        };
         _nodeContainers[node] = container;
     }
 

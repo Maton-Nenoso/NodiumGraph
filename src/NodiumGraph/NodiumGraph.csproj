@@ -8,4 +8,8 @@
     <InternalsVisibleTo Include="NodiumGraph.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <AvaloniaResource Include="Themes\Generic.axaml" />
+  </ItemGroup>
+
 </Project>
