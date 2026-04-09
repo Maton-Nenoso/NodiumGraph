@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Headless.XUnit;
+using NodiumGraph;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
@@ -91,6 +92,35 @@ public class NodiumGraphCanvasConnectionDrawTests
         Assert.True(result.IsSuccess);
         Assert.Same(portOut, requestedSource);
         Assert.Same(portIn, requestedTarget);
+    }
+
+    [AvaloniaFact]
+    public void ConnectionHandler_rejected_result_is_captured()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var nodeA = new Node { X = 0, Y = 0 };
+        var nodeB = new Node { X = 200, Y = 0 };
+        var portOut = new Port(nodeA, "Out", PortFlow.Output, new Point(100, 30));
+        var portIn = new Port(nodeB, "In", PortFlow.Input, new Point(0, 30));
+        nodeA.PortProvider = new FixedPortProvider(new[] { portOut });
+        nodeB.PortProvider = new FixedPortProvider(new[] { portIn });
+        graph.AddNode(nodeA);
+        graph.AddNode(nodeB);
+        canvas.Graph = graph;
+
+        canvas.ConnectionHandler = new TestRejectingHandler();
+
+        // The handler rejects — canvas should handle gracefully
+        var result = canvas.ConnectionHandler.OnConnectionRequested(portOut, portIn);
+        Assert.False(result.IsSuccess);
+    }
+
+    private class TestRejectingHandler : IConnectionHandler
+    {
+        public Result<Connection> OnConnectionRequested(Port source, Port target)
+            => new Error("Rejected", "TEST");
+        public void OnConnectionDeleteRequested(Connection connection) { }
     }
 
     private class TestConnectionHandler(Func<Port, Port, Connection> onRequested) : IConnectionHandler

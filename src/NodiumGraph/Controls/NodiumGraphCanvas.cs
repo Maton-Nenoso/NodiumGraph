@@ -597,7 +597,13 @@ public class NodiumGraphCanvas : TemplatedControl
                 var canConnect = ConnectionValidator?.CanConnect(_connectionSourcePort, targetPort) ?? true;
                 if (canConnect)
                 {
-                    ConnectionHandler?.OnConnectionRequested(_connectionSourcePort, targetPort);
+                    var result = ConnectionHandler?.OnConnectionRequested(_connectionSourcePort, targetPort);
+                    if (result is { IsSuccess: true })
+                    {
+                        // Connection accepted — canvas will pick it up via CollectionChanged
+                        // when the handler adds it to the graph
+                    }
+                    // If result is null (no handler) or failure, connection is rejected silently
                 }
             }
 
