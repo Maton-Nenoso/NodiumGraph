@@ -45,6 +45,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private Dictionary<Node, Point>? _dragStartPositions;
     private bool _isDrawingConnection;
     private Port? _connectionSourcePort;
+    private Port? _connectionTargetPort;
     private Point _connectionPreviewEnd;
     private bool _connectionPreviewValid;
     private bool _isCuttingConnections;
@@ -258,6 +259,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     // Overlay state accessors
     internal Port? ConnectionSourcePort => _connectionSourcePort;
+    internal Port? ConnectionTargetPort => _connectionTargetPort;
     internal Point ConnectionPreviewEnd => _connectionPreviewEnd;
     internal bool ConnectionPreviewValid => _connectionPreviewValid;
     internal Point CuttingStart => _cuttingStart;
@@ -601,9 +603,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
             // Check if hovering over a valid target port
             var targetPort = HitTestPort(_connectionPreviewEnd);
-            _connectionPreviewValid = targetPort != null &&
-                targetPort != _connectionSourcePort &&
-                (ConnectionValidator?.CanConnect(_connectionSourcePort, targetPort) ?? true);
+            _connectionTargetPort = targetPort != _connectionSourcePort ? targetPort : null;
+            _connectionPreviewValid = _connectionTargetPort != null &&
+                (ConnectionValidator?.CanConnect(_connectionSourcePort, _connectionTargetPort) ?? true);
 
             ApplyAutoPan(_connectionPreviewEnd);
             InvalidateVisual();
@@ -742,6 +744,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
             _isDrawingConnection = false;
             _connectionSourcePort = null;
+            _connectionTargetPort = null;
             InvalidateVisual();
             e.Handled = true;
             return;

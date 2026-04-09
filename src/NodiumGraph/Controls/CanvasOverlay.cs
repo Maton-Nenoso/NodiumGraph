@@ -62,6 +62,31 @@ internal class CanvasOverlay : Control
             }
         }
 
+        // Port highlights during connection draw
+        if (_canvas.IsDrawingConnection)
+        {
+            const double highlightRadius = 7.0;
+            var scaledHighlight = highlightRadius * zoom;
+
+            // Highlight source port
+            if (_canvas.ConnectionSourcePort != null)
+            {
+                var srcScreen = transform.WorldToScreen(_canvas.ConnectionSourcePort.AbsolutePosition);
+                context.DrawEllipse(null, NodiumGraphCanvas.s_previewPenValid,
+                    srcScreen, scaledHighlight, scaledHighlight);
+            }
+
+            // Highlight target port (green = valid, red = invalid)
+            if (_canvas.ConnectionTargetPort != null)
+            {
+                var tgtScreen = transform.WorldToScreen(_canvas.ConnectionTargetPort.AbsolutePosition);
+                var pen = _canvas.ConnectionPreviewValid
+                    ? NodiumGraphCanvas.s_previewPenValid
+                    : NodiumGraphCanvas.s_cuttingPen; // red for invalid
+                context.DrawEllipse(null, pen, tgtScreen, scaledHighlight, scaledHighlight);
+            }
+        }
+
         // Connection draw preview
         if (_canvas.IsDrawingConnection && _canvas.ConnectionSourcePort != null)
         {
