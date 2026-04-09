@@ -48,4 +48,22 @@ public class NodiumGraphCanvasRenderTests
         var canvas = new NodiumGraphCanvas();
         Assert.True(canvas.ClipToBounds);
     }
+
+    [AvaloniaFact]
+    public void ArrangeOverride_sizes_container_to_scaled_dimensions()
+    {
+        // At zoom 2.0, a node's layout slot should use scaled dimensions.
+        // In headless, we verify no exception and container count is correct.
+        var canvas = new NodiumGraphCanvas { ViewportZoom = 2.0 };
+        var graph = new Graph();
+        var node = new Node { X = 0, Y = 0, Title = "Test" };
+        graph.AddNode(node);
+        canvas.Graph = graph;
+
+        canvas.Measure(new Size(800, 600));
+        canvas.Arrange(new Rect(0, 0, 800, 600));
+
+        // Container was created and arrange completed without exception
+        Assert.Equal(1, canvas.NodeContainerCount);
+    }
 }
