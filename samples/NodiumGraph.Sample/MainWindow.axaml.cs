@@ -14,26 +14,26 @@ public partial class MainWindow : Window
 
         var graph = new Graph();
 
-        // Node A: Start
+        // Node A: Start — ports at edges (MinWidth=120, header ~30px tall)
         var nodeA = new Node { Title = "Start", X = 100, Y = 150 };
-        var portAOut = new Port(nodeA, "Output", PortFlow.Output, new Point(140, 40));
+        var portAOut = new Port(nodeA, "Output", PortFlow.Output, new Point(120, 15));
         nodeA.PortProvider = new FixedPortProvider(new[] { portAOut });
 
         // Node B: Process
         var nodeB = new Node { Title = "Process", X = 400, Y = 100 };
-        var portBIn = new Port(nodeB, "Input", PortFlow.Input, new Point(0, 40));
-        var portBOut = new Port(nodeB, "Output", PortFlow.Output, new Point(140, 40));
+        var portBIn = new Port(nodeB, "Input", PortFlow.Input, new Point(0, 15));
+        var portBOut = new Port(nodeB, "Output", PortFlow.Output, new Point(120, 15));
         nodeB.PortProvider = new FixedPortProvider(new[] { portBIn, portBOut });
 
         // Node C: Filter
         var nodeC = new Node { Title = "Filter", X = 400, Y = 300 };
-        var portCIn = new Port(nodeC, "Input", PortFlow.Input, new Point(0, 40));
-        var portCOut = new Port(nodeC, "Output", PortFlow.Output, new Point(140, 40));
+        var portCIn = new Port(nodeC, "Input", PortFlow.Input, new Point(0, 15));
+        var portCOut = new Port(nodeC, "Output", PortFlow.Output, new Point(120, 15));
         nodeC.PortProvider = new FixedPortProvider(new[] { portCIn, portCOut });
 
         // Node D: End
         var nodeD = new Node { Title = "End", X = 700, Y = 200 };
-        var portDIn = new Port(nodeD, "Input", PortFlow.Input, new Point(0, 40));
+        var portDIn = new Port(nodeD, "Input", PortFlow.Input, new Point(0, 15));
         nodeD.PortProvider = new FixedPortProvider(new[] { portDIn });
 
         // Comment

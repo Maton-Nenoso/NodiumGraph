@@ -41,12 +41,9 @@ internal static class DefaultTemplates
                             FontSize = 12
                         }
                     },
-                    // Body (content area for subclass data)
-                    new ContentPresenter
-                    {
-                        Margin = new Thickness(8, 4),
-                        [!ContentPresenter.ContentProperty] = new Binding(".")
-                    }
+                    // Body: empty padding area. Subclass templates replace the
+                    // entire node visual — this just provides consistent spacing.
+                    new Border { MinHeight = 4 }
                 }
             }
         };
