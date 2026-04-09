@@ -8,6 +8,8 @@ internal static class GridRenderer
     public static IReadOnlyList<Point> ComputeGridPoints(
         Rect visibleScreenArea, ViewportTransform transform, double gridSize)
     {
+        if (gridSize < 1.0) return [];
+
         var topLeft = transform.ScreenToWorld(visibleScreenArea.TopLeft);
         var bottomRight = transform.ScreenToWorld(visibleScreenArea.BottomRight);
 

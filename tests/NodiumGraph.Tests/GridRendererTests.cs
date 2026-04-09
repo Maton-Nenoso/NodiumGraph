@@ -47,4 +47,22 @@ public class GridRendererTests
 
         Assert.True(points.Count > 0);
     }
+
+    [Fact]
+    public void ComputeGridPoints_returns_empty_for_zero_grid_size()
+    {
+        var transform = new ViewportTransform(1.0, default);
+        var visibleArea = new Rect(0, 0, 100, 100);
+        var points = GridRenderer.ComputeGridPoints(visibleArea, transform, gridSize: 0.0);
+        Assert.Empty(points);
+    }
+
+    [Fact]
+    public void ComputeGridPoints_returns_empty_for_negative_grid_size()
+    {
+        var transform = new ViewportTransform(1.0, default);
+        var visibleArea = new Rect(0, 0, 100, 100);
+        var points = GridRenderer.ComputeGridPoints(visibleArea, transform, gridSize: -5.0);
+        Assert.Empty(points);
+    }
 }
