@@ -1,4 +1,6 @@
+using System.Collections.Specialized;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using NodiumGraph.Interactions;
@@ -11,6 +13,7 @@ namespace NodiumGraph.Controls;
 /// </summary>
 public class NodiumGraphCanvas : TemplatedControl
 {
+    private readonly Dictionary<Node, ContentControl> _nodeContainers = new();
     public static readonly StyledProperty<Graph?> GraphProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, Graph?>(nameof(Graph));
 
@@ -183,5 +186,61 @@ public class NodiumGraphCanvas : TemplatedControl
     {
         get => GetValue(MinimapPositionProperty);
         set => SetValue(MinimapPositionProperty, value);
+    }
+
+    internal int NodeContainerCount => _nodeContainers.Count;
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == GraphProperty)
+        {
+            OnGraphChanged(change.GetOldValue<Graph?>(), change.GetNewValue<Graph?>());
+        }
+    }
+
+    private void OnGraphChanged(Graph? oldGraph, Graph? newGraph)
+    {
+        if (oldGraph != null)
+            ((INotifyCollectionChanged)oldGraph.Nodes).CollectionChanged -= OnNodesCollectionChanged;
+
+        _nodeContainers.Clear();
+        // TODO: Remove visual children when visual tree management is added
+
+        if (newGraph != null)
+        {
+            ((INotifyCollectionChanged)newGraph.Nodes).CollectionChanged += OnNodesCollectionChanged;
+            foreach (var node in newGraph.Nodes)
+                AddNodeContainer(node);
+        }
+    }
+
+    private void OnNodesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems != null)
+        {
+            foreach (Node node in e.NewItems)
+                AddNodeContainer(node);
+        }
+        else if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
+        {
+            foreach (Node node in e.OldItems)
+                RemoveNodeContainer(node);
+        }
+        else if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            _nodeContainers.Clear();
+        }
+    }
+
+    private void AddNodeContainer(Node node)
+    {
+        var container = new ContentControl { DataContext = node, Content = node };
+        _nodeContainers[node] = container;
+    }
+
+    private void RemoveNodeContainer(Node node)
+    {
+        _nodeContainers.Remove(node);
     }
 }
