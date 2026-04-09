@@ -7,19 +7,10 @@
         <ng:NodiumGraphCanvas Width="400" Height="300" />
     </Design.PreviewWith>
 
-    <!-- Default NodiumGraphCanvas control theme -->
+    <!-- Default NodiumGraphCanvas style -->
     <Style Selector="ng|NodiumGraphCanvas">
         <Setter Property="Background" Value="#FF1E1E2E" />
         <Setter Property="ClipToBounds" Value="True" />
-        <Setter Property="Template">
-            <ControlTemplate>
-                <Border Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}">
-                    <Panel />
-                </Border>
-            </ControlTemplate>
-        </Setter>
     </Style>
 
 </Styles>

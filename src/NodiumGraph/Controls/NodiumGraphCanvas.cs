@@ -13,7 +13,7 @@ namespace NodiumGraph.Controls;
 /// <summary>
 /// The primary graph editor canvas control.
 /// </summary>
-public class NodiumGraphCanvas : TemplatedControl
+public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHitTest
 {
     static NodiumGraphCanvas()
     {
@@ -840,9 +840,18 @@ public class NodiumGraphCanvas : TemplatedControl
         e.Handled = true;
     }
 
+    // ICustomHitTest makes the canvas hit-testable across its entire area,
+    // even without a ControlTemplate. Without this, pointer/wheel events
+    // over empty canvas space never reach the control.
+    bool Avalonia.Rendering.ICustomHitTest.HitTest(Point point) => true;
+
     public override void Render(DrawingContext context)
     {
         base.Render(context);
+
+        // Draw background (TemplatedControl without a template needs this for visible background)
+        if (Background is { } bg)
+            context.DrawRectangle(bg, null, new Rect(Bounds.Size));
 
         var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
 
