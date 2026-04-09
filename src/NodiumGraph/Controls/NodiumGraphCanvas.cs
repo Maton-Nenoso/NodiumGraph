@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
+using Avalonia.Input;
 using Avalonia.Media;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
@@ -17,6 +18,7 @@ public class NodiumGraphCanvas : TemplatedControl
     static NodiumGraphCanvas()
     {
         ClipToBoundsProperty.OverrideDefaultValue<NodiumGraphCanvas>(true);
+        FocusableProperty.OverrideDefaultValue<NodiumGraphCanvas>(true);
     }
 
     private readonly Dictionary<Node, ContentControl> _nodeContainers = new();
@@ -195,6 +197,90 @@ public class NodiumGraphCanvas : TemplatedControl
     }
 
     internal int NodeContainerCount => _nodeContainers.Count;
+
+    internal Node? HitTestNode(Point screenPosition)
+    {
+        // Check containers in reverse order (top-most first, i.e. last-added)
+        foreach (var (node, container) in _nodeContainers.Reverse())
+        {
+            var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+            var nodeScreenPos = transform.WorldToScreen(new Point(node.X, node.Y));
+            var nodeScreenSize = new Size(
+                transform.WorldToScreen(node.Width),
+                transform.WorldToScreen(node.Height));
+            var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
+
+            if (nodeRect.Contains(screenPosition))
+                return node;
+        }
+
+        return null;
+    }
+
+    internal void SelectNode(Node node, bool additive)
+    {
+        if (Graph is null) return;
+
+        if (!additive)
+        {
+            foreach (var n in Graph.SelectedNodes.ToList())
+            {
+                n.IsSelected = false;
+                Graph.Deselect(n);
+            }
+        }
+
+        if (node.IsSelected && additive)
+        {
+            node.IsSelected = false;
+            Graph.Deselect(node);
+        }
+        else
+        {
+            node.IsSelected = true;
+            Graph.Select(node);
+        }
+
+        SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
+        InvalidateVisual();
+    }
+
+    internal void ClearSelection()
+    {
+        if (Graph is null) return;
+
+        foreach (var node in Graph.SelectedNodes.ToList())
+            node.IsSelected = false;
+
+        Graph.ClearSelection();
+        SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
+        InvalidateVisual();
+    }
+
+    protected override void OnPointerPressed(PointerPressedEventArgs e)
+    {
+        base.OnPointerPressed(e);
+
+        var props = e.GetCurrentPoint(this).Properties;
+        if (!props.IsLeftButtonPressed) return;
+
+        var position = e.GetPosition(this);
+        var hitNode = HitTestNode(position);
+        var isCtrl = (e.KeyModifiers & KeyModifiers.Control) != 0;
+
+        if (hitNode != null)
+        {
+            SelectNode(hitNode, isCtrl);
+            e.Handled = true;
+        }
+        else if (!isCtrl)
+        {
+            ClearSelection();
+            // TODO: Start marquee selection in a later task
+        }
+
+        Focus();
+    }
 
     public override void Render(DrawingContext context)
     {
