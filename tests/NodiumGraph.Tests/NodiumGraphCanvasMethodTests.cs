@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Headless.XUnit;
 using NodiumGraph.Controls;
+using NodiumGraph.Interactions;
 using NodiumGraph.Model;
 using Xunit;
 
@@ -78,6 +79,26 @@ public class NodiumGraphCanvasMethodTests
 
         canvas.SelectAll(); // Should compile and work as public method
         Assert.Single(graph.SelectedNodes);
+    }
+
+    [AvaloniaFact]
+    public void HitTestPort_does_not_create_ports_on_DynamicPortProvider()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var node = new Node { X = 100, Y = 100 };
+        node.Width = 200;
+        node.Height = 100;
+        node.PortProvider = new DynamicPortProvider(node);
+        graph.AddNode(node);
+        canvas.Graph = graph;
+
+        Assert.Empty(node.PortProvider.Ports);
+
+        // Hit-test near the node boundary — should NOT create a port
+        canvas.HitTestPort(new Point(100, 150));
+
+        Assert.Empty(node.PortProvider.Ports);
     }
 
     [AvaloniaFact]

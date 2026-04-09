@@ -247,6 +247,41 @@ public class NodiumGraphCanvas : TemplatedControl
 
         var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
         var worldPosition = transform.ScreenToWorld(screenPosition);
+        const double hitRadiusSq = 20.0 * 20.0;
+
+        foreach (var node in Graph.Nodes)
+        {
+            if (node.PortProvider == null) continue;
+
+            // Search existing ports without creating new ones
+            Port? closest = null;
+            var closestDistSq = double.MaxValue;
+
+            foreach (var port in node.PortProvider.Ports)
+            {
+                var abs = port.AbsolutePosition;
+                var dx = abs.X - worldPosition.X;
+                var dy = abs.Y - worldPosition.Y;
+                var distSq = dx * dx + dy * dy;
+
+                if (distSq < hitRadiusSq && distSq < closestDistSq)
+                {
+                    closest = port;
+                    closestDistSq = distSq;
+                }
+            }
+
+            if (closest != null) return closest;
+        }
+
+        return null;
+    }
+
+    internal Port? ResolvePortForConnection(Point screenPosition)
+    {
+        if (Graph == null) return null;
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+        var worldPosition = transform.ScreenToWorld(screenPosition);
 
         foreach (var node in Graph.Nodes)
         {
@@ -654,7 +689,7 @@ public class NodiumGraphCanvas : TemplatedControl
         if (_isDrawingConnection && _connectionSourcePort != null)
         {
             var position = e.GetPosition(this);
-            var targetPort = HitTestPort(position);
+            var targetPort = ResolvePortForConnection(position);
 
             if (targetPort != null && targetPort != _connectionSourcePort)
             {
