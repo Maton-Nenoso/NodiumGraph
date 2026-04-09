@@ -44,10 +44,9 @@ internal static class ConnectionRenderer
     }
 
     public static void Render(DrawingContext context, Connection connection,
-        IConnectionRouter router, IConnectionStyle style, ViewportTransform transform)
+        IConnectionRouter router, Pen pen, ViewportTransform transform)
     {
         var geometry = CreateGeometry(connection, router, transform);
-        var pen = new Pen(style.Stroke, style.Thickness, style.DashPattern);
         context.DrawGeometry(null, pen, geometry);
     }
 }

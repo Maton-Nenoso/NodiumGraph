@@ -41,6 +41,15 @@ public class NodiumGraphCanvas : TemplatedControl
     private bool _isCuttingConnections;
     private Point _cuttingStart;
     private Point _cuttingEnd;
+
+    // Cached render-path brushes and pens to avoid per-frame allocations
+    private static readonly SolidColorBrush s_gridBrush = new(Color.FromArgb(40, 128, 128, 128));
+    private static readonly SolidColorBrush s_portBrush = new(Color.FromRgb(160, 160, 170));
+    private static readonly Pen s_portOutlinePen = new(Brushes.White, 1);
+    private static readonly Pen s_previewPenValid = new(Brushes.Green, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
+    private static readonly Pen s_previewPenInvalid = new(Brushes.Gray, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
+    private static readonly Pen s_cuttingPen = new(Brushes.Red, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
+
     public static readonly StyledProperty<Graph?> GraphProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, Graph?>(nameof(Graph));
 
@@ -744,21 +753,20 @@ public class NodiumGraphCanvas : TemplatedControl
 
         if (ShowGrid)
         {
-            var gridBrush = new SolidColorBrush(Color.FromArgb(40, 128, 128, 128));
-            GridRenderer.Render(context, Bounds, transform, GridSize, gridBrush);
+            GridRenderer.Render(context, Bounds, transform, GridSize, s_gridBrush);
         }
 
         if (Graph != null)
         {
             var router = ConnectionRouter;
             var style = DefaultConnectionStyle;
+            var connectionPen = new Pen(style.Stroke, style.Thickness, style.DashPattern);
             foreach (var connection in Graph.Connections)
             {
-                ConnectionRenderer.Render(context, connection, router, style, transform);
+                ConnectionRenderer.Render(context, connection, router, connectionPen, transform);
             }
 
             // Render port visuals
-            var portBrush = new SolidColorBrush(Color.FromRgb(160, 160, 170));
             const double portRadius = 4.0;
 
             foreach (var node in Graph.Nodes)
@@ -769,8 +777,7 @@ public class NodiumGraphCanvas : TemplatedControl
                     var screenPos = transform.WorldToScreen(port.AbsolutePosition);
                     var scaledRadius = portRadius * ViewportZoom;
 
-                    // Default: filled circle
-                    context.DrawEllipse(portBrush, new Pen(Brushes.White, 1),
+                    context.DrawEllipse(s_portBrush, s_portOutlinePen,
                         screenPos, scaledRadius, scaledRadius);
                 }
             }
@@ -779,17 +786,13 @@ public class NodiumGraphCanvas : TemplatedControl
         if (_isDrawingConnection && _connectionSourcePort != null)
         {
             var startScreen = transform.WorldToScreen(_connectionSourcePort.AbsolutePosition);
-            var previewBrush = _connectionPreviewValid
-                ? Brushes.Green
-                : Brushes.Gray;
-            var pen = new Pen(previewBrush, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
-            context.DrawLine(pen, startScreen, _connectionPreviewEnd);
+            var previewPen = _connectionPreviewValid ? s_previewPenValid : s_previewPenInvalid;
+            context.DrawLine(previewPen, startScreen, _connectionPreviewEnd);
         }
 
         if (_isCuttingConnections)
         {
-            var cuttingPen = new Pen(Brushes.Red, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
-            context.DrawLine(cuttingPen, _cuttingStart, _cuttingEnd);
+            context.DrawLine(s_cuttingPen, _cuttingStart, _cuttingEnd);
         }
 
         if (ShowMinimap && Graph != null)
