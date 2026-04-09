@@ -11,6 +11,8 @@ public class BezierRouter : IConnectionRouter
 {
     private const double MinOffset = 30.0;
 
+    public bool IsBezierRoute => true;
+
     public IReadOnlyList<Point> Route(Port source, Port target)
     {
         var start = source.AbsolutePosition;

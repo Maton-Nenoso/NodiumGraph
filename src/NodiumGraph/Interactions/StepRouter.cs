@@ -8,6 +8,8 @@ namespace NodiumGraph.Interactions;
 /// </summary>
 public class StepRouter : IConnectionRouter
 {
+    public bool IsBezierRoute => false;
+
     public IReadOnlyList<Point> Route(Port source, Port target)
     {
         var start = source.AbsolutePosition;

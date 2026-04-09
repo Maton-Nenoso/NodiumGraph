@@ -8,6 +8,8 @@ namespace NodiumGraph.Interactions;
 /// </summary>
 public class StraightRouter : IConnectionRouter
 {
+    public bool IsBezierRoute => false;
+
     public IReadOnlyList<Point> Route(Port source, Port target) =>
         [source.AbsolutePosition, target.AbsolutePosition];
 }

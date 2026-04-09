@@ -18,8 +18,8 @@ internal static class ConnectionRenderer
         if (screenPoints.Count < 2)
             return new LineGeometry();
 
-        // 4 points = cubic bezier
-        if (screenPoints.Count == 4)
+        // Use bezier only when the router says so AND we have exactly 4 points
+        if (router.IsBezierRoute && screenPoints.Count == 4)
         {
             var fig = new PathFigure { StartPoint = screenPoints[0], IsClosed = false };
             fig.Segments!.Add(new BezierSegment
