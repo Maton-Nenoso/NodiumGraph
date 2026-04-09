@@ -29,6 +29,10 @@ public class NodiumGraphCanvas : TemplatedControl
     private bool _isDragging;
     private Point _dragStartWorld;
     private Dictionary<Node, Point>? _dragStartPositions;
+    private bool _isDrawingConnection;
+    private Port? _connectionSourcePort;
+    private Point _connectionPreviewEnd;
+    private bool _connectionPreviewValid;
     public static readonly StyledProperty<Graph?> GraphProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, Graph?>(nameof(Graph));
 
@@ -209,6 +213,25 @@ public class NodiumGraphCanvas : TemplatedControl
 
     internal bool IsDragging => _isDragging;
 
+    internal bool IsDrawingConnection => _isDrawingConnection;
+
+    internal Port? HitTestPort(Point screenPosition)
+    {
+        if (Graph == null) return null;
+
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+        var worldPosition = transform.ScreenToWorld(screenPosition);
+
+        foreach (var node in Graph.Nodes)
+        {
+            if (node.PortProvider == null) continue;
+            var port = node.PortProvider.ResolvePort(worldPosition);
+            if (port != null) return port;
+        }
+
+        return null;
+    }
+
     internal Node? HitTestNode(Point screenPosition)
     {
         // Check containers in reverse order (top-most first, i.e. last-added)
@@ -287,6 +310,18 @@ public class NodiumGraphCanvas : TemplatedControl
 
         if (!props.IsLeftButtonPressed) return;
 
+        // Check port hit first (ports are on top of nodes)
+        var hitPort = HitTestPort(position);
+        if (hitPort != null)
+        {
+            _isDrawingConnection = true;
+            _connectionSourcePort = hitPort;
+            _connectionPreviewEnd = position;
+            _connectionPreviewValid = false;
+            e.Handled = true;
+            return;
+        }
+
         var hitNode = HitTestNode(position);
         var isCtrl = (e.KeyModifiers & KeyModifiers.Control) != 0;
 
@@ -315,6 +350,21 @@ public class NodiumGraphCanvas : TemplatedControl
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
+
+        if (_isDrawingConnection && _connectionSourcePort != null)
+        {
+            _connectionPreviewEnd = e.GetPosition(this);
+
+            // Check if hovering over a valid target port
+            var targetPort = HitTestPort(_connectionPreviewEnd);
+            _connectionPreviewValid = targetPort != null &&
+                targetPort != _connectionSourcePort &&
+                (ConnectionValidator?.CanConnect(_connectionSourcePort, targetPort) ?? true);
+
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
 
         if (_isDragging && _dragStartPositions != null)
         {
@@ -355,6 +405,27 @@ public class NodiumGraphCanvas : TemplatedControl
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+
+        if (_isDrawingConnection && _connectionSourcePort != null)
+        {
+            var position = e.GetPosition(this);
+            var targetPort = HitTestPort(position);
+
+            if (targetPort != null && targetPort != _connectionSourcePort)
+            {
+                var canConnect = ConnectionValidator?.CanConnect(_connectionSourcePort, targetPort) ?? true;
+                if (canConnect)
+                {
+                    ConnectionHandler?.OnConnectionRequested(_connectionSourcePort, targetPort);
+                }
+            }
+
+            _isDrawingConnection = false;
+            _connectionSourcePort = null;
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
 
         if (_isDragging && _dragStartPositions != null)
         {
@@ -439,6 +510,16 @@ public class NodiumGraphCanvas : TemplatedControl
             {
                 ConnectionRenderer.Render(context, connection, router, style, transform);
             }
+        }
+
+        if (_isDrawingConnection && _connectionSourcePort != null)
+        {
+            var startScreen = transform.WorldToScreen(_connectionSourcePort.AbsolutePosition);
+            var previewBrush = _connectionPreviewValid
+                ? Brushes.Green
+                : Brushes.Gray;
+            var pen = new Pen(previewBrush, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
+            context.DrawLine(pen, startScreen, _connectionPreviewEnd);
         }
     }
 
