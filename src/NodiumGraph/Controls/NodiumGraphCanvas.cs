@@ -1130,9 +1130,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             if (desired.Height > 0) node.Height = desired.Height;
 
             var screenPos = transform.WorldToScreen(new Point(node.X, node.Y));
-            var scaledSize = new Size(desired.Width * ViewportZoom, desired.Height * ViewportZoom);
-            container.RenderTransform = null; // Remove any previous transform
-            container.Arrange(new Rect(screenPos, scaledSize));
+
+            // Arrange at natural size; ScaleTransform handles visual zoom
+            // (scaling text, borders, everything uniformly)
+            container.RenderTransform = new ScaleTransform(ViewportZoom, ViewportZoom);
+            container.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
+            container.Arrange(new Rect(screenPos, desired));
         }
 
         return finalSize;
