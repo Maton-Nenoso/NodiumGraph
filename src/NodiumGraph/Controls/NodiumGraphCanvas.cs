@@ -291,7 +291,7 @@ public class NodiumGraphCanvas : TemplatedControl
         InvalidateVisual();
     }
 
-    internal void SelectAll()
+    public void SelectAll()
     {
         if (Graph == null) return;
 
@@ -305,7 +305,7 @@ public class NodiumGraphCanvas : TemplatedControl
         InvalidateVisual();
     }
 
-    internal void DeleteSelected()
+    public void DeleteSelected()
     {
         if (Graph == null || Graph.SelectedNodes.Count == 0) return;
 
@@ -316,6 +316,53 @@ public class NodiumGraphCanvas : TemplatedControl
             .ToList();
 
         NodeHandler?.OnDeleteRequested(selectedNodes, affectedConnections);
+    }
+
+    public void ZoomToFit(double padding = 50.0)
+    {
+        if (Graph == null || Graph.Nodes.Count == 0) return;
+        ZoomToNodes(Graph.Nodes, padding);
+    }
+
+    public void ZoomToNodes(IEnumerable<Node> nodes, double padding = 50.0)
+    {
+        var nodeList = nodes.ToList();
+        if (nodeList.Count == 0) return;
+
+        var minX = nodeList.Min(n => n.X);
+        var minY = nodeList.Min(n => n.Y);
+        var maxX = nodeList.Max(n => n.X + n.Width);
+        var maxY = nodeList.Max(n => n.Y + n.Height);
+
+        var worldWidth = maxX - minX;
+        var worldHeight = maxY - minY;
+
+        if (worldWidth <= 0 || worldHeight <= 0 || Bounds.Width <= 0 || Bounds.Height <= 0)
+            return;
+
+        var scaleX = (Bounds.Width - 2 * padding) / worldWidth;
+        var scaleY = (Bounds.Height - 2 * padding) / worldHeight;
+        var zoom = Math.Clamp(Math.Min(scaleX, scaleY), MinZoom, MaxZoom);
+
+        var centerX = (minX + maxX) / 2;
+        var centerY = (minY + maxY) / 2;
+
+        ViewportZoom = zoom;
+        ViewportOffset = new Point(
+            Bounds.Width / 2 - centerX * zoom,
+            Bounds.Height / 2 - centerY * zoom);
+    }
+
+    public void CenterOnNode(Node node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+
+        var centerX = node.X + node.Width / 2;
+        var centerY = node.Y + node.Height / 2;
+
+        ViewportOffset = new Point(
+            Bounds.Width / 2 - centerX * ViewportZoom,
+            Bounds.Height / 2 - centerY * ViewportZoom);
     }
 
     protected override void OnPointerPressed(PointerPressedEventArgs e)
