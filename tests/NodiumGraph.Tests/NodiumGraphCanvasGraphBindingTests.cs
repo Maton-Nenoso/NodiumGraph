@@ -87,7 +87,8 @@ public class NodiumGraphCanvasGraphBindingTests
         graph.AddNode(node);
         canvas.Graph = graph;
 
-        Assert.Equal(1, canvas.GetVisualChildren().Count());
+        // +1 for the CanvasOverlay which is always present
+        Assert.Equal(2, canvas.GetVisualChildren().Count());
     }
 
     [AvaloniaFact]
@@ -101,7 +102,8 @@ public class NodiumGraphCanvasGraphBindingTests
 
         graph.RemoveNode(node);
 
-        Assert.Equal(0, canvas.GetVisualChildren().Count());
+        // Only the CanvasOverlay remains
+        Assert.Equal(1, canvas.GetVisualChildren().Count());
     }
 
     [AvaloniaFact]
@@ -117,7 +119,8 @@ public class NodiumGraphCanvasGraphBindingTests
         graph2.AddNode(new Node());
         canvas.Graph = graph2;
 
-        Assert.Equal(1, canvas.GetVisualChildren().Count());
+        // 1 node container + 1 overlay
+        Assert.Equal(2, canvas.GetVisualChildren().Count());
     }
 
     [AvaloniaFact]

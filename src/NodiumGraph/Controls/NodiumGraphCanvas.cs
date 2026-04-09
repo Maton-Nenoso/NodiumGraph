@@ -23,6 +23,13 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         DragDrop.DropEvent.AddClassHandler<NodiumGraphCanvas>((canvas, e) => canvas.OnDrop(e));
     }
 
+    public NodiumGraphCanvas()
+    {
+        _overlay = new CanvasOverlay(this);
+        VisualChildren.Add(_overlay);
+        LogicalChildren.Add(_overlay);
+    }
+
     private const double AutoPanMargin = 40.0;
     private const double AutoPanSpeed = 10.0;
 
@@ -45,15 +52,17 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private Point _marqueeStart;
     private Point _marqueeEnd;
 
-    // Cached render-path brushes and pens to avoid per-frame allocations
+    // Cached render-path brushes and pens (internal for CanvasOverlay access)
     private static readonly SolidColorBrush s_gridBrush = new(Color.FromArgb(40, 128, 128, 128));
-    private static readonly SolidColorBrush s_portBrush = new(Color.FromRgb(160, 160, 170));
-    private static readonly Pen s_portOutlinePen = new(Brushes.White, 1);
-    private static readonly Pen s_previewPenValid = new(Brushes.Green, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
-    private static readonly Pen s_previewPenInvalid = new(Brushes.Gray, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
-    private static readonly Pen s_cuttingPen = new(Brushes.Red, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
-    private static readonly SolidColorBrush s_marqueeFill = new(Color.FromArgb(30, 100, 150, 255));
-    private static readonly Pen s_marqueePen = new(new SolidColorBrush(Color.FromArgb(150, 100, 150, 255)), 1);
+    internal static readonly SolidColorBrush s_portBrush = new(Color.FromRgb(160, 160, 170));
+    internal static readonly Pen s_portOutlinePen = new(Brushes.White, 1);
+    internal static readonly Pen s_previewPenValid = new(Brushes.Green, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
+    internal static readonly Pen s_previewPenInvalid = new(Brushes.Gray, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
+    internal static readonly Pen s_cuttingPen = new(Brushes.Red, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
+    internal static readonly SolidColorBrush s_marqueeFill = new(Color.FromArgb(30, 100, 150, 255));
+    internal static readonly Pen s_marqueePen = new(new SolidColorBrush(Color.FromArgb(150, 100, 150, 255)), 1);
+
+    private readonly CanvasOverlay _overlay;
 
     public static readonly StyledProperty<Graph?> GraphProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, Graph?>(nameof(Graph));
@@ -240,6 +249,15 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal bool IsCuttingConnections => _isCuttingConnections;
 
     internal bool IsMarqueeSelecting => _isMarqueeSelecting;
+
+    // Overlay state accessors
+    internal Port? ConnectionSourcePort => _connectionSourcePort;
+    internal Point ConnectionPreviewEnd => _connectionPreviewEnd;
+    internal bool ConnectionPreviewValid => _connectionPreviewValid;
+    internal Point CuttingStart => _cuttingStart;
+    internal Point CuttingEnd => _cuttingEnd;
+    internal Point MarqueeStart => _marqueeStart;
+    internal Point MarqueeEnd => _marqueeEnd;
 
     internal Port? HitTestPort(Point screenPosition)
     {
@@ -840,6 +858,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         e.Handled = true;
     }
 
+    public new void InvalidateVisual()
+    {
+        base.InvalidateVisual();
+        _overlay.InvalidateVisual();
+    }
+
     // ICustomHitTest makes the canvas hit-testable across its entire area,
     // even without a ControlTemplate. Without this, pointer/wheel events
     // over empty canvas space never reach the control.
@@ -869,53 +893,10 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             {
                 ConnectionRenderer.Render(context, connection, router, connectionPen, transform);
             }
-
-            // Render port visuals (only default when no custom template)
-            if (PortTemplate == null)
-            {
-                const double portRadius = 4.0;
-                foreach (var node in Graph.Nodes)
-                {
-                    if (node.PortProvider == null) continue;
-                    foreach (var port in node.PortProvider.Ports)
-                    {
-                        var screenPos = transform.WorldToScreen(port.AbsolutePosition);
-                        var scaledRadius = portRadius * ViewportZoom;
-                        context.DrawEllipse(s_portBrush, s_portOutlinePen,
-                            screenPos, scaledRadius, scaledRadius);
-                    }
-                }
-            }
-            // When PortTemplate is set, port visuals are expected to be part of the node's DataTemplate
         }
 
-        if (_isDrawingConnection && _connectionSourcePort != null)
-        {
-            var startScreen = transform.WorldToScreen(_connectionSourcePort.AbsolutePosition);
-            var previewPen = _connectionPreviewValid ? s_previewPenValid : s_previewPenInvalid;
-            context.DrawLine(previewPen, startScreen, _connectionPreviewEnd);
-        }
-
-        if (_isCuttingConnections)
-        {
-            context.DrawLine(s_cuttingPen, _cuttingStart, _cuttingEnd);
-        }
-
-        if (_isMarqueeSelecting)
-        {
-            var marqueeRect = new Rect(
-                Math.Min(_marqueeStart.X, _marqueeEnd.X),
-                Math.Min(_marqueeStart.Y, _marqueeEnd.Y),
-                Math.Abs(_marqueeEnd.X - _marqueeStart.X),
-                Math.Abs(_marqueeEnd.Y - _marqueeStart.Y));
-
-            context.DrawRectangle(s_marqueeFill, s_marqueePen, marqueeRect);
-        }
-
-        if (ShowMinimap && Graph != null)
-        {
-            MinimapRenderer.Render(context, Bounds, Graph, transform, MinimapPosition);
-        }
+        // Ports, connection preview, cutting line, marquee, minimap
+        // are drawn by _overlay (renders on top of node containers)
     }
 
     internal bool CuttingLineIntersectsGeometry(
@@ -1116,6 +1097,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             container.Measure(Size.Infinity);
         }
 
+        _overlay.Measure(availableSize);
+
         return availableSize;
     }
 
@@ -1137,6 +1120,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             container.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
             container.Arrange(new Rect(screenPos, desired));
         }
+
+        // Overlay fills the entire canvas, renders on top of all node containers
+        _overlay.Arrange(new Rect(finalSize));
 
         return finalSize;
     }
