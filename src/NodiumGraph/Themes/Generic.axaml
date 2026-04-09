@@ -7,6 +7,41 @@
         <ng:NodiumGraphCanvas Width="400" Height="300" />
     </Design.PreviewWith>
 
+    <Styles.Resources>
+        <!-- Grid -->
+        <SolidColorBrush x:Key="NodiumGraphGridBrush" Color="#28808080" />
+
+        <!-- Ports -->
+        <SolidColorBrush x:Key="NodiumGraphPortBrush" Color="#FFA0A0AA" />
+        <SolidColorBrush x:Key="NodiumGraphPortOutlineBrush" Color="#FFFFFFFF" />
+
+        <!-- Node states -->
+        <SolidColorBrush x:Key="NodiumGraphNodeSelectedBorderBrush" Color="#FF50A0FF" />
+        <SolidColorBrush x:Key="NodiumGraphNodeHoveredBorderBrush" Color="#7896BEFF" />
+
+        <!-- Marquee -->
+        <SolidColorBrush x:Key="NodiumGraphMarqueeFillBrush" Color="#1E6496FF" />
+        <SolidColorBrush x:Key="NodiumGraphMarqueeBorderBrush" Color="#966496FF" />
+
+        <!-- Connection preview -->
+        <SolidColorBrush x:Key="NodiumGraphConnectionPreviewValidBrush" Color="#FF00FF00" />
+        <SolidColorBrush x:Key="NodiumGraphConnectionPreviewInvalidBrush" Color="#FF808080" />
+
+        <!-- Cutting line -->
+        <SolidColorBrush x:Key="NodiumGraphCuttingLineBrush" Color="#FFFF0000" />
+
+        <!-- Default node template -->
+        <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FF46649E" />
+        <SolidColorBrush x:Key="NodiumGraphNodeBodyBrush" Color="#FF2D2D3A" />
+        <SolidColorBrush x:Key="NodiumGraphNodeBorderBrush" Color="#FF808080" />
+
+        <!-- Minimap -->
+        <SolidColorBrush x:Key="NodiumGraphMinimapBackgroundBrush" Color="#C81E1E1E" />
+        <SolidColorBrush x:Key="NodiumGraphMinimapNodeBrush" Color="#B46496C8" />
+        <SolidColorBrush x:Key="NodiumGraphMinimapSelectedNodeBrush" Color="#DC50B4FF" />
+        <SolidColorBrush x:Key="NodiumGraphMinimapViewportBrush" Color="#96FFFFFF" />
+    </Styles.Resources>
+
     <!-- Default NodiumGraphCanvas style -->
     <Style Selector="ng|NodiumGraphCanvas">
         <Setter Property="Background" Value="#FF1E1E2E" />

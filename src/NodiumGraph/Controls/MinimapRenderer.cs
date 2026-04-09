@@ -34,7 +34,8 @@ internal static class MinimapRenderer
     }
 
     public static void Render(DrawingContext context, Rect canvasBounds,
-        Graph graph, ViewportTransform viewportTransform, MinimapPosition position)
+        Graph graph, ViewportTransform viewportTransform, MinimapPosition position,
+        IBrush backgroundBrush, IBrush nodeBrush, IBrush selectedNodeBrush, IBrush viewportBrush)
     {
         if (graph.Nodes.Count == 0) return;
 
@@ -66,7 +67,7 @@ internal static class MinimapRenderer
 
         // Draw minimap background
         context.DrawRectangle(
-            new SolidColorBrush(Color.FromArgb(200, 30, 30, 30)),
+            backgroundBrush,
             new Pen(Brushes.Gray, 1),
             minimapBounds, 4, 4);
 
@@ -74,9 +75,6 @@ internal static class MinimapRenderer
         using var _ = context.PushClip(new RoundedRect(minimapBounds, 4));
 
         // Draw nodes as small rectangles
-        var nodeBrush = new SolidColorBrush(Color.FromArgb(180, 100, 150, 200));
-        var selectedBrush = new SolidColorBrush(Color.FromArgb(220, 80, 180, 255));
-
         foreach (var node in graph.Nodes)
         {
             var nodeRect = new Rect(
@@ -86,7 +84,7 @@ internal static class MinimapRenderer
                 Math.Max(node.Height * scale, 4));
 
             context.DrawRectangle(
-                node.IsSelected ? selectedBrush : nodeBrush,
+                node.IsSelected ? selectedNodeBrush : nodeBrush,
                 null, nodeRect, 1, 1);
         }
 
@@ -102,7 +100,7 @@ internal static class MinimapRenderer
 
         context.DrawRectangle(
             null,
-            new Pen(new SolidColorBrush(Color.FromArgb(150, 255, 255, 255)), 1.5),
+            new Pen(viewportBrush, 1.5),
             viewRect, 2, 2);
     }
 

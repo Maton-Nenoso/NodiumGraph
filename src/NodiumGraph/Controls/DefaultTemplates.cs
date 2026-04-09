@@ -16,37 +16,41 @@ internal static class DefaultTemplates
 {
     public static IDataTemplate NodeTemplate { get; } = new FuncDataTemplate<Node>((node, _) =>
     {
+        var header = new Border
+        {
+            CornerRadius = new CornerRadius(6, 6, 0, 0),
+            Padding = new Thickness(8, 4),
+            Child = new TextBlock
+            {
+                [!TextBlock.TextProperty] = new Binding(nameof(Node.Title)),
+                Foreground = Brushes.White,
+                FontWeight = FontWeight.SemiBold,
+                FontSize = 12
+            }
+        };
+        header.Bind(Border.BackgroundProperty,
+            header.GetResourceObservable(NodiumGraphResources.NodeHeaderBrushKey));
+
         var border = new Border
         {
             CornerRadius = new CornerRadius(6),
             BorderThickness = new Thickness(1),
-            BorderBrush = Brushes.Gray,
-            Background = new SolidColorBrush(Color.FromRgb(45, 45, 58)),
             MinWidth = 120,
             Child = new StackPanel
             {
                 Children =
                 {
-                    // Header
-                    new Border
-                    {
-                        CornerRadius = new CornerRadius(6, 6, 0, 0),
-                        Background = new SolidColorBrush(Color.FromRgb(70, 100, 160)),
-                        Padding = new Thickness(8, 4),
-                        Child = new TextBlock
-                        {
-                            [!TextBlock.TextProperty] = new Binding(nameof(Node.Title)),
-                            Foreground = Brushes.White,
-                            FontWeight = FontWeight.SemiBold,
-                            FontSize = 12
-                        }
-                    },
+                    header,
                     // Body: empty padding area. Subclass templates replace the
                     // entire node visual — this just provides consistent spacing.
                     new Border { MinHeight = 4 }
                 }
             }
         };
+        border.Bind(Border.BackgroundProperty,
+            border.GetResourceObservable(NodiumGraphResources.NodeBodyBrushKey));
+        border.Bind(Border.BorderBrushProperty,
+            border.GetResourceObservable(NodiumGraphResources.NodeBorderBrushKey));
 
         return border;
     }, supportsRecycling: false);

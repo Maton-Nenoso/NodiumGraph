@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.Templates;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media;
 using NodiumGraph.Controls;
 using NodiumGraph.Model;
 using Xunit;
@@ -77,5 +78,14 @@ public class NodiumGraphCanvasRenderTests
 
         // Container was created and arrange completed without exception
         Assert.Equal(1, canvas.NodeContainerCount);
+    }
+
+    [AvaloniaFact]
+    public void ResolveBrush_returns_fallback_when_resource_not_found()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var fallback = Brushes.Red;
+        var result = canvas.ResolveBrush("NonExistentKey", fallback);
+        Assert.Same(fallback, result);
     }
 }

@@ -55,17 +55,40 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private Point _marqueeStart;
     private Point _marqueeEnd;
 
-    // Cached render-path brushes and pens (internal for CanvasOverlay access)
-    private static readonly SolidColorBrush s_gridBrush = new(Color.FromArgb(40, 128, 128, 128));
-    internal static readonly SolidColorBrush s_portBrush = new(Color.FromRgb(160, 160, 170));
-    internal static readonly Pen s_portOutlinePen = new(Brushes.White, 1);
-    internal static readonly Pen s_previewPenValid = new(Brushes.Green, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
-    internal static readonly Pen s_previewPenInvalid = new(Brushes.Gray, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
-    internal static readonly Pen s_cuttingPen = new(Brushes.Red, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
-    internal static readonly SolidColorBrush s_marqueeFill = new(Color.FromArgb(30, 100, 150, 255));
-    internal static readonly Pen s_marqueePen = new(new SolidColorBrush(Color.FromArgb(150, 100, 150, 255)), 1);
-    internal static readonly Pen s_selectedBorderPen = new(new SolidColorBrush(Color.FromRgb(80, 160, 255)), 2);
-    internal static readonly Pen s_hoveredBorderPen = new(new SolidColorBrush(Color.FromArgb(120, 150, 190, 255)), 1.5);
+    // Fallback defaults (used when theme resources not found)
+    internal static readonly SolidColorBrush DefaultGridBrush = new(Color.FromArgb(40, 128, 128, 128));
+    internal static readonly SolidColorBrush DefaultPortBrush = new(Color.FromRgb(160, 160, 170));
+    internal static readonly SolidColorBrush DefaultPortOutlineBrush = new(Colors.White);
+    internal static readonly SolidColorBrush DefaultPreviewValidBrush = new(Colors.Green);
+    internal static readonly SolidColorBrush DefaultPreviewInvalidBrush = new(Colors.Gray);
+    internal static readonly SolidColorBrush DefaultCuttingBrush = new(Colors.Red);
+    internal static readonly SolidColorBrush DefaultMarqueeFillBrush = new(Color.FromArgb(30, 100, 150, 255));
+    internal static readonly SolidColorBrush DefaultMarqueeBorderBrush = new(Color.FromArgb(150, 100, 150, 255));
+    internal static readonly SolidColorBrush DefaultSelectedBorderBrush = new(Color.FromRgb(80, 160, 255));
+    internal static readonly SolidColorBrush DefaultHoveredBorderBrush = new(Color.FromArgb(120, 150, 190, 255));
+    internal static readonly SolidColorBrush DefaultMinimapBackgroundBrush = new(Color.FromArgb(200, 30, 30, 30));
+    internal static readonly SolidColorBrush DefaultMinimapNodeBrush = new(Color.FromArgb(180, 100, 150, 200));
+    internal static readonly SolidColorBrush DefaultMinimapSelectedNodeBrush = new(Color.FromArgb(220, 80, 180, 255));
+    internal static readonly SolidColorBrush DefaultMinimapViewportBrush = new(Color.FromArgb(150, 255, 255, 255));
+
+    /// <summary>
+    /// Resolves a brush from the Avalonia resource tree, falling back to a default.
+    /// </summary>
+    internal IBrush ResolveBrush(string key, IBrush fallback)
+    {
+        if (this.TryFindResource(key, out var resource) && resource is IBrush brush)
+            return brush;
+        return fallback;
+    }
+
+    /// <summary>
+    /// Resolves a pen by looking up its brush from the resource tree with a fallback.
+    /// </summary>
+    internal Pen ResolvePen(string brushKey, IBrush fallbackBrush, double thickness, IDashStyle? dashStyle = null)
+    {
+        var brush = ResolveBrush(brushKey, fallbackBrush);
+        return new Pen(brush, thickness, dashStyle);
+    }
 
     private readonly CanvasOverlay _overlay;
 
@@ -910,7 +933,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
         if (ShowGrid)
         {
-            GridRenderer.Render(context, Bounds, transform, GridSize, s_gridBrush);
+            var gridBrush = ResolveBrush(NodiumGraphResources.GridBrushKey, DefaultGridBrush);
+            GridRenderer.Render(context, Bounds, transform, GridSize, gridBrush);
         }
 
         if (Graph != null)

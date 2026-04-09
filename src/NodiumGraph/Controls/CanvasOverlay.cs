@@ -26,6 +26,14 @@ internal class CanvasOverlay : Control
         var transform = new ViewportTransform(_canvas.ViewportZoom, _canvas.ViewportOffset);
         var zoom = _canvas.ViewportZoom;
 
+        // Resolve brushes/pens from theme resources
+        var selectedBorderPen = _canvas.ResolvePen(
+            NodiumGraphResources.NodeSelectedBorderBrushKey,
+            NodiumGraphCanvas.DefaultSelectedBorderBrush, 2);
+        var hoveredBorderPen = _canvas.ResolvePen(
+            NodiumGraphResources.NodeHoveredBorderBrushKey,
+            NodiumGraphCanvas.DefaultHoveredBorderBrush, 1.5);
+
         // Node state borders (hovered + selected)
         foreach (var node in graph.Nodes)
         {
@@ -37,11 +45,11 @@ internal class CanvasOverlay : Control
 
             if (node.IsSelected)
             {
-                context.DrawRectangle(null, NodiumGraphCanvas.s_selectedBorderPen, nodeRect, 6, 6);
+                context.DrawRectangle(null, selectedBorderPen, nodeRect, 6, 6);
             }
             else if (node == _canvas.HoveredNode)
             {
-                context.DrawRectangle(null, NodiumGraphCanvas.s_hoveredBorderPen, nodeRect, 6, 6);
+                context.DrawRectangle(null, hoveredBorderPen, nodeRect, 6, 6);
             }
         }
 
@@ -49,6 +57,13 @@ internal class CanvasOverlay : Control
         if (_canvas.PortTemplate == null)
         {
             const double portRadius = 4.0;
+            var portBrush = _canvas.ResolveBrush(
+                NodiumGraphResources.PortBrushKey,
+                NodiumGraphCanvas.DefaultPortBrush);
+            var portOutlinePen = _canvas.ResolvePen(
+                NodiumGraphResources.PortOutlineBrushKey,
+                NodiumGraphCanvas.DefaultPortOutlineBrush, 1);
+
             foreach (var node in graph.Nodes)
             {
                 if (node.PortProvider == null) continue;
@@ -56,7 +71,7 @@ internal class CanvasOverlay : Control
                 {
                     var screenPos = transform.WorldToScreen(port.AbsolutePosition);
                     var scaledRadius = portRadius * _canvas.ViewportZoom;
-                    context.DrawEllipse(NodiumGraphCanvas.s_portBrush, NodiumGraphCanvas.s_portOutlinePen,
+                    context.DrawEllipse(portBrush, portOutlinePen,
                         screenPos, scaledRadius, scaledRadius);
                 }
             }
@@ -68,11 +83,20 @@ internal class CanvasOverlay : Control
             const double highlightRadius = 7.0;
             var scaledHighlight = highlightRadius * zoom;
 
+            var previewValidPen = _canvas.ResolvePen(
+                NodiumGraphResources.ConnectionPreviewValidBrushKey,
+                NodiumGraphCanvas.DefaultPreviewValidBrush, 2.0,
+                new DashStyle(new double[] { 4, 4 }, 0));
+            var cuttingPen = _canvas.ResolvePen(
+                NodiumGraphResources.CuttingLineBrushKey,
+                NodiumGraphCanvas.DefaultCuttingBrush, 2.0,
+                new DashStyle(new double[] { 4, 4 }, 0));
+
             // Highlight source port
             if (_canvas.ConnectionSourcePort != null)
             {
                 var srcScreen = transform.WorldToScreen(_canvas.ConnectionSourcePort.AbsolutePosition);
-                context.DrawEllipse(null, NodiumGraphCanvas.s_previewPenValid,
+                context.DrawEllipse(null, previewValidPen,
                     srcScreen, scaledHighlight, scaledHighlight);
             }
 
@@ -81,8 +105,8 @@ internal class CanvasOverlay : Control
             {
                 var tgtScreen = transform.WorldToScreen(_canvas.ConnectionTargetPort.AbsolutePosition);
                 var pen = _canvas.ConnectionPreviewValid
-                    ? NodiumGraphCanvas.s_previewPenValid
-                    : NodiumGraphCanvas.s_cuttingPen; // red for invalid
+                    ? previewValidPen
+                    : cuttingPen; // red for invalid
                 context.DrawEllipse(null, pen, tgtScreen, scaledHighlight, scaledHighlight);
             }
         }
@@ -92,15 +116,25 @@ internal class CanvasOverlay : Control
         {
             var startScreen = transform.WorldToScreen(_canvas.ConnectionSourcePort.AbsolutePosition);
             var previewPen = _canvas.ConnectionPreviewValid
-                ? NodiumGraphCanvas.s_previewPenValid
-                : NodiumGraphCanvas.s_previewPenInvalid;
+                ? _canvas.ResolvePen(
+                    NodiumGraphResources.ConnectionPreviewValidBrushKey,
+                    NodiumGraphCanvas.DefaultPreviewValidBrush, 2.0,
+                    new DashStyle(new double[] { 4, 4 }, 0))
+                : _canvas.ResolvePen(
+                    NodiumGraphResources.ConnectionPreviewInvalidBrushKey,
+                    NodiumGraphCanvas.DefaultPreviewInvalidBrush, 2.0,
+                    new DashStyle(new double[] { 4, 4 }, 0));
             context.DrawLine(previewPen, startScreen, _canvas.ConnectionPreviewEnd);
         }
 
         // Cutting line
         if (_canvas.IsCuttingConnections)
         {
-            context.DrawLine(NodiumGraphCanvas.s_cuttingPen, _canvas.CuttingStart, _canvas.CuttingEnd);
+            var cuttingPen = _canvas.ResolvePen(
+                NodiumGraphResources.CuttingLineBrushKey,
+                NodiumGraphCanvas.DefaultCuttingBrush, 2.0,
+                new DashStyle(new double[] { 4, 4 }, 0));
+            context.DrawLine(cuttingPen, _canvas.CuttingStart, _canvas.CuttingEnd);
         }
 
         // Marquee selection rectangle
@@ -112,13 +146,33 @@ internal class CanvasOverlay : Control
                 Math.Abs(_canvas.MarqueeEnd.X - _canvas.MarqueeStart.X),
                 Math.Abs(_canvas.MarqueeEnd.Y - _canvas.MarqueeStart.Y));
 
-            context.DrawRectangle(NodiumGraphCanvas.s_marqueeFill, NodiumGraphCanvas.s_marqueePen, marqueeRect);
+            var marqueeFill = _canvas.ResolveBrush(
+                NodiumGraphResources.MarqueeFillBrushKey,
+                NodiumGraphCanvas.DefaultMarqueeFillBrush);
+            var marqueePen = _canvas.ResolvePen(
+                NodiumGraphResources.MarqueeBorderBrushKey,
+                NodiumGraphCanvas.DefaultMarqueeBorderBrush, 1);
+
+            context.DrawRectangle(marqueeFill, marqueePen, marqueeRect);
         }
 
         // Minimap
         if (_canvas.ShowMinimap)
         {
-            MinimapRenderer.Render(context, _canvas.Bounds, graph, transform, _canvas.MinimapPosition);
+            var mmBg = _canvas.ResolveBrush(
+                NodiumGraphResources.MinimapBackgroundBrushKey,
+                NodiumGraphCanvas.DefaultMinimapBackgroundBrush);
+            var mmNode = _canvas.ResolveBrush(
+                NodiumGraphResources.MinimapNodeBrushKey,
+                NodiumGraphCanvas.DefaultMinimapNodeBrush);
+            var mmSelected = _canvas.ResolveBrush(
+                NodiumGraphResources.MinimapSelectedNodeBrushKey,
+                NodiumGraphCanvas.DefaultMinimapSelectedNodeBrush);
+            var mmViewport = _canvas.ResolveBrush(
+                NodiumGraphResources.MinimapViewportBrushKey,
+                NodiumGraphCanvas.DefaultMinimapViewportBrush);
+            MinimapRenderer.Render(context, _canvas.Bounds, graph, transform, _canvas.MinimapPosition,
+                mmBg, mmNode, mmSelected, mmViewport);
         }
     }
 }
