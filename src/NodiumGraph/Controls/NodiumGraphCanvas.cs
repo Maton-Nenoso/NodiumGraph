@@ -861,21 +861,23 @@ public class NodiumGraphCanvas : TemplatedControl
                 ConnectionRenderer.Render(context, connection, router, connectionPen, transform);
             }
 
-            // Render port visuals
-            const double portRadius = 4.0;
-
-            foreach (var node in Graph.Nodes)
+            // Render port visuals (only default when no custom template)
+            if (PortTemplate == null)
             {
-                if (node.PortProvider == null) continue;
-                foreach (var port in node.PortProvider.Ports)
+                const double portRadius = 4.0;
+                foreach (var node in Graph.Nodes)
                 {
-                    var screenPos = transform.WorldToScreen(port.AbsolutePosition);
-                    var scaledRadius = portRadius * ViewportZoom;
-
-                    context.DrawEllipse(s_portBrush, s_portOutlinePen,
-                        screenPos, scaledRadius, scaledRadius);
+                    if (node.PortProvider == null) continue;
+                    foreach (var port in node.PortProvider.Ports)
+                    {
+                        var screenPos = transform.WorldToScreen(port.AbsolutePosition);
+                        var scaledRadius = portRadius * ViewportZoom;
+                        context.DrawEllipse(s_portBrush, s_portOutlinePen,
+                            screenPos, scaledRadius, scaledRadius);
+                    }
                 }
             }
+            // When PortTemplate is set, port visuals are expected to be part of the node's DataTemplate
         }
 
         if (_isDrawingConnection && _connectionSourcePort != null)

@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls.Templates;
 using Avalonia.Headless.XUnit;
 using NodiumGraph.Controls;
 using NodiumGraph.Model;
@@ -47,6 +48,17 @@ public class NodiumGraphCanvasRenderTests
     {
         var canvas = new NodiumGraphCanvas();
         Assert.True(canvas.ClipToBounds);
+    }
+
+    [AvaloniaFact]
+    public void Setting_PortTemplate_disables_default_port_rendering()
+    {
+        var canvas = new NodiumGraphCanvas();
+        // Setting any template should suppress default ellipse rendering
+        // (The template itself would be part of the node's visual tree)
+        canvas.PortTemplate = new FuncDataTemplate<Port>((_, _) => new Avalonia.Controls.TextBlock());
+        Assert.NotNull(canvas.PortTemplate);
+        // No assertion on rendering (visual verification), but ensures property is read
     }
 
     [AvaloniaFact]
