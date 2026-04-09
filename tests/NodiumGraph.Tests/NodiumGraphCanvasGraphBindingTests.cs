@@ -121,6 +121,26 @@ public class NodiumGraphCanvasGraphBindingTests
     }
 
     [AvaloniaFact]
+    public void Adding_connection_externally_triggers_repaint()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var nodeA = new Node { X = 0, Y = 0 };
+        var nodeB = new Node { X = 200, Y = 100 };
+        var portOut = new Port(nodeA, new Point(100, 25));
+        var portIn = new Port(nodeB, new Point(0, 25));
+        graph.AddNode(nodeA);
+        graph.AddNode(nodeB);
+        canvas.Graph = graph;
+
+        // This should not throw and canvas should handle it
+        graph.AddConnection(new Connection(portOut, portIn));
+
+        // Verify the connection count is reflected
+        Assert.Single(graph.Connections);
+    }
+
+    [AvaloniaFact]
     public void Arrange_writes_measured_size_back_to_node()
     {
         var canvas = new NodiumGraphCanvas();

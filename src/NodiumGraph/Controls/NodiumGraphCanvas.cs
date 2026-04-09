@@ -831,6 +831,7 @@ public class NodiumGraphCanvas : TemplatedControl
         if (oldGraph != null)
         {
             ((INotifyCollectionChanged)oldGraph.Nodes).CollectionChanged -= OnNodesCollectionChanged;
+            ((INotifyCollectionChanged)oldGraph.Connections).CollectionChanged -= OnConnectionsCollectionChanged;
             foreach (var node in oldGraph.Nodes)
                 node.PropertyChanged -= OnNodePropertyChanged;
         }
@@ -846,6 +847,7 @@ public class NodiumGraphCanvas : TemplatedControl
         if (newGraph != null)
         {
             ((INotifyCollectionChanged)newGraph.Nodes).CollectionChanged += OnNodesCollectionChanged;
+            ((INotifyCollectionChanged)newGraph.Connections).CollectionChanged += OnConnectionsCollectionChanged;
             foreach (var node in newGraph.Nodes)
                 AddNodeContainer(node);
         }
@@ -874,6 +876,11 @@ public class NodiumGraphCanvas : TemplatedControl
 
             _nodeContainers.Clear();
         }
+    }
+
+    private void OnConnectionsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        InvalidateVisual();
     }
 
     private void AddNodeContainer(Node node)
