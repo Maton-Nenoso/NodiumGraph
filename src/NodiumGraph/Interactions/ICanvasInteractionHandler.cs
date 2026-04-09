@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Input;
 
 namespace NodiumGraph.Interactions;
 
@@ -8,5 +9,5 @@ namespace NodiumGraph.Interactions;
 public interface ICanvasInteractionHandler
 {
     void OnCanvasDoubleClicked(Point worldPosition);
-    void OnCanvasDropped(Point worldPosition, object data);
+    void OnCanvasDropped(Point worldPosition, IDataTransfer data);
 }

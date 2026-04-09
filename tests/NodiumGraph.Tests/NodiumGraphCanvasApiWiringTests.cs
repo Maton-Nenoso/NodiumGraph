@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
@@ -55,7 +56,7 @@ public class NodiumGraphCanvasApiWiringTests
     private class TestCanvasHandler(Action<Point> onDoubleClick) : ICanvasInteractionHandler
     {
         public void OnCanvasDoubleClicked(Point worldPosition) => onDoubleClick(worldPosition);
-        public void OnCanvasDropped(Point worldPosition, object data) { }
+        public void OnCanvasDropped(Point worldPosition, IDataTransfer data) { }
     }
 
     private class TestNodeHandler(Action<Node> onDoubleClick) : INodeInteractionHandler
