@@ -36,6 +36,9 @@ public class NodiumGraphCanvas : TemplatedControl
     private Port? _connectionSourcePort;
     private Point _connectionPreviewEnd;
     private bool _connectionPreviewValid;
+    private bool _isCuttingConnections;
+    private Point _cuttingStart;
+    private Point _cuttingEnd;
     public static readonly StyledProperty<Graph?> GraphProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, Graph?>(nameof(Graph));
 
@@ -217,6 +220,8 @@ public class NodiumGraphCanvas : TemplatedControl
     internal bool IsDragging => _isDragging;
 
     internal bool IsDrawingConnection => _isDrawingConnection;
+
+    internal bool IsCuttingConnections => _isCuttingConnections;
 
     internal Port? HitTestPort(Point screenPosition)
     {
@@ -408,6 +413,15 @@ public class NodiumGraphCanvas : TemplatedControl
             return;
         }
 
+        if (props.IsLeftButtonPressed && (e.KeyModifiers & KeyModifiers.Alt) != 0)
+        {
+            _isCuttingConnections = true;
+            _cuttingStart = position;
+            _cuttingEnd = position;
+            e.Handled = true;
+            return;
+        }
+
         if (!props.IsLeftButtonPressed) return;
 
         // Check port hit first (ports are on top of nodes)
@@ -450,6 +464,14 @@ public class NodiumGraphCanvas : TemplatedControl
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         base.OnPointerMoved(e);
+
+        if (_isCuttingConnections)
+        {
+            _cuttingEnd = e.GetPosition(this);
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
 
         if (_isDrawingConnection && _connectionSourcePort != null)
         {
@@ -507,6 +529,28 @@ public class NodiumGraphCanvas : TemplatedControl
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+
+        if (_isCuttingConnections)
+        {
+            _isCuttingConnections = false;
+
+            if (Graph != null && ConnectionHandler != null)
+            {
+                var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+
+                foreach (var connection in Graph.Connections.ToList())
+                {
+                    if (CuttingLineIntersectsGeometry(_cuttingStart, _cuttingEnd, connection, transform))
+                    {
+                        ConnectionHandler.OnConnectionDeleteRequested(connection);
+                    }
+                }
+            }
+
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
 
         if (_isDrawingConnection && _connectionSourcePort != null)
         {
@@ -576,7 +620,12 @@ public class NodiumGraphCanvas : TemplatedControl
         }
         else if (e.Key == Key.Escape)
         {
-            if (_isDrawingConnection)
+            if (_isCuttingConnections)
+            {
+                _isCuttingConnections = false;
+                InvalidateVisual();
+            }
+            else if (_isDrawingConnection)
             {
                 _isDrawingConnection = false;
                 _connectionSourcePort = null;
@@ -667,7 +716,71 @@ public class NodiumGraphCanvas : TemplatedControl
             var pen = new Pen(previewBrush, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
             context.DrawLine(pen, startScreen, _connectionPreviewEnd);
         }
+
+        if (_isCuttingConnections)
+        {
+            var cuttingPen = new Pen(Brushes.Red, 2.0, new DashStyle(new double[] { 4, 4 }, 0));
+            context.DrawLine(cuttingPen, _cuttingStart, _cuttingEnd);
+        }
     }
+
+    private bool CuttingLineIntersectsGeometry(
+        Point lineStart, Point lineEnd, Connection connection, ViewportTransform transform)
+    {
+        var routePoints = ConnectionRouter.Route(connection.SourcePort, connection.TargetPort);
+        var screenPoints = routePoints.Select(transform.WorldToScreen).ToList();
+
+        // For bezier (4 points), sample the curve at intervals for approximate intersection
+        if (screenPoints.Count == 4)
+        {
+            var samples = new List<Point>();
+            for (var t = 0.0; t <= 1.0; t += 0.05)
+            {
+                samples.Add(BezierPoint(screenPoints[0], screenPoints[1], screenPoints[2], screenPoints[3], t));
+            }
+
+            for (var i = 0; i < samples.Count - 1; i++)
+            {
+                if (LinesIntersect(lineStart, lineEnd, samples[i], samples[i + 1]))
+                    return true;
+            }
+
+            return false;
+        }
+
+        // For polyline, check each segment
+        for (var i = 0; i < screenPoints.Count - 1; i++)
+        {
+            if (LinesIntersect(lineStart, lineEnd, screenPoints[i], screenPoints[i + 1]))
+                return true;
+        }
+
+        return false;
+    }
+
+    internal static Point BezierPoint(Point p0, Point p1, Point p2, Point p3, double t)
+    {
+        var u = 1 - t;
+        var x = u * u * u * p0.X + 3 * u * u * t * p1.X + 3 * u * t * t * p2.X + t * t * t * p3.X;
+        var y = u * u * u * p0.Y + 3 * u * u * t * p1.Y + 3 * u * t * t * p2.Y + t * t * t * p3.Y;
+        return new Point(x, y);
+    }
+
+    internal static bool LinesIntersect(Point a1, Point a2, Point b1, Point b2)
+    {
+        var d1 = CrossProduct(b2 - b1, a1 - b1);
+        var d2 = CrossProduct(b2 - b1, a2 - b1);
+        var d3 = CrossProduct(a2 - a1, b1 - a1);
+        var d4 = CrossProduct(a2 - a1, b2 - a1);
+
+        if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) &&
+            ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+            return true;
+
+        return false;
+    }
+
+    private static double CrossProduct(Vector a, Vector b) => a.X * b.Y - a.Y * b.X;
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
