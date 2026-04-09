@@ -22,6 +22,10 @@ public class NodiumGraphCanvas : TemplatedControl
     }
 
     private readonly Dictionary<Node, ContentControl> _nodeContainers = new();
+    private bool _isPanning;
+    private bool _isSpaceHeld;
+    private Point _panStartScreen;
+    private Point _panStartOffset;
     public static readonly StyledProperty<Graph?> GraphProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, Graph?>(nameof(Graph));
 
@@ -198,6 +202,8 @@ public class NodiumGraphCanvas : TemplatedControl
 
     internal int NodeContainerCount => _nodeContainers.Count;
 
+    internal bool IsPanning => _isPanning;
+
     internal Node? HitTestNode(Point screenPosition)
     {
         // Check containers in reverse order (top-most first, i.e. last-added)
@@ -262,9 +268,20 @@ public class NodiumGraphCanvas : TemplatedControl
         base.OnPointerPressed(e);
 
         var props = e.GetCurrentPoint(this).Properties;
+        var position = e.GetPosition(this);
+
+        if (props.IsMiddleButtonPressed ||
+            (props.IsLeftButtonPressed && _isSpaceHeld))
+        {
+            _isPanning = true;
+            _panStartScreen = position;
+            _panStartOffset = ViewportOffset;
+            e.Handled = true;
+            return;
+        }
+
         if (!props.IsLeftButtonPressed) return;
 
-        var position = e.GetPosition(this);
         var hitNode = HitTestNode(position);
         var isCtrl = (e.KeyModifiers & KeyModifiers.Control) != 0;
 
@@ -280,6 +297,66 @@ public class NodiumGraphCanvas : TemplatedControl
         }
 
         Focus();
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+
+        if (_isPanning)
+        {
+            var position = e.GetPosition(this);
+            var delta = position - _panStartScreen;
+            ViewportOffset = new Point(_panStartOffset.X + delta.X, _panStartOffset.Y + delta.Y);
+            e.Handled = true;
+        }
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+
+        if (_isPanning)
+        {
+            _isPanning = false;
+            e.Handled = true;
+        }
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+
+        if (e.Key == Key.Space)
+            _isSpaceHeld = true;
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+
+        if (e.Key == Key.Space)
+            _isSpaceHeld = false;
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+
+        var cursorScreen = e.GetPosition(this);
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+        var cursorWorld = transform.ScreenToWorld(cursorScreen);
+
+        var zoomFactor = e.Delta.Y > 0 ? 1.1 : 1.0 / 1.1;
+        var newZoom = Math.Clamp(ViewportZoom * zoomFactor, MinZoom, MaxZoom);
+
+        // Adjust offset so cursor world point stays fixed
+        ViewportZoom = newZoom;
+        ViewportOffset = new Point(
+            cursorScreen.X - cursorWorld.X * newZoom,
+            cursorScreen.Y - cursorWorld.Y * newZoom);
+
+        e.Handled = true;
     }
 
     public override void Render(DrawingContext context)
