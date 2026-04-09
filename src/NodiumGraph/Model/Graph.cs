@@ -12,6 +12,7 @@ public class Graph
     private readonly ObservableCollection<Node> _nodes = new();
     private readonly ObservableCollection<Connection> _connections = new();
     private readonly List<Node> _selectedNodes = new();
+    private readonly ReadOnlyCollection<Node> _selectedNodesReadOnly;
 
     public ReadOnlyObservableCollection<Node> Nodes { get; }
     public ReadOnlyObservableCollection<Connection> Connections { get; }
@@ -20,8 +21,10 @@ public class Graph
     {
         Nodes = new(_nodes);
         Connections = new(_connections);
+        _selectedNodesReadOnly = _selectedNodes.AsReadOnly();
     }
-    public IReadOnlyList<Node> SelectedNodes => _selectedNodes.AsReadOnly();
+
+    public IReadOnlyList<Node> SelectedNodes => _selectedNodesReadOnly;
 
     public void AddNode(Node node)
     {
