@@ -2,11 +2,78 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ng="clr-namespace:NodiumGraph.Controls;assembly=NodiumGraph"
         x:Class="NodiumGraph.Sample.MainWindow"
-        Title="NodiumGraph Sample" Width="1280" Height="800"
-        Background="#FF1A1A2E">
+        Title="NodiumGraph Sample" Width="1280" Height="800">
 
-    <ng:NodiumGraphCanvas x:Name="Canvas"
-                          ShowGrid="True"
-                          SnapToGrid="False"
-                          ShowMinimap="True" />
+    <Grid ColumnDefinitions="220,*">
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0"
+                BorderBrush="#FFD0D0D0"
+                BorderThickness="0,0,1,0"
+                Padding="12">
+            <ScrollViewer>
+                <StackPanel Spacing="16">
+
+                    <TextBlock Text="Grid"
+                               FontSize="14" FontWeight="SemiBold" />
+
+                    <StackPanel Spacing="4">
+                        <ToggleSwitch IsChecked="{Binding #Canvas.ShowGrid}"
+                                      Content="Show Grid"
+                                      OnContent="On" OffContent="Off" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Style" FontSize="12" />
+                        <ComboBox x:Name="GridStyleCombo" SelectedIndex="1">
+                            <ComboBoxItem Content="None" Tag="{x:Static ng:GridStyle.None}" />
+                            <ComboBoxItem Content="Dots" Tag="{x:Static ng:GridStyle.Dots}" />
+                            <ComboBoxItem Content="Lines" Tag="{x:Static ng:GridStyle.Lines}" />
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding #GridSizeSlider.Value, StringFormat='Grid Size: {0:F0}'}"
+                                   FontSize="12" />
+                        <Slider x:Name="GridSizeSlider"
+                                Minimum="5" Maximum="100"
+                                Value="{Binding #Canvas.GridSize}"
+                                TickFrequency="5"
+                                IsSnapToTickEnabled="True" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <ToggleSwitch IsChecked="{Binding #Canvas.SnapToGrid}"
+                                      Content="Snap to Grid"
+                                      OnContent="On" OffContent="Off" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="{Binding #MajorIntervalSlider.Value, StringFormat='Major Interval: {0:F0}'}"
+                                   FontSize="12" />
+                        <Slider x:Name="MajorIntervalSlider"
+                                Minimum="2" Maximum="20"
+                                Value="{Binding #Canvas.MajorGridInterval}"
+                                TickFrequency="1"
+                                IsSnapToTickEnabled="True" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <ToggleSwitch IsChecked="{Binding #Canvas.ShowOriginAxes}"
+                                      Content="Origin Axes"
+                                      OnContent="On" OffContent="Off" />
+                    </StackPanel>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Canvas -->
+        <ng:NodiumGraphCanvas x:Name="Canvas"
+                              Grid.Column="1"
+                              Background="#FFF5F5F5"
+                              ShowGrid="True"
+                              SnapToGrid="False"
+                              ShowMinimap="True" />
+    </Grid>
 </Window>

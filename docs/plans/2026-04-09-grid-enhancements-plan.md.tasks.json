@@ -1,0 +1,11 @@
+{
+  "planPath": "docs/plans/2026-04-09-grid-enhancements-plan.md",
+  "tasks": [
+    {"id": 2, "subject": "Task 1: Add GridStyle.None", "status": "pending"},
+    {"id": 3, "subject": "Task 2: Configurable Major Line Interval", "status": "pending", "blockedBy": [2]},
+    {"id": 4, "subject": "Task 3: Origin Axes with Per-Axis Colors", "status": "pending", "blockedBy": [3]},
+    {"id": 5, "subject": "Task 4: Grid Opacity Fade on Zoom", "status": "pending", "blockedBy": [2]},
+    {"id": 6, "subject": "Task 5: Adaptive Grid Density", "status": "pending", "blockedBy": [5]}
+  ],
+  "lastUpdated": "2026-04-09T15:30:00Z"
+}

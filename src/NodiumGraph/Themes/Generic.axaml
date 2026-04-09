@@ -10,6 +10,9 @@
     <Styles.Resources>
         <!-- Grid -->
         <SolidColorBrush x:Key="NodiumGraphGridBrush" Color="#28808080" />
+        <SolidColorBrush x:Key="NodiumGraphMajorGridBrush" Color="#50808080" />
+        <SolidColorBrush x:Key="NodiumGraphOriginXAxisBrush" Color="#60E05050" />
+        <SolidColorBrush x:Key="NodiumGraphOriginYAxisBrush" Color="#6050B050" />
 
         <!-- Ports -->
         <SolidColorBrush x:Key="NodiumGraphPortBrush" Color="#FFA0A0AA" />

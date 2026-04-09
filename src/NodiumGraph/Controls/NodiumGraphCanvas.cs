@@ -57,6 +57,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     // Fallback defaults (used when theme resources not found)
     internal static readonly SolidColorBrush DefaultGridBrush = new(Color.FromArgb(40, 128, 128, 128));
+    internal static readonly SolidColorBrush DefaultMajorGridBrush = new(Color.FromArgb(80, 128, 128, 128));
+    internal static readonly SolidColorBrush DefaultOriginXAxisBrush = new(Color.FromArgb(96, 224, 80, 80));
+    internal static readonly SolidColorBrush DefaultOriginYAxisBrush = new(Color.FromArgb(96, 80, 176, 80));
     internal static readonly SolidColorBrush DefaultPortBrush = new(Color.FromRgb(160, 160, 170));
     internal static readonly SolidColorBrush DefaultPortOutlineBrush = new(Colors.White);
     internal static readonly SolidColorBrush DefaultPreviewValidBrush = new(Colors.Green);
@@ -115,6 +118,15 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     public static readonly StyledProperty<bool> SnapToGridProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, bool>(nameof(SnapToGrid));
+
+    public static readonly StyledProperty<GridStyle> GridStyleProperty =
+        AvaloniaProperty.Register<NodiumGraphCanvas, GridStyle>(nameof(GridStyle), GridStyle.Dots);
+
+    public static readonly StyledProperty<int> MajorGridIntervalProperty =
+        AvaloniaProperty.Register<NodiumGraphCanvas, int>(nameof(MajorGridInterval), 5);
+
+    public static readonly StyledProperty<bool> ShowOriginAxesProperty =
+        AvaloniaProperty.Register<NodiumGraphCanvas, bool>(nameof(ShowOriginAxes), true);
 
     public static readonly StyledProperty<IDataTemplate?> NodeTemplateProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, IDataTemplate?>(nameof(NodeTemplate));
@@ -198,6 +210,24 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     {
         get => GetValue(SnapToGridProperty);
         set => SetValue(SnapToGridProperty, value);
+    }
+
+    public GridStyle GridStyle
+    {
+        get => GetValue(GridStyleProperty);
+        set => SetValue(GridStyleProperty, value);
+    }
+
+    public int MajorGridInterval
+    {
+        get => GetValue(MajorGridIntervalProperty);
+        set => SetValue(MajorGridIntervalProperty, value);
+    }
+
+    public bool ShowOriginAxes
+    {
+        get => GetValue(ShowOriginAxesProperty);
+        set => SetValue(ShowOriginAxesProperty, value);
     }
 
     public IDataTemplate? NodeTemplate
@@ -934,7 +964,15 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (ShowGrid)
         {
             var gridBrush = ResolveBrush(NodiumGraphResources.GridBrushKey, DefaultGridBrush);
-            GridRenderer.Render(context, Bounds, transform, GridSize, gridBrush);
+            var majorBrush = ResolveBrush(NodiumGraphResources.MajorGridBrushKey, DefaultMajorGridBrush);
+            GridRenderer.Render(context, new Rect(Bounds.Size), transform, GridSize, GridStyle, gridBrush, majorBrush, MajorGridInterval);
+        }
+
+        if (ShowOriginAxes)
+        {
+            var xAxisBrush = ResolveBrush(NodiumGraphResources.OriginXAxisBrushKey, DefaultOriginXAxisBrush);
+            var yAxisBrush = ResolveBrush(NodiumGraphResources.OriginYAxisBrushKey, DefaultOriginYAxisBrush);
+            GridRenderer.RenderOriginAxes(context, new Rect(Bounds.Size), transform, xAxisBrush, yAxisBrush);
         }
 
         if (Graph != null)
@@ -1039,6 +1077,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         }
         else if (change.Property == ShowGridProperty ||
                  change.Property == GridSizeProperty ||
+                 change.Property == GridStyleProperty ||
+                 change.Property == MajorGridIntervalProperty ||
+                 change.Property == ShowOriginAxesProperty ||
                  change.Property == ConnectionRouterProperty ||
                  change.Property == DefaultConnectionStyleProperty ||
                  change.Property == ShowMinimapProperty ||

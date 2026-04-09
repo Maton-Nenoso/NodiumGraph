@@ -55,6 +55,13 @@ public partial class MainWindow : Window
         // Wire a simple connection handler
         Canvas.ConnectionHandler = new SampleConnectionHandler(graph);
         Canvas.ConnectionValidator = new SampleConnectionValidator();
+
+        // Wire grid style combo to canvas property
+        GridStyleCombo.SelectionChanged += (_, _) =>
+        {
+            if (GridStyleCombo.SelectedItem is ComboBoxItem { Tag: GridStyle style })
+                Canvas.GridStyle = style;
+        };
     }
 }
 

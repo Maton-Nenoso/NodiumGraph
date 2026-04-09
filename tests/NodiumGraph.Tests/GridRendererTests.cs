@@ -65,4 +65,29 @@ public class GridRendererTests
         var points = GridRenderer.ComputeGridPoints(visibleArea, transform, gridSize: -5.0);
         Assert.Empty(points);
     }
+
+    [Theory]
+    [InlineData(1.0, 1.0)]
+    [InlineData(0.5, 1.0)]
+    [InlineData(0.3, 1.0)]
+    [InlineData(0.2, 0.5)]
+    [InlineData(0.1, 0.0)]
+    [InlineData(0.05, 0.0)]
+    public void ComputeFadeOpacity_returns_expected_value(double zoom, double expected)
+    {
+        var result = GridRenderer.ComputeFadeOpacity(zoom);
+        Assert.Equal(expected, result, precision: 2);
+    }
+
+    [Theory]
+    [InlineData(20.0, 1.0, 20.0)]   // Normal zoom, no change
+    [InlineData(20.0, 0.5, 40.0)]   // Zoomed out: 20*0.5=10 < 15, double to 40*0.5=20
+    [InlineData(20.0, 0.2, 80.0)]   // Very zoomed out: need 80*0.2=16 >= 15
+    [InlineData(20.0, 4.0, 20.0)]   // Zoomed in: 20*4=80 > 60, but can't halve below base
+    [InlineData(50.0, 2.0, 50.0)]   // Zoomed in: 50*2=100 > 60, but can't halve below base
+    public void ComputeEffectiveGridSize_returns_expected(double gridSize, double zoom, double expected)
+    {
+        var result = GridRenderer.ComputeEffectiveGridSize(gridSize, zoom);
+        Assert.Equal(expected, result, precision: 1);
+    }
 }

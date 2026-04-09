@@ -8,6 +8,9 @@ public static class NodiumGraphResources
 {
     // Grid
     public const string GridBrushKey = "NodiumGraphGridBrush";
+    public const string MajorGridBrushKey = "NodiumGraphMajorGridBrush";
+    public const string OriginXAxisBrushKey = "NodiumGraphOriginXAxisBrush";
+    public const string OriginYAxisBrushKey = "NodiumGraphOriginYAxisBrush";
 
     // Ports
     public const string PortBrushKey = "NodiumGraphPortBrush";

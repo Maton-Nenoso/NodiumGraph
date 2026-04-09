@@ -1,16 +1,29 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="NodiumGraph.Sample.App">
+             x:Class="NodiumGraph.Sample.App"
+             RequestedThemeVariant="Light">
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://NodiumGraph/Themes/Generic.axaml" />
     </Application.Styles>
 
     <Application.Resources>
-        <!-- Override node header to red -->
-        <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FFCC4444" />
-        <!-- Override selected border to gold -->
+        <!-- Light canvas background -->
+        <SolidColorBrush x:Key="NodiumGraphGridBrush" Color="#40808080" />
+        <SolidColorBrush x:Key="NodiumGraphMajorGridBrush" Color="#70808080" />
+        <SolidColorBrush x:Key="NodiumGraphOriginXAxisBrush" Color="#80D04040" />
+        <SolidColorBrush x:Key="NodiumGraphOriginYAxisBrush" Color="#8040A040" />
+
+        <!-- Node colors for light theme -->
+        <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FF3A7BD5" />
+        <SolidColorBrush x:Key="NodiumGraphNodeBodyBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="NodiumGraphNodeBorderBrush" Color="#FFB0B0B0" />
         <SolidColorBrush x:Key="NodiumGraphNodeSelectedBorderBrush" Color="#FFFFD700" />
+
+        <!-- Minimap for light theme -->
+        <SolidColorBrush x:Key="NodiumGraphMinimapBackgroundBrush" Color="#C8F0F0F0" />
+        <SolidColorBrush x:Key="NodiumGraphMinimapNodeBrush" Color="#B43A7BD5" />
+        <SolidColorBrush x:Key="NodiumGraphMinimapViewportBrush" Color="#96000000" />
     </Application.Resources>
 
 </Application>
