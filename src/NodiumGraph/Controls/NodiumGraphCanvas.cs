@@ -872,14 +872,14 @@ public class NodiumGraphCanvas : TemplatedControl
         }
     }
 
-    private bool CuttingLineIntersectsGeometry(
+    internal bool CuttingLineIntersectsGeometry(
         Point lineStart, Point lineEnd, Connection connection, ViewportTransform transform)
     {
         var routePoints = ConnectionRouter.Route(connection.SourcePort, connection.TargetPort);
         var screenPoints = routePoints.Select(transform.WorldToScreen).ToList();
 
         // For bezier (4 points), sample the curve at intervals for approximate intersection
-        if (screenPoints.Count == 4)
+        if (ConnectionRouter.IsBezierRoute && screenPoints.Count == 4)
         {
             var samples = new List<Point>();
             for (var t = 0.0; t <= 1.0; t += 0.05)
