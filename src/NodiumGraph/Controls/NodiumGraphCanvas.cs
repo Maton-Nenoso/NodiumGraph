@@ -26,6 +26,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     public NodiumGraphCanvas()
     {
         _overlay = new CanvasOverlay(this);
+        _overlay.ZIndex = int.MaxValue;
         VisualChildren.Add(_overlay);
         LogicalChildren.Add(_overlay);
     }
