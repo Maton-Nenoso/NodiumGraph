@@ -291,6 +291,33 @@ public class NodiumGraphCanvas : TemplatedControl
         InvalidateVisual();
     }
 
+    internal void SelectAll()
+    {
+        if (Graph == null) return;
+
+        foreach (var node in Graph.Nodes)
+        {
+            node.IsSelected = true;
+            Graph.Select(node);
+        }
+
+        SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
+        InvalidateVisual();
+    }
+
+    internal void DeleteSelected()
+    {
+        if (Graph == null || Graph.SelectedNodes.Count == 0) return;
+
+        var selectedNodes = Graph.SelectedNodes.ToList();
+        var affectedConnections = Graph.Connections
+            .Where(c => selectedNodes.Contains(c.SourcePort.Owner) ||
+                        selectedNodes.Contains(c.TargetPort.Owner))
+            .ToList();
+
+        NodeHandler?.OnDeleteRequested(selectedNodes, affectedConnections);
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
@@ -459,7 +486,51 @@ public class NodiumGraphCanvas : TemplatedControl
         base.OnKeyDown(e);
 
         if (e.Key == Key.Space)
+        {
             _isSpaceHeld = true;
+        }
+        else if (e.Key == Key.Delete)
+        {
+            DeleteSelected();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.A && (e.KeyModifiers & KeyModifiers.Control) != 0)
+        {
+            SelectAll();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            if (_isDrawingConnection)
+            {
+                _isDrawingConnection = false;
+                _connectionSourcePort = null;
+                InvalidateVisual();
+            }
+            else if (_isDragging)
+            {
+                // Cancel drag — restore original positions
+                if (_dragStartPositions != null)
+                {
+                    foreach (var (node, startPos) in _dragStartPositions)
+                    {
+                        node.X = startPos.X;
+                        node.Y = startPos.Y;
+                    }
+
+                    _dragStartPositions = null;
+                }
+
+                _isDragging = false;
+                InvalidateVisual();
+            }
+            else
+            {
+                ClearSelection();
+            }
+
+            e.Handled = true;
+        }
     }
 
     protected override void OnKeyUp(KeyEventArgs e)
