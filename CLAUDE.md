@@ -89,3 +89,16 @@ All optional (nullable properties on canvas). The library functions with default
 ## Out of Scope
 
 Undo/redo, layout algorithms, serialization, context menus, keyboard shortcuts, search/filter, connection validation logic, node content/appearance — all consumer responsibility.
+
+## Claude special instructions
+
+Always use maximum thinking effort. Take your time and think deeply about every problem.
+
+### Avalonia API usage
+
+Always use the `mcp__avalonia-docs` MCP tools (`search_avalonia_docs`, `lookup_avalonia_api`, `get_avalonia_expert_rules`) to verify Avalonia API usage before writing Avalonia code. Do not rely on training data for Avalonia APIs — the project targets Avalonia 12 which has breaking changes from earlier versions. Key known differences:
+- `IDataTemplate` lives in `Avalonia.Controls.Templates`, not `Avalonia.Controls`
+- `ReadOnlyObservableCollection<T>.CollectionChanged` is an explicit interface implementation — cast to `INotifyCollectionChanged`
+- `PointerWheelEventArgs` (not `PointerWheelChangedEventArgs` from Avalonia 11)
+- `Space` is not a `KeyModifiers` flag — track it via `OnKeyDown`/`OnKeyUp`
+- `Pen` constructor accepts `(IBrush, double, IDashStyle?)`
