@@ -23,6 +23,7 @@ internal static class DefaultTemplates
         {
             CornerRadius = new CornerRadius(cornerRadius.TopLeft, cornerRadius.TopRight, 0, 0),
             Padding = new Thickness(8, 4),
+            [!Visual.IsVisibleProperty] = new Binding(nameof(Node.ShowHeader)),
             Child = new TextBlock
             {
                 [!TextBlock.TextProperty] = new Binding(nameof(Node.Title)),

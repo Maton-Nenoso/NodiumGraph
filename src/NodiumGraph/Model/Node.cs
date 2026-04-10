@@ -15,6 +15,7 @@ public class Node : INotifyPropertyChanged
     private double _height;
     private string _title;
     private bool _isSelected;
+    private bool _showHeader = true;
     private NodeStyle? _style;
 
     public Node()
@@ -60,6 +61,17 @@ public class Node : INotifyPropertyChanged
     {
         get => _isSelected;
         internal set => SetField(ref _isSelected, value);
+    }
+
+    /// <summary>
+    /// Controls whether the default template renders the header bar.
+    /// When false, the header is hidden and node height shrinks naturally.
+    /// Title remains unchanged regardless of this value.
+    /// </summary>
+    public bool ShowHeader
+    {
+        get => _showHeader;
+        set => SetField(ref _showHeader, value);
     }
 
     /// <summary>

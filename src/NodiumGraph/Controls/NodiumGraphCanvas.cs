@@ -1182,6 +1182,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             InvalidateArrange();
         else if (e.PropertyName is nameof(Node.IsSelected))
             InvalidateVisual();
+        else if (e.PropertyName is nameof(Node.ShowHeader))
+            InvalidateMeasure();
     }
 
     protected override Size MeasureOverride(Size availableSize)

@@ -164,5 +164,45 @@ public class NodeTests
         Assert.Equal("TestNode", node.Title);
     }
 
+    [Fact]
+    public void ShowHeader_defaults_to_true()
+    {
+        var node = new Node();
+        Assert.True(node.ShowHeader);
+    }
+
+    [Fact]
+    public void ShowHeader_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var fired = false;
+        ((INotifyPropertyChanged)node).PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Node.ShowHeader)) fired = true;
+        };
+
+        node.ShowHeader = false;
+        Assert.True(fired);
+    }
+
+    [Fact]
+    public void ShowHeader_does_not_fire_when_set_to_same_value()
+    {
+        var node = new Node();
+        var fired = false;
+        ((INotifyPropertyChanged)node).PropertyChanged += (_, _) => fired = true;
+
+        node.ShowHeader = true; // same as default
+        Assert.False(fired);
+    }
+
+    [Fact]
+    public void ShowHeader_does_not_affect_Title()
+    {
+        var node = new Node { Title = "My Node" };
+        node.ShowHeader = false;
+        Assert.Equal("My Node", node.Title);
+    }
+
     private class TestNode : Node { }
 }
