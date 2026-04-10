@@ -15,6 +15,7 @@ public class Node : INotifyPropertyChanged
     private double _height;
     private string _title;
     private bool _isSelected;
+    private NodeStyle? _style;
 
     public Node()
     {
@@ -59,6 +60,15 @@ public class Node : INotifyPropertyChanged
     {
         get => _isSelected;
         internal set => SetField(ref _isSelected, value);
+    }
+
+    /// <summary>
+    /// Per-instance visual overrides. Null properties fall through to theme, then default.
+    /// </summary>
+    public NodeStyle? Style
+    {
+        get => _style;
+        set => SetField(ref _style, value);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

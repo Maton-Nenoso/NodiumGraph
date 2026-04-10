@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using NodiumGraph.Model;
 
 namespace NodiumGraph.Controls;
 
@@ -56,13 +57,13 @@ internal class CanvasOverlay : Control
         // Port visuals (only default when no custom template)
         if (_canvas.PortTemplate == null)
         {
-            const double portRadius = 4.0;
-            var portBrush = _canvas.ResolveBrush(
+            const double defaultPortRadius = 4.0;
+            var defaultPortBrush = _canvas.ResolveBrush(
                 NodiumGraphResources.PortBrushKey,
                 NodiumGraphCanvas.DefaultPortBrush);
-            var portOutlinePen = _canvas.ResolvePen(
+            var defaultPortOutlineBrush = _canvas.ResolveBrush(
                 NodiumGraphResources.PortOutlineBrushKey,
-                NodiumGraphCanvas.DefaultPortOutlineBrush, 1);
+                NodiumGraphCanvas.DefaultPortOutlineBrush);
 
             foreach (var node in graph.Nodes)
             {
@@ -70,9 +71,62 @@ internal class CanvasOverlay : Control
                 foreach (var port in node.PortProvider.Ports)
                 {
                     var screenPos = transform.WorldToScreen(port.AbsolutePosition);
-                    var scaledRadius = portRadius * _canvas.ViewportZoom;
-                    context.DrawEllipse(portBrush, portOutlinePen,
-                        screenPos, scaledRadius, scaledRadius);
+                    var style = port.Style;
+
+                    var fill = style?.Fill ?? defaultPortBrush;
+                    var strokeBrush = style?.Stroke ?? defaultPortOutlineBrush;
+                    var strokeWidth = style?.StrokeWidth ?? 1.0;
+                    var shape = style?.Shape ?? PortShape.Circle;
+                    var radius = style?.Size ?? defaultPortRadius;
+                    var scaledRadius = radius * zoom;
+
+                    var pen = new Pen(strokeBrush, strokeWidth);
+
+                    switch (shape)
+                    {
+                        case PortShape.Circle:
+                            context.DrawEllipse(fill, pen,
+                                screenPos, scaledRadius, scaledRadius);
+                            break;
+
+                        case PortShape.Square:
+                            context.DrawRectangle(fill, pen,
+                                new Rect(
+                                    screenPos.X - scaledRadius,
+                                    screenPos.Y - scaledRadius,
+                                    scaledRadius * 2,
+                                    scaledRadius * 2));
+                            break;
+
+                        case PortShape.Diamond:
+                        {
+                            var geo = new StreamGeometry();
+                            using (var ctx = geo.Open())
+                            {
+                                ctx.BeginFigure(new Point(screenPos.X, screenPos.Y - scaledRadius), true);
+                                ctx.LineTo(new Point(screenPos.X + scaledRadius, screenPos.Y));
+                                ctx.LineTo(new Point(screenPos.X, screenPos.Y + scaledRadius));
+                                ctx.LineTo(new Point(screenPos.X - scaledRadius, screenPos.Y));
+                                ctx.EndFigure(true);
+                            }
+                            context.DrawGeometry(fill, pen, geo);
+                            break;
+                        }
+
+                        case PortShape.Triangle:
+                        {
+                            var geo = new StreamGeometry();
+                            using (var ctx = geo.Open())
+                            {
+                                ctx.BeginFigure(new Point(screenPos.X, screenPos.Y - scaledRadius), true);
+                                ctx.LineTo(new Point(screenPos.X + scaledRadius, screenPos.Y + scaledRadius));
+                                ctx.LineTo(new Point(screenPos.X - scaledRadius, screenPos.Y + scaledRadius));
+                                ctx.EndFigure(true);
+                            }
+                            context.DrawGeometry(fill, pen, geo);
+                            break;
+                        }
+                    }
                 }
             }
         }

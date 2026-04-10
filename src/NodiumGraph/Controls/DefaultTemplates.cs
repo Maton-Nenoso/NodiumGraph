@@ -16,9 +16,12 @@ internal static class DefaultTemplates
 {
     public static IDataTemplate NodeTemplate { get; } = new FuncDataTemplate<Node>((node, _) =>
     {
+        var style = node?.Style;
+        var cornerRadius = style?.CornerRadius ?? new CornerRadius(6);
+
         var header = new Border
         {
-            CornerRadius = new CornerRadius(6, 6, 0, 0),
+            CornerRadius = new CornerRadius(cornerRadius.TopLeft, cornerRadius.TopRight, 0, 0),
             Padding = new Thickness(8, 4),
             Child = new TextBlock
             {
@@ -28,13 +31,18 @@ internal static class DefaultTemplates
                 FontSize = 12
             }
         };
-        header.Bind(Border.BackgroundProperty,
-            header.GetResourceObservable(NodiumGraphResources.NodeHeaderBrushKey));
+
+        // Resolution: per-instance style → theme resource → default
+        if (style?.HeaderBackground != null)
+            header.Background = style.HeaderBackground;
+        else
+            header.Bind(Border.BackgroundProperty,
+                header.GetResourceObservable(NodiumGraphResources.NodeHeaderBrushKey));
 
         var border = new Border
         {
-            CornerRadius = new CornerRadius(6),
-            BorderThickness = new Thickness(1),
+            CornerRadius = cornerRadius,
+            BorderThickness = new Thickness(style?.BorderThickness ?? 1),
             MinWidth = 120,
             Child = new StackPanel
             {
@@ -47,10 +55,21 @@ internal static class DefaultTemplates
                 }
             }
         };
-        border.Bind(Border.BackgroundProperty,
-            border.GetResourceObservable(NodiumGraphResources.NodeBodyBrushKey));
-        border.Bind(Border.BorderBrushProperty,
-            border.GetResourceObservable(NodiumGraphResources.NodeBorderBrushKey));
+
+        if (style?.BodyBackground != null)
+            border.Background = style.BodyBackground;
+        else
+            border.Bind(Border.BackgroundProperty,
+                border.GetResourceObservable(NodiumGraphResources.NodeBodyBrushKey));
+
+        if (style?.BorderBrush != null)
+            border.BorderBrush = style.BorderBrush;
+        else
+            border.Bind(Border.BorderBrushProperty,
+                border.GetResourceObservable(NodiumGraphResources.NodeBorderBrushKey));
+
+        if (style?.Opacity != null)
+            border.Opacity = style.Opacity.Value;
 
         return border;
     }, supportsRecycling: false);
