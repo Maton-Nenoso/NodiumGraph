@@ -6,13 +6,6 @@
         x:Class="NodiumGraph.Sample.MainWindow"
         Title="NodiumGraph Sample" Width="1280" Height="800">
 
-    <Window.Styles>
-        <!-- Shared style: elements with .hidden class are collapsed -->
-        <Style Selector=".hidden">
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
-    </Window.Styles>
-
     <Window.DataTemplates>
 
         <!-- InputSourceNode: green header, CSV format info -->
@@ -23,19 +16,17 @@
                     Background="{DynamicResource NodiumNodeBodyBrush}"
                     MinWidth="130">
                 <StackPanel>
-                    <!-- Header -->
                     <Border CornerRadius="6,6,0,0"
                             Background="#4CAF50"
                             Padding="8,4"
-                            Classes.hidden="{Binding !ShowHeader}">
+                            IsVisible="{Binding ShowHeader}">
                         <TextBlock Text="{Binding Title}"
                                    Foreground="White"
                                    FontWeight="SemiBold"
                                    FontSize="12" />
                     </Border>
-                    <!-- Body -->
                     <Border Padding="8,6"
-                            Classes.hidden="{Binding IsCollapsed}">
+                            IsVisible="{Binding !IsCollapsed}">
                         <StackPanel Spacing="3">
                             <TextBlock Text="Reads data from external source"
                                        Foreground="#A0A0A0"
@@ -59,10 +50,9 @@
                     Background="{DynamicResource NodiumNodeBodyBrush}"
                     MinWidth="130">
                 <StackPanel>
-                    <!-- Header -->
                     <Border CornerRadius="6,6,0,0"
                             Padding="8,4"
-                            Classes.hidden="{Binding !ShowHeader}">
+                            IsVisible="{Binding ShowHeader}">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
                                 <GradientStop Color="#4285F4" Offset="0" />
@@ -74,9 +64,8 @@
                                    FontWeight="SemiBold"
                                    FontSize="12" />
                     </Border>
-                    <!-- Body -->
                     <Border Padding="8,6"
-                            Classes.hidden="{Binding IsCollapsed}">
+                            IsVisible="{Binding !IsCollapsed}">
                         <StackPanel Spacing="3">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <TextBlock Text="Operation:" Foreground="#A0A0A0" FontSize="11" />
@@ -101,19 +90,17 @@
                     MinWidth="130"
                     Opacity="0.85">
                 <StackPanel>
-                    <!-- Header -->
                     <Border CornerRadius="6,6,0,0"
                             Background="#FF9800"
                             Padding="8,4"
-                            Classes.hidden="{Binding !ShowHeader}">
+                            IsVisible="{Binding ShowHeader}">
                         <TextBlock Text="{Binding Title}"
                                    Foreground="White"
                                    FontWeight="SemiBold"
                                    FontSize="12" />
                     </Border>
-                    <!-- Body -->
                     <Border Padding="8,6"
-                            Classes.hidden="{Binding IsCollapsed}">
+                            IsVisible="{Binding !IsCollapsed}">
                         <StackPanel Spacing="2">
                             <TextBlock Text="Threshold" Foreground="#A0A0A0" FontSize="11" />
                             <Slider x:Name="FilterSlider"
@@ -140,7 +127,7 @@
                     MinWidth="130">
                 <Border Padding="8,6"
                         MinHeight="50"
-                        Classes.hidden="{Binding IsCollapsed}">
+                        IsVisible="{Binding !IsCollapsed}">
                     <TextBlock Text="Combines multiple inputs"
                                Foreground="#E6E6E6"
                                FontSize="11"
@@ -159,19 +146,17 @@
                     Background="{DynamicResource NodiumNodeBodyBrush}"
                     MinWidth="130">
                 <StackPanel>
-                    <!-- Header -->
                     <Border CornerRadius="6,6,0,0"
                             Background="#F44336"
                             Padding="8,4"
-                            Classes.hidden="{Binding !ShowHeader}">
+                            IsVisible="{Binding ShowHeader}">
                         <TextBlock Text="{Binding Title}"
                                    Foreground="White"
                                    FontWeight="SemiBold"
                                    FontSize="12" />
                     </Border>
-                    <!-- Body -->
                     <Border Padding="8,6"
-                            Classes.hidden="{Binding IsCollapsed}">
+                            IsVisible="{Binding !IsCollapsed}">
                         <StackPanel Spacing="4">
                             <StackPanel Orientation="Horizontal" Spacing="4">
                                 <TextBlock Text="Destination:" Foreground="#A0A0A0" FontSize="11" />
