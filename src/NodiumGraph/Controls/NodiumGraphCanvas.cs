@@ -59,6 +59,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private Point _marqueeEnd;
     private bool _fallbackTemplatesRegistered;
 
+    // Extra space around each node container so box shadows aren't clipped
+    private const double ShadowPadding = 20;
+
     // Fallback defaults (used when theme resources not found)
     internal static readonly SolidColorBrush DefaultGridBrush = new(Color.FromArgb(40, 128, 128, 128));
     internal static readonly SolidColorBrush DefaultMajorGridBrush = new(Color.FromArgb(80, 128, 128, 128));
@@ -1223,6 +1226,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             DataContext = node,
             Content = node,
+            ClipToBounds = false,
         };
 
         if (template != null)
@@ -1313,19 +1317,26 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         foreach (var (node, container) in _nodeContainers)
         {
             var desired = container.DesiredSize;
-            if (desired.Width > 0) node.Width = desired.Width;
-            if (desired.Height > 0) node.Height = desired.Height;
+
+            // DesiredSize includes the shadow margin from the NodePresenter template.
+            // Subtract it to get the actual node content dimensions.
+            const double sp = ShadowPadding;
+            var contentWidth = desired.Width - sp * 2;
+            var contentHeight = desired.Height - sp * 2;
+            if (contentWidth > 0) node.Width = contentWidth;
+            if (contentHeight > 0) node.Height = contentHeight;
 
             if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
                 layoutAware.UpdateLayout(node.Width, node.Height, node.Shape);
 
             var screenPos = transform.WorldToScreen(new Point(node.X, node.Y));
 
-            // Arrange at natural size; ScaleTransform handles visual zoom
-            // (scaling text, borders, everything uniformly)
+            // Arrange at full size (content + shadow margin). Offset position
+            // so the visible node aligns with screenPos despite the margin.
             container.RenderTransform = new ScaleTransform(ViewportZoom, ViewportZoom);
             container.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
-            container.Arrange(new Rect(screenPos, desired));
+            var adjusted = new Point(screenPos.X - sp * ViewportZoom, screenPos.Y - sp * ViewportZoom);
+            container.Arrange(new Rect(adjusted, desired));
         }
 
         // Overlay fills the entire canvas, renders on top of all node containers

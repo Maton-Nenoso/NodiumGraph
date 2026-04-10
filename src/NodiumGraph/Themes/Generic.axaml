@@ -43,12 +43,101 @@
         <SolidColorBrush x:Key="NodiumGraphMinimapNodeBrush" Color="#B46496C8" />
         <SolidColorBrush x:Key="NodiumGraphMinimapSelectedNodeBrush" Color="#DC50B4FF" />
         <SolidColorBrush x:Key="NodiumGraphMinimapViewportBrush" Color="#96FFFFFF" />
+
+        <!-- NodePresenter control theme -->
+        <ControlTheme x:Key="{x:Type ng:NodePresenter}" TargetType="ng:NodePresenter">
+            <Setter Property="ClipToBounds" Value="False" />
+            <!-- Outer border -->
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="MinWidth" Value="150" />
+            <Setter Property="BorderBrush" Value="{DynamicResource NodiumGraphNodeBorderBrush}" />
+            <Setter Property="Background" Value="{DynamicResource NodiumGraphNodeBodyBrush}" />
+            <Setter Property="BoxShadow" Value="0 1 3 0 #1A000000, 0 1 2 -1 #1A000000" />
+            <!-- Header -->
+            <Setter Property="HeaderBackground" Value="{DynamicResource NodiumGraphNodeHeaderBrush}" />
+            <Setter Property="HeaderForeground" Value="{DynamicResource NodiumGraphNodeHeaderForegroundBrush}" />
+            <Setter Property="HeaderFontSize" Value="12" />
+            <Setter Property="HeaderFontWeight" Value="SemiBold" />
+            <Setter Property="HeaderPadding" Value="10,6" />
+            <!-- Body -->
+            <Setter Property="Padding" Value="10,8" />
+            <!-- Collapse toggle -->
+            <Setter Property="CollapseToggleForeground" Value="#94A3B8" />
+            <Setter Property="Template">
+                <ControlTemplate TargetType="ng:NodePresenter" x:DataType="m:Node">
+                    <!-- Shadow wrapper: margin gives room for the shadow to render -->
+                    <Border Margin="20"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            BoxShadow="{TemplateBinding BoxShadow}">
+                        <!-- Inner border clips header to rounded corners -->
+                        <Border CornerRadius="{TemplateBinding CornerRadius}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                Background="{TemplateBinding Background}"
+                                ClipToBounds="True">
+                        <StackPanel>
+                            <!-- Header -->
+                            <Border Name="PART_Header"
+                                    Background="{TemplateBinding HeaderBackground}"
+                                    Padding="{TemplateBinding HeaderPadding}"
+                                    IsVisible="{Binding ShowHeader}">
+                                <TextBlock Text="{Binding Title}"
+                                           Foreground="{TemplateBinding HeaderForeground}"
+                                           FontWeight="{TemplateBinding HeaderFontWeight}"
+                                           FontSize="{TemplateBinding HeaderFontSize}"
+                                           FontFamily="{TemplateBinding HeaderFontFamily}" />
+                            </Border>
+                            <!-- Body (user content) -->
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              IsVisible="{Binding !IsCollapsed}" />
+                            <!-- Collapse toggle -->
+                            <ToggleButton Name="PART_CollapseToggle"
+                                          IsChecked="{Binding IsCollapsed, Mode=TwoWay}"
+                                          IsVisible="{Binding IsCollapsible}"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          Padding="0,1"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Center"
+                                          Cursor="Hand"
+                                          MinHeight="14">
+                                <Panel>
+                                    <TextBlock Text="&#x25B2;"
+                                               IsVisible="{Binding !IsCollapsed}"
+                                               HorizontalAlignment="Center"
+                                               FontSize="8"
+                                               Foreground="{TemplateBinding CollapseToggleForeground}" />
+                                    <TextBlock Text="&#x25BC;"
+                                               IsVisible="{Binding IsCollapsed}"
+                                               HorizontalAlignment="Center"
+                                               FontSize="8"
+                                               Foreground="{TemplateBinding CollapseToggleForeground}" />
+                                </Panel>
+                            </ToggleButton>
+                        </StackPanel>
+                    </Border>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
     </Styles.Resources>
 
     <!-- Default NodiumGraphCanvas style -->
     <Style Selector="ng|NodiumGraphCanvas">
         <Setter Property="Background" Value="#FF1E1E2E" />
         <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+
+    <!-- Collapse toggle hover styles -->
+    <Style Selector="ng|NodePresenter /template/ ToggleButton#PART_CollapseToggle:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="#10000000" />
+    </Style>
+    <Style Selector="ng|NodePresenter /template/ ToggleButton#PART_CollapseToggle:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
     </Style>
 
 </Styles>

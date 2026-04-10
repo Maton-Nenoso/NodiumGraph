@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Media;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
@@ -16,16 +15,12 @@ public partial class MainWindow : Window
         var graph = new Graph();
 
         // -- 1. Input Source --
-        // Rectangle shape (default), AnglePortProvider, 1 output at 90 deg, green header
+        // Rectangle shape (default), AnglePortProvider, 1 output at 90 deg
         var inputNode = new InputSourceNode
         {
             Title = "Input Source",
             X = 100,
             Y = 200,
-            Style = new NodeStyle
-            {
-                HeaderBackground = new SolidColorBrush(Color.FromRgb(16, 185, 129))
-            }
         };
         var inputOut = new Port(inputNode, "out", PortFlow.Output, default) { Angle = 90, Label = "out" };
         var inputProvider = new AnglePortProvider();
@@ -42,19 +37,6 @@ public partial class MainWindow : Window
             Y = 150,
             IsCollapsible = true,
             Shape = new RoundedRectangleShape(8),
-            Style = new NodeStyle
-            {
-                HeaderBackground = new LinearGradientBrush
-                {
-                    StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
-                    EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
-                    GradientStops =
-                    {
-                        new GradientStop(Color.FromRgb(99, 102, 241), 0),
-                        new GradientStop(Color.FromRgb(139, 92, 246), 1)
-                    }
-                }
-            }
         };
         var diamondStyle = new PortStyle { Shape = PortShape.Diamond };
         var transformIn = new Port(transformNode, "in", PortFlow.Input, default) { Angle = 270, Label = "in" };
@@ -75,10 +57,6 @@ public partial class MainWindow : Window
             Y = 350,
             IsCollapsible = true,
             Shape = new EllipseShape(),
-            Style = new NodeStyle
-            {
-                HeaderBackground = new SolidColorBrush(Color.FromRgb(245, 158, 11))
-            }
         };
         var filterIn = new Port(filterNode, "in", PortFlow.Input, default) { Angle = 270, Label = "in" };
         var filterOut = new Port(filterNode, "out", PortFlow.Output, default) { Angle = 90, Label = "out" };
@@ -96,10 +74,6 @@ public partial class MainWindow : Window
             X = 600,
             Y = 250,
             ShowHeader = false,
-            Style = new NodeStyle
-            {
-                BodyBackground = new SolidColorBrush(Color.FromRgb(139, 92, 246))
-            }
         };
         var mergeIn1 = new Port(mergeNode, "input1", PortFlow.Input, default) { Angle = 225, Label = "input1" };
         var mergeIn2 = new Port(mergeNode, "input2", PortFlow.Input, default) { Angle = 315, Label = "input2" };
@@ -118,10 +92,6 @@ public partial class MainWindow : Window
             X = 850,
             Y = 250,
             IsCollapsible = true,
-            Style = new NodeStyle
-            {
-                HeaderBackground = new SolidColorBrush(Color.FromRgb(239, 68, 68))
-            }
         };
         var outputIn = new Port(outputNode, "in", PortFlow.Input, new Point(0, 15)) { Label = "in" };
         outputNode.PortProvider = new FixedPortProvider(new[] { outputIn });

@@ -1,10 +1,7 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
-using Avalonia.Data.Converters;
 using Avalonia.Layout;
 using Avalonia.Media;
 using NodiumGraph.Model;
@@ -17,203 +14,32 @@ namespace NodiumGraph.Controls;
 internal static class DefaultTemplates
 {
     /// <summary>
-    /// Value converter that inverts a boolean value. Used for binding IsVisible to !IsCollapsed.
+    /// Default template for plain Node instances. Uses NodePresenter with
+    /// per-instance NodeStyle overrides applied programmatically.
     /// </summary>
-    private sealed class InvertBoolConverter : IValueConverter
-    {
-        public static readonly InvertBoolConverter Instance = new();
-
-        public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-            => value is bool b ? !b : true;
-
-        public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-            => value is bool b ? !b : false;
-    }
-
     public static IDataTemplate NodeTemplate { get; } = new FuncDataTemplate<Node>((node, _) =>
     {
+        var presenter = new NodePresenter();
         var style = node?.Style;
-        var cornerRadius = style?.CornerRadius ?? new CornerRadius(6);
 
-        var header = new Border
-        {
-            CornerRadius = new CornerRadius(cornerRadius.TopLeft, cornerRadius.TopRight, 0, 0),
-            [!Visual.IsVisibleProperty] = new Binding(nameof(Node.ShowHeader)),
-            Child = new TextBlock
-            {
-                [!TextBlock.TextProperty] = new Binding(nameof(Node.Title)),
-            }
-        };
-
-        // Resolution: per-instance style → theme resource → default
-        var headerText = (TextBlock)header.Child;
-
-        // HeaderFontSize: style > theme > 12
-        if (style?.HeaderFontSize != null)
-            headerText.FontSize = style.HeaderFontSize.Value;
-        else
-        {
-            headerText.FontSize = 12;
-            headerText.Bind(TextBlock.FontSizeProperty,
-                headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderFontSizeKey));
-        }
-
-        // HeaderFontWeight: style > theme > SemiBold
-        if (style?.HeaderFontWeight != null)
-            headerText.FontWeight = style.HeaderFontWeight.Value;
-        else
-        {
-            headerText.FontWeight = FontWeight.SemiBold;
-            headerText.Bind(TextBlock.FontWeightProperty,
-                headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderFontWeightKey));
-        }
-
-        // HeaderFontFamily: style > theme > system default (don't set)
-        if (style?.HeaderFontFamily != null)
-            headerText.FontFamily = style.HeaderFontFamily;
-        else
-        {
-            headerText.Bind(TextBlock.FontFamilyProperty,
-                headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderFontFamilyKey));
-        }
-
-        // HeaderPadding: style > theme > Thickness(8, 4)
-        if (style?.HeaderPadding != null)
-            header.Padding = style.HeaderPadding.Value;
-        else
-        {
-            header.Padding = new Thickness(8, 4);
-            header.Bind(Decorator.PaddingProperty,
-                header.GetResourceObservable(NodiumGraphResources.NodeHeaderPaddingKey));
-        }
-
-        // HeaderForeground: style > theme > White
+        if (style?.HeaderBackground != null)
+            presenter.HeaderBackground = style.HeaderBackground;
         if (style?.HeaderForeground != null)
-            headerText.Foreground = style.HeaderForeground;
-        else
-        {
-            headerText.Foreground = Brushes.White;
-            headerText.Bind(TextBlock.ForegroundProperty,
-                headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderForegroundBrushKey));
-        }
-
-        if (style?.HeaderBackground != null)
-            header.Background = style.HeaderBackground;
-        else
-            header.Bind(Border.BackgroundProperty,
-                header.GetResourceObservable(NodiumGraphResources.NodeHeaderBrushKey));
-
-        // Body: hidden when IsCollapsed==true
-        var body = new Border
-        {
-            [!Visual.IsVisibleProperty] = new Binding(nameof(Node.IsCollapsed))
-            {
-                Converter = InvertBoolConverter.Instance
-            }
-        };
-
-        // BodyMinHeight: style > theme > 4
-        if (style?.BodyMinHeight != null)
-            body.MinHeight = style.BodyMinHeight.Value;
-        else
-        {
-            body.MinHeight = 4;
-            body.Bind(Layoutable.MinHeightProperty,
-                body.GetResourceObservable(NodiumGraphResources.NodeBodyMinHeightKey));
-        }
-
-        // Pill indicator: shown when ShowHeader==false AND IsCollapsed==true.
-        // Uses a MultiBinding with BoolConverters.And — binds to IsCollapsed and !ShowHeader.
-        var pill = new Border
-        {
-            Height = 8,
-            MinWidth = 40,
-            CornerRadius = new CornerRadius(4),
-            IsVisible = false // default hidden
-        };
-
-        if (style?.HeaderBackground != null)
-            pill.Background = style.HeaderBackground;
-        else
-            pill.Bind(Border.BackgroundProperty,
-                pill.GetResourceObservable(NodiumGraphResources.NodeHeaderBrushKey));
-
-        // Pill visible when IsCollapsed==true AND ShowHeader==false
-        pill.Bind(Visual.IsVisibleProperty, new MultiBinding
-        {
-            Converter = BoolConverters.And,
-            Bindings =
-            {
-                new Binding(nameof(Node.IsCollapsed)),
-                new Binding(nameof(Node.ShowHeader)) { Converter = InvertBoolConverter.Instance }
-            }
-        });
-
-        // Collapse toggle: clickable arrow at the bottom, visible when IsCollapsible==true
-        var collapseArrow = new TextBlock
-        {
-            FontSize = 10,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = Brushes.Gray,
-            Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
-            Margin = new Thickness(0, 2, 0, 2),
-            [!TextBlock.TextProperty] = new Binding(nameof(Node.IsCollapsed))
-            {
-                Converter = new FuncValueConverter<bool, string>(collapsed => collapsed ? "\u25BC" : "\u25B2")
-            }
-        };
-        collapseArrow.Bind(Visual.IsVisibleProperty, new Binding(nameof(Node.IsCollapsible)));
-        collapseArrow.PointerPressed += (_, e) =>
-        {
-            if (collapseArrow.DataContext is Node n)
-            {
-                n.IsCollapsed = !n.IsCollapsed;
-                e.Handled = true;
-            }
-        };
-
-        var border = new Border
-        {
-            CornerRadius = cornerRadius,
-            BorderThickness = new Thickness(style?.BorderThickness ?? 1),
-            Child = new StackPanel
-            {
-                Children =
-                {
-                    header,
-                    body,
-                    pill,
-                    collapseArrow
-                }
-            }
-        };
-
-        // MinWidth: style > theme > 120
-        if (style?.MinWidth != null)
-            border.MinWidth = style.MinWidth.Value;
-        else
-        {
-            border.MinWidth = 120;
-            border.Bind(Layoutable.MinWidthProperty,
-                border.GetResourceObservable(NodiumGraphResources.NodeMinWidthKey));
-        }
-
+            presenter.HeaderForeground = style.HeaderForeground;
         if (style?.BodyBackground != null)
-            border.Background = style.BodyBackground;
-        else
-            border.Bind(Border.BackgroundProperty,
-                border.GetResourceObservable(NodiumGraphResources.NodeBodyBrushKey));
-
+            presenter.Background = style.BodyBackground;
         if (style?.BorderBrush != null)
-            border.BorderBrush = style.BorderBrush;
-        else
-            border.Bind(Border.BorderBrushProperty,
-                border.GetResourceObservable(NodiumGraphResources.NodeBorderBrushKey));
-
+            presenter.BorderBrush = style.BorderBrush;
+        if (style?.BorderThickness != null)
+            presenter.BorderThickness = new Thickness(style.BorderThickness.Value);
+        if (style?.CornerRadius != null)
+            presenter.CornerRadius = style.CornerRadius.Value;
+        if (style?.MinWidth != null)
+            presenter.MinWidth = style.MinWidth.Value;
         if (style?.Opacity != null)
-            border.Opacity = style.Opacity.Value;
+            presenter.Opacity = style.Opacity.Value;
 
-        return border;
+        return presenter;
     }, supportsRecycling: false);
 
     public static IDataTemplate GroupNodeTemplate { get; } = new FuncDataTemplate<GroupNode>((node, _) =>
