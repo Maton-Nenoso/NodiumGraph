@@ -331,6 +331,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
         foreach (var node in Graph.Nodes)
         {
+            if (node.IsCollapsed) continue;
             if (node.PortProvider == null) continue;
 
             // Search existing ports without creating new ones
@@ -365,6 +366,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
         foreach (var node in Graph.Nodes)
         {
+            if (node.IsCollapsed) continue;
             if (node.PortProvider == null) continue;
             var port = node.PortProvider.ResolvePort(worldPosition);
             if (port != null) return port;
@@ -1201,7 +1203,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             InvalidateArrange();
         else if (e.PropertyName is nameof(Node.IsSelected))
             InvalidateVisual();
-        else if (e.PropertyName is nameof(Node.ShowHeader))
+        else if (e.PropertyName is nameof(Node.ShowHeader) or nameof(Node.IsCollapsed))
             InvalidateMeasure();
     }
 

@@ -71,6 +71,7 @@ internal class CanvasOverlay : Control
             foreach (var node in graph.Nodes)
             {
                 if (node.PortProvider == null) continue;
+                if (node.IsCollapsed) continue;
                 foreach (var port in node.PortProvider.Ports)
                 {
                     var screenPos = transform.WorldToScreen(port.AbsolutePosition);
@@ -143,6 +144,7 @@ internal class CanvasOverlay : Control
             foreach (var node in graph.Nodes)
             {
                 if (node.PortProvider == null) continue;
+                if (node.IsCollapsed) continue;
                 foreach (var port in node.PortProvider.Ports)
                 {
                     if (string.IsNullOrEmpty(port.Label)) continue;

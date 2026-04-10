@@ -204,5 +204,62 @@ public class NodeTests
         Assert.Equal("My Node", node.Title);
     }
 
+    [Fact]
+    public void IsCollapsed_defaults_to_false()
+    {
+        var node = new Node();
+        Assert.False(node.IsCollapsed);
+    }
+
+    [Fact]
+    public void IsCollapsed_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var fired = false;
+        ((INotifyPropertyChanged)node).PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Node.IsCollapsed)) fired = true;
+        };
+
+        node.IsCollapsed = true;
+        Assert.True(node.IsCollapsed);
+        Assert.True(fired);
+    }
+
+    [Fact]
+    public void IsCollapsed_does_not_fire_when_set_to_same_value()
+    {
+        var node = new Node();
+        var fired = false;
+        ((INotifyPropertyChanged)node).PropertyChanged += (_, _) => fired = true;
+
+        node.IsCollapsed = false; // same as default
+        Assert.False(fired);
+    }
+
+    [Fact]
+    public void IsCollapsed_can_be_toggled()
+    {
+        var node = new Node();
+
+        node.IsCollapsed = true;
+        Assert.True(node.IsCollapsed);
+
+        node.IsCollapsed = false;
+        Assert.False(node.IsCollapsed);
+    }
+
+    [Fact]
+    public void IsCollapsed_does_not_affect_other_properties()
+    {
+        var node = new Node { Title = "Test", X = 10, Y = 20 };
+        node.IsCollapsed = true;
+
+        Assert.Equal("Test", node.Title);
+        Assert.Equal(10.0, node.X);
+        Assert.Equal(20.0, node.Y);
+        Assert.True(node.ShowHeader);
+    }
+
     private class TestNode : Node { }
 }

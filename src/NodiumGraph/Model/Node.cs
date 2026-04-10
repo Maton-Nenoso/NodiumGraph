@@ -16,6 +16,7 @@ public class Node : INotifyPropertyChanged
     private string _title;
     private bool _isSelected;
     private bool _showHeader = true;
+    private bool _isCollapsed;
     private NodeStyle? _style;
     private INodeShape _shape = new RectangleShape();
 
@@ -83,6 +84,18 @@ public class Node : INotifyPropertyChanged
     {
         get => _showHeader;
         set => SetField(ref _showHeader, value);
+    }
+
+    /// <summary>
+    /// Controls whether the node is collapsed. When true:
+    /// - Behavioral (canvas-enforced): ports are hidden, not hit-testable, new connections blocked.
+    /// - Visual (default template): body section hidden, height shrinks naturally.
+    /// No built-in collapse button — consumer triggers via this setter.
+    /// </summary>
+    public bool IsCollapsed
+    {
+        get => _isCollapsed;
+        set => SetField(ref _isCollapsed, value);
     }
 
     /// <summary>
