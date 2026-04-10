@@ -13,7 +13,7 @@
     <Window.DataTemplates>
 
         <!-- InputSourceNode: green header, CSV format info -->
-        <DataTemplate DataType="local:InputSourceNode">
+        <DataTemplate DataType="local:InputSourceNode" x:DataType="local:InputSourceNode">
             <Border CornerRadius="6"
                     BorderThickness="1"
                     BorderBrush="{DynamicResource NodiumNodeBorderBrush}"
@@ -49,7 +49,7 @@
         </DataTemplate>
 
         <!-- TransformNode: blue-to-purple gradient header, dark blue border -->
-        <DataTemplate DataType="local:TransformNode">
+        <DataTemplate DataType="local:TransformNode" x:DataType="local:TransformNode">
             <Border CornerRadius="6"
                     BorderThickness="2"
                     BorderBrush="#2850A0"
@@ -90,7 +90,7 @@
         </DataTemplate>
 
         <!-- FilterNode: orange header, opacity 0.85, slider -->
-        <DataTemplate DataType="local:FilterNode">
+        <DataTemplate DataType="local:FilterNode" x:DataType="local:FilterNode">
             <Border CornerRadius="6"
                     BorderThickness="1"
                     BorderBrush="{DynamicResource NodiumNodeBorderBrush}"
@@ -129,7 +129,7 @@
         </DataTemplate>
 
         <!-- MergeNode: no header, purple body, centered text -->
-        <DataTemplate DataType="local:MergeNode">
+        <DataTemplate DataType="local:MergeNode" x:DataType="local:MergeNode">
             <Border CornerRadius="6"
                     BorderThickness="1"
                     BorderBrush="{DynamicResource NodiumNodeBorderBrush}"
@@ -149,7 +149,7 @@
         </DataTemplate>
 
         <!-- OutputSinkNode: red header, destination + checkbox -->
-        <DataTemplate DataType="local:OutputSinkNode">
+        <DataTemplate DataType="local:OutputSinkNode" x:DataType="local:OutputSinkNode">
             <Border CornerRadius="6"
                     BorderThickness="1"
                     BorderBrush="{DynamicResource NodiumNodeBorderBrush}"
