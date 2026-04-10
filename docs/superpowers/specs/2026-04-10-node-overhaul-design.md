@@ -79,9 +79,9 @@ Visual-only property controlling whether the default template renders the header
 | false      | false       | Body only (no header)                            |
 | false      | true        | Minimal pill/bar indicator with node border style |
 
-### Custom templates
+### Template scope
 
-Consumers using custom templates can ignore `ShowHeader`. It is only respected by the built-in default template. Custom templates can bind to it if desired.
+`ShowHeader` and `IsCollapsed` are respected by the **built-in default Node template only**. The specialized built-in templates (`CommentNodeTemplate`, `GroupNodeTemplate`) do not have a header/body split and ignore these properties. Consumers using fully custom templates can also ignore them, or bind to them if desired.
 
 ## 3. Port Positioning, Labels, and Node Shapes
 
@@ -121,6 +121,8 @@ Returns a point relative to node center. The canvas adds `Node.X + Width/2` and 
 
 `INodeShape` is used solely for port boundary math. It does not affect the visual rendering of the node — that remains the DataTemplate's responsibility. A consumer who wants an ellipse-shaped node must both set `Node.Shape = new EllipseShape()` (for port placement) and provide a DataTemplate that renders an ellipse (for visuals).
 
+**Known limitation — rectangular interaction:** Node hit-testing, marquee selection, hover borders, and drag targeting remain rectangle-based (`Node.Width` x `Node.Height`), even when `Node.Shape` describes a non-rectangular boundary. This means an ellipse node is still selectable and hover-highlighted in its transparent corner area. Extending `INodeShape` to influence hit-testing and overlay rendering is a future enhancement, not part of this spec.
+
 ### Built-in shapes
 
 - `RectangleShape` — ray-rectangle intersection (default)
@@ -158,6 +160,16 @@ AnglePortProvider : ILayoutAwarePortProvider
 
 `UpdateLayout` is called by the canvas after node measure. Computes `Port.Position` from each port's `Angle` + the node's shape + current dimensions.
 
+### Canvas invalidation contract
+
+The canvas is responsible for triggering redraws after port positions change. The contract is:
+
+1. Canvas calls `ILayoutAwarePortProvider.UpdateLayout()` during `ArrangeOverride`
+2. Canvas calls `InvalidateVisual()` immediately after, which causes `CanvasOverlay` to re-render ports, labels, and connections at updated positions
+3. Hit-test queries (`HitTestPort`, connection endpoints) always read `Port.AbsolutePosition` live — no cached positions
+
+Port INPC (`PropertyChanged` on `Position`, `Angle`, etc.) is for **consumer code** that wants to react to port changes (e.g., updating a sidebar inspector). The canvas rendering path does not subscribe to individual port PropertyChanged events — it invalidates via the UpdateLayout call path above.
+
 ### Label auto-positioning
 
 When `LabelPlacement` is null (default), derived from angle:
@@ -169,7 +181,9 @@ When `LabelPlacement` is null (default), derived from angle:
 | 135-225 (bottom)| Above            |
 | 225-315 (left)| Right              |
 
-Labels rendered by CanvasOverlay adjacent to port shapes, small text (10px default), foreground from theme resource. When a custom `PortTemplate` is set on the canvas, label rendering is skipped (consistent with how default port visuals are skipped — the custom template takes full responsibility).
+Labels rendered by CanvasOverlay adjacent to port shapes, small text (10px default), foreground from theme resource. Labels follow the same rendering gate as default port visuals: when `PortTemplate` is set on the canvas, both default port shapes and labels are suppressed.
+
+**Note on PortTemplate:** Today `PortTemplate` is only a suppression flag — setting it disables overlay-rendered port visuals, but there is no mechanism that actually instantiates or arranges per-port controls from the template. Building a real port-hosting model (templated visual children per port) is out of scope for this spec. Consumers who set `PortTemplate` today get no port visuals; this spec does not change that behavior. A proper port-hosting system is a future enhancement.
 
 ### Backward compatibility
 
