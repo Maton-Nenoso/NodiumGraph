@@ -43,6 +43,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private bool _isDragging;
     private Point _dragStartWorld;
     private Dictionary<Node, Point>? _dragStartPositions;
+    private Node? _dragPrimaryNode;
+    private Point? _snapGhostPosition;
+    private Size _snapGhostSize;
     private bool _isDrawingConnection;
     private Port? _connectionSourcePort;
     private Port? _connectionTargetPort;
@@ -158,6 +161,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     public static readonly StyledProperty<IConnectionValidator?> ConnectionValidatorProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, IConnectionValidator?>(nameof(ConnectionValidator));
 
+    public static readonly StyledProperty<bool> ShowSnapGhostProperty =
+        AvaloniaProperty.Register<NodiumGraphCanvas, bool>(nameof(ShowSnapGhost));
+
     public static readonly StyledProperty<bool> ShowMinimapProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, bool>(nameof(ShowMinimap));
 
@@ -211,6 +217,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     {
         get => GetValue(SnapToGridProperty);
         set => SetValue(SnapToGridProperty, value);
+    }
+
+    public bool ShowSnapGhost
+    {
+        get => GetValue(ShowSnapGhostProperty);
+        set => SetValue(ShowSnapGhostProperty, value);
     }
 
     public GridStyle GridStyle
@@ -320,6 +332,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal Point CuttingEnd => _cuttingEnd;
     internal Point MarqueeStart => _marqueeStart;
     internal Point MarqueeEnd => _marqueeEnd;
+    internal Point? SnapGhostPosition => _snapGhostPosition;
+    internal Size SnapGhostSize => _snapGhostSize;
 
     internal Port? HitTestPort(Point screenPosition)
     {
@@ -613,6 +627,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 SelectNode(hitNode, isCtrl);
 
             _isDragging = true;
+            _dragPrimaryNode = hitNode;
             var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
             _dragStartWorld = transform.ScreenToWorld(position);
             _dragStartPositions = Graph!.SelectedNodes.ToDictionary(
@@ -676,6 +691,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             var currentWorld = transform.ScreenToWorld(position);
             var delta = currentWorld - _dragStartWorld;
 
+            // Clear ghost by default each frame
+            _snapGhostPosition = null;
+
             foreach (var (node, startPos) in _dragStartPositions)
             {
                 var newX = startPos.X + delta.X;
@@ -683,8 +701,29 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
                 if (SnapToGrid && GridSize > 0)
                 {
-                    newX = Math.Round(newX / GridSize) * GridSize;
-                    newY = Math.Round(newY / GridSize) * GridSize;
+                    if (ShowSnapGhost)
+                    {
+                        // Smooth drag: node follows cursor without snapping
+                        // Compute snapped position for ghost on primary node only
+                        if (node == _dragPrimaryNode)
+                        {
+                            var snappedX = Math.Round(newX / GridSize) * GridSize;
+                            var snappedY = Math.Round(newY / GridSize) * GridSize;
+
+                            // Show ghost only when snapped differs from actual
+                            if (Math.Abs(snappedX - newX) > 0.001 || Math.Abs(snappedY - newY) > 0.001)
+                            {
+                                _snapGhostPosition = new Point(snappedX, snappedY);
+                                _snapGhostSize = new Size(node.Width, node.Height);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Original behavior: node jumps to grid
+                        newX = Math.Round(newX / GridSize) * GridSize;
+                        newY = Math.Round(newY / GridSize) * GridSize;
+                    }
                 }
 
                 node.X = newX;
@@ -810,6 +849,24 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             _isDragging = false;
 
+            // Snap primary node to ghost position on release
+            if (ShowSnapGhost && SnapToGrid && GridSize > 0 && _dragPrimaryNode != null)
+            {
+                var snappedX = Math.Round(_dragPrimaryNode.X / GridSize) * GridSize;
+                var snappedY = Math.Round(_dragPrimaryNode.Y / GridSize) * GridSize;
+                var snapDeltaX = snappedX - _dragPrimaryNode.X;
+                var snapDeltaY = snappedY - _dragPrimaryNode.Y;
+
+                // Apply the same snap delta to all selected nodes
+                foreach (var (node, _) in _dragStartPositions)
+                {
+                    node.X += snapDeltaX;
+                    node.Y += snapDeltaY;
+                }
+            }
+
+            _snapGhostPosition = null;
+
             var moves = _dragStartPositions
                 .Select(kvp => new NodeMoveInfo(
                     kvp.Key,
@@ -822,6 +879,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 NodeHandler?.OnNodesMoved(moves);
 
             _dragStartPositions = null;
+            _dragPrimaryNode = null;
             e.Handled = true;
             return;
         }
@@ -884,6 +942,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 }
 
                 _isDragging = false;
+                _dragPrimaryNode = null;
+                _snapGhostPosition = null;
                 InvalidateVisual();
             }
             else

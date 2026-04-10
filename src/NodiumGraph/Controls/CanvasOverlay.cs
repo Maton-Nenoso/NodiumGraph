@@ -55,6 +55,16 @@ internal class CanvasOverlay : Control
             }
         }
 
+        // Snap ghost outline during drag
+        if (_canvas.SnapGhostPosition is { } ghostPos)
+        {
+            var ghostScreen = transform.WorldToScreen(ghostPos);
+            var ghostSize = new Size(_canvas.SnapGhostSize.Width * zoom, _canvas.SnapGhostSize.Height * zoom);
+            var ghostRect = new Rect(ghostScreen, ghostSize);
+            var ghostBrush = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255)); // ~30% white
+            context.DrawRectangle(ghostBrush, null, ghostRect, 6, 6);
+        }
+
         // Port visuals (only default when no custom template)
         if (_canvas.PortTemplate == null)
         {
