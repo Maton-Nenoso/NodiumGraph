@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -131,6 +132,65 @@ internal class CanvasOverlay : Control
                     }
                 }
             }
+
+            // Port labels (rendered when PortTemplate is null and port has a label)
+            var labelBrush = _canvas.ResolveBrush(
+                NodiumGraphResources.PortLabelBrushKey,
+                NodiumGraphCanvas.DefaultPortLabelBrush);
+            const double labelFontSize = 11.0;
+            const double labelOffset = 8.0;
+
+            foreach (var node in graph.Nodes)
+            {
+                if (node.PortProvider == null) continue;
+                foreach (var port in node.PortProvider.Ports)
+                {
+                    if (string.IsNullOrEmpty(port.Label)) continue;
+
+                    var screenPos = transform.WorldToScreen(port.AbsolutePosition);
+                    var placement = port.LabelPlacement ?? GetAutoPlacement(port.Angle);
+                    var scaledOffset = labelOffset * zoom;
+
+                    var text = new FormattedText(
+                        port.Label,
+                        CultureInfo.InvariantCulture,
+                        FlowDirection.LeftToRight,
+                        Typeface.Default,
+                        labelFontSize * zoom,
+                        labelBrush);
+
+                    var textWidth = text.Width;
+                    var textHeight = text.Height;
+
+                    Point textOrigin;
+                    switch (placement)
+                    {
+                        case PortLabelPlacement.Left:
+                            textOrigin = new Point(
+                                screenPos.X - scaledOffset - textWidth,
+                                screenPos.Y - textHeight / 2);
+                            break;
+                        case PortLabelPlacement.Right:
+                            textOrigin = new Point(
+                                screenPos.X + scaledOffset,
+                                screenPos.Y - textHeight / 2);
+                            break;
+                        case PortLabelPlacement.Above:
+                            textOrigin = new Point(
+                                screenPos.X - textWidth / 2,
+                                screenPos.Y - scaledOffset - textHeight);
+                            break;
+                        case PortLabelPlacement.Below:
+                        default:
+                            textOrigin = new Point(
+                                screenPos.X - textWidth / 2,
+                                screenPos.Y + scaledOffset);
+                            break;
+                    }
+
+                    context.DrawText(text, textOrigin);
+                }
+            }
         }
 
         // Port highlights during connection draw
@@ -230,5 +290,23 @@ internal class CanvasOverlay : Control
             MinimapRenderer.Render(context, _canvas.Bounds, graph, transform, _canvas.MinimapPosition,
                 mmBg, mmNode, mmSelected, mmViewport);
         }
+    }
+
+    /// <summary>
+    /// Determines label placement based on port angle when no explicit placement is set.
+    /// 315-45 (top) -> Below, 45-135 (right) -> Left, 135-225 (bottom) -> Above, 225-315 (left) -> Right.
+    /// </summary>
+    private static PortLabelPlacement GetAutoPlacement(double angleDegrees)
+    {
+        // Normalize to 0-360
+        var angle = ((angleDegrees % 360) + 360) % 360;
+
+        if (angle >= 315 || angle < 45)
+            return PortLabelPlacement.Below;
+        if (angle >= 45 && angle < 135)
+            return PortLabelPlacement.Left;
+        if (angle >= 135 && angle < 225)
+            return PortLabelPlacement.Above;
+        return PortLabelPlacement.Right;
     }
 }

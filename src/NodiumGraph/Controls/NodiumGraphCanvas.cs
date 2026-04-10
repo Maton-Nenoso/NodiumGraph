@@ -69,6 +69,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal static readonly SolidColorBrush DefaultMarqueeBorderBrush = new(Color.FromArgb(150, 100, 150, 255));
     internal static readonly SolidColorBrush DefaultSelectedBorderBrush = new(Color.FromRgb(80, 160, 255));
     internal static readonly SolidColorBrush DefaultHoveredBorderBrush = new(Color.FromArgb(120, 150, 190, 255));
+    internal static readonly SolidColorBrush DefaultPortLabelBrush = new(Color.FromRgb(220, 220, 220));
     internal static readonly SolidColorBrush DefaultMinimapBackgroundBrush = new(Color.FromArgb(200, 30, 30, 30));
     internal static readonly SolidColorBrush DefaultMinimapNodeBrush = new(Color.FromArgb(180, 100, 150, 200));
     internal static readonly SolidColorBrush DefaultMinimapSelectedNodeBrush = new(Color.FromArgb(220, 80, 180, 255));
@@ -1096,7 +1097,11 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             ((INotifyCollectionChanged)oldGraph.Nodes).CollectionChanged -= OnNodesCollectionChanged;
             ((INotifyCollectionChanged)oldGraph.Connections).CollectionChanged -= OnConnectionsCollectionChanged;
             foreach (var node in oldGraph.Nodes)
+            {
                 node.PropertyChanged -= OnNodePropertyChanged;
+                if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
+                    layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
+            }
         }
 
         foreach (var container in _nodeContainers.Values)
@@ -1133,6 +1138,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             foreach (var (node, container) in _nodeContainers)
             {
                 node.PropertyChanged -= OnNodePropertyChanged;
+                if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
+                    layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
                 LogicalChildren.Remove(container);
                 VisualChildren.Remove(container);
             }
@@ -1161,6 +1168,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
         node.PropertyChanged += OnNodePropertyChanged;
 
+        if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
+            layoutAware.LayoutInvalidated += OnLayoutAwareProviderInvalidated;
+
         InvalidateMeasure();
     }
 
@@ -1169,11 +1179,20 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (_nodeContainers.TryGetValue(node, out var container))
         {
             node.PropertyChanged -= OnNodePropertyChanged;
+
+            if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
+                layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
+
             LogicalChildren.Remove(container);
             VisualChildren.Remove(container);
             _nodeContainers.Remove(node);
             InvalidateMeasure();
         }
+    }
+
+    private void OnLayoutAwareProviderInvalidated()
+    {
+        InvalidateVisual();
     }
 
     private void OnNodePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -1207,6 +1226,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             var desired = container.DesiredSize;
             if (desired.Width > 0) node.Width = desired.Width;
             if (desired.Height > 0) node.Height = desired.Height;
+
+            if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
+                layoutAware.UpdateLayout(node.Width, node.Height, node.Shape);
 
             var screenPos = transform.WorldToScreen(new Point(node.X, node.Y));
 

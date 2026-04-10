@@ -11,6 +11,9 @@ public class Port : INotifyPropertyChanged
 {
     private Point _position;
     private PortStyle? _style;
+    private double _angle;
+    private string? _label;
+    private PortLabelPlacement? _labelPlacement;
 
     public Guid Id { get; } = Guid.NewGuid();
     public Node Owner { get; }
@@ -35,6 +38,37 @@ public class Port : INotifyPropertyChanged
     {
         get => _style;
         set => SetField(ref _style, value);
+    }
+
+    /// <summary>
+    /// Angle in degrees for angle-based positioning. 0 = top, clockwise (90 = right, 180 = bottom, 270 = left).
+    /// Used by AnglePortProvider to compute boundary position.
+    /// </summary>
+    public double Angle
+    {
+        get => _angle;
+        set => SetField(ref _angle, value);
+    }
+
+    /// <summary>
+    /// Optional text label displayed next to the port.
+    /// When null, no label is rendered.
+    /// </summary>
+    public string? Label
+    {
+        get => _label;
+        set => SetField(ref _label, value);
+    }
+
+    /// <summary>
+    /// Controls where the label is placed relative to the port.
+    /// When null, placement is auto-determined from the port's angle:
+    /// top (315-45) -> Below, right (45-135) -> Left, bottom (135-225) -> Above, left (225-315) -> Right.
+    /// </summary>
+    public PortLabelPlacement? LabelPlacement
+    {
+        get => _labelPlacement;
+        set => SetField(ref _labelPlacement, value);
     }
 
     public Port(Node owner, string name, PortFlow flow, Point position)

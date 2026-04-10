@@ -17,6 +17,7 @@ public class Node : INotifyPropertyChanged
     private bool _isSelected;
     private bool _showHeader = true;
     private NodeStyle? _style;
+    private INodeShape _shape = new RectangleShape();
 
     public Node()
     {
@@ -50,6 +51,16 @@ public class Node : INotifyPropertyChanged
     }
 
     public IPortProvider? PortProvider { get; set; }
+
+    /// <summary>
+    /// Defines the geometric boundary shape used for angle-based port positioning.
+    /// Defaults to RectangleShape.
+    /// </summary>
+    public INodeShape Shape
+    {
+        get => _shape;
+        set => SetField(ref _shape, value);
+    }
 
     public string Title
     {
