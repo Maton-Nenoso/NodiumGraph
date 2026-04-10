@@ -146,11 +146,11 @@ public partial class MainWindow : Window
         // Merge -> Output (out -> in)
         graph.AddConnection(new Connection(mergeOut, outputIn));
 
-        Canvas.Graph = graph;
-
-        // Set a custom node template with rich body content
+        // Set custom template BEFORE graph so containers use it during creation
         Canvas.NodeTemplate = CreateNodeTemplate(
             inputNode, transformNode, filterNode, mergeNode, outputNode);
+
+        Canvas.Graph = graph;
 
         // Wire a simple connection handler
         Canvas.ConnectionHandler = new SampleConnectionHandler(graph);
