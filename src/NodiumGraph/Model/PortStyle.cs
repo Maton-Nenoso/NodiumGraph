@@ -15,6 +15,9 @@ public class PortStyle : INotifyPropertyChanged
     private double? _strokeWidth;
     private PortShape? _shape;
     private double? _size;
+    private double? _labelFontSize;
+    private IBrush? _labelBrush;
+    private double? _labelOffset;
 
     /// <summary>
     /// Fill brush for the port.
@@ -59,6 +62,33 @@ public class PortStyle : INotifyPropertyChanged
     {
         get => _size;
         set => SetField(ref _size, value);
+    }
+
+    /// <summary>
+    /// Font size for the port label. Default is 11.
+    /// </summary>
+    public double? LabelFontSize
+    {
+        get => _labelFontSize;
+        set => SetField(ref _labelFontSize, value);
+    }
+
+    /// <summary>
+    /// Brush for the port label text. Overrides theme resource when set.
+    /// </summary>
+    public IBrush? LabelBrush
+    {
+        get => _labelBrush;
+        set => SetField(ref _labelBrush, value);
+    }
+
+    /// <summary>
+    /// Offset distance of the label from the port center. Default is 8.
+    /// </summary>
+    public double? LabelOffset
+    {
+        get => _labelOffset;
+        set => SetField(ref _labelOffset, value);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

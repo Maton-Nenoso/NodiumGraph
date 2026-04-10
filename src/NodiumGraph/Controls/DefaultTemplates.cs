@@ -38,15 +38,18 @@ internal static class DefaultTemplates
         var header = new Border
         {
             CornerRadius = new CornerRadius(cornerRadius.TopLeft, cornerRadius.TopRight, 0, 0),
-            Padding = new Thickness(8, 4),
+            Padding = style?.HeaderPadding ?? new Thickness(8, 4),
             [!Visual.IsVisibleProperty] = new Binding(nameof(Node.ShowHeader)),
             Child = new TextBlock
             {
                 [!TextBlock.TextProperty] = new Binding(nameof(Node.Title)),
-                FontWeight = FontWeight.SemiBold,
-                FontSize = 12
+                FontWeight = style?.HeaderFontWeight ?? FontWeight.SemiBold,
+                FontSize = style?.HeaderFontSize ?? 12
             }
         };
+
+        if (style?.HeaderFontFamily != null)
+            ((TextBlock)header.Child).FontFamily = style.HeaderFontFamily;
 
         // Resolution: per-instance style → theme resource → default
         var headerText = (TextBlock)header.Child;
@@ -68,7 +71,7 @@ internal static class DefaultTemplates
         // Body: hidden when IsCollapsed==true
         var body = new Border
         {
-            MinHeight = 4,
+            MinHeight = style?.BodyMinHeight ?? 4,
             [!Visual.IsVisibleProperty] = new Binding(nameof(Node.IsCollapsed))
             {
                 Converter = InvertBoolConverter.Instance
@@ -106,7 +109,7 @@ internal static class DefaultTemplates
         {
             CornerRadius = cornerRadius,
             BorderThickness = new Thickness(style?.BorderThickness ?? 1),
-            MinWidth = 120,
+            MinWidth = style?.MinWidth ?? 120,
             Child = new StackPanel
             {
                 Children =

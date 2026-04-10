@@ -17,6 +17,9 @@ public class PortStyleTests
         Assert.Null(style.StrokeWidth);
         Assert.Null(style.Shape);
         Assert.Null(style.Size);
+        Assert.Null(style.LabelFontSize);
+        Assert.Null(style.LabelBrush);
+        Assert.Null(style.LabelOffset);
     }
 
     [Fact]
@@ -60,6 +63,9 @@ public class PortStyleTests
     [InlineData(nameof(PortStyle.StrokeWidth))]
     [InlineData(nameof(PortStyle.Shape))]
     [InlineData(nameof(PortStyle.Size))]
+    [InlineData(nameof(PortStyle.LabelFontSize))]
+    [InlineData(nameof(PortStyle.LabelBrush))]
+    [InlineData(nameof(PortStyle.LabelOffset))]
     public void Setting_property_fires_PropertyChanged(string propertyName)
     {
         var style = new PortStyle();
@@ -82,6 +88,15 @@ public class PortStyleTests
                 break;
             case nameof(PortStyle.Size):
                 style.Size = 8.0;
+                break;
+            case nameof(PortStyle.LabelFontSize):
+                style.LabelFontSize = 14.0;
+                break;
+            case nameof(PortStyle.LabelBrush):
+                style.LabelBrush = Brushes.White;
+                break;
+            case nameof(PortStyle.LabelOffset):
+                style.LabelOffset = 12.0;
                 break;
         }
 

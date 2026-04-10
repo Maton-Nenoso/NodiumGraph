@@ -18,6 +18,16 @@ public class NodeStyle : INotifyPropertyChanged
     private double? _borderThickness;
     private double? _opacity;
     private CornerRadius? _cornerRadius;
+    private double? _headerFontSize;
+    private FontWeight? _headerFontWeight;
+    private FontFamily? _headerFontFamily;
+    private Thickness? _headerPadding;
+    private double? _bodyMinHeight;
+    private double? _minWidth;
+    private IBrush? _selectionBorderBrush;
+    private double? _selectionBorderThickness;
+    private IBrush? _hoverBorderBrush;
+    private double? _hoverBorderThickness;
 
     /// <summary>
     /// Background brush for the node header area.
@@ -80,6 +90,96 @@ public class NodeStyle : INotifyPropertyChanged
     {
         get => _cornerRadius;
         set => SetField(ref _cornerRadius, value);
+    }
+
+    /// <summary>
+    /// Font size for the node header text. Default template uses 12.
+    /// </summary>
+    public double? HeaderFontSize
+    {
+        get => _headerFontSize;
+        set => SetField(ref _headerFontSize, value);
+    }
+
+    /// <summary>
+    /// Font weight for the node header text. Default template uses SemiBold.
+    /// </summary>
+    public FontWeight? HeaderFontWeight
+    {
+        get => _headerFontWeight;
+        set => SetField(ref _headerFontWeight, value);
+    }
+
+    /// <summary>
+    /// Font family for the node header text. Default template uses system default.
+    /// </summary>
+    public FontFamily? HeaderFontFamily
+    {
+        get => _headerFontFamily;
+        set => SetField(ref _headerFontFamily, value);
+    }
+
+    /// <summary>
+    /// Padding for the node header area. Default template uses (8, 4).
+    /// </summary>
+    public Thickness? HeaderPadding
+    {
+        get => _headerPadding;
+        set => SetField(ref _headerPadding, value);
+    }
+
+    /// <summary>
+    /// Minimum height for the node body area. Default template uses 4.
+    /// </summary>
+    public double? BodyMinHeight
+    {
+        get => _bodyMinHeight;
+        set => SetField(ref _bodyMinHeight, value);
+    }
+
+    /// <summary>
+    /// Minimum width for the node. Default template uses 120.
+    /// </summary>
+    public double? MinWidth
+    {
+        get => _minWidth;
+        set => SetField(ref _minWidth, value);
+    }
+
+    /// <summary>
+    /// Brush for the selection border. Overrides theme resource when set.
+    /// </summary>
+    public IBrush? SelectionBorderBrush
+    {
+        get => _selectionBorderBrush;
+        set => SetField(ref _selectionBorderBrush, value);
+    }
+
+    /// <summary>
+    /// Thickness of the selection border. Default is 2.
+    /// </summary>
+    public double? SelectionBorderThickness
+    {
+        get => _selectionBorderThickness;
+        set => SetField(ref _selectionBorderThickness, value);
+    }
+
+    /// <summary>
+    /// Brush for the hover border. Overrides theme resource when set.
+    /// </summary>
+    public IBrush? HoverBorderBrush
+    {
+        get => _hoverBorderBrush;
+        set => SetField(ref _hoverBorderBrush, value);
+    }
+
+    /// <summary>
+    /// Thickness of the hover border. Default is 1.5.
+    /// </summary>
+    public double? HoverBorderThickness
+    {
+        get => _hoverBorderThickness;
+        set => SetField(ref _hoverBorderThickness, value);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

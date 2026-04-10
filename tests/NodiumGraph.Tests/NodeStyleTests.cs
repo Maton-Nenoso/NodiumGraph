@@ -19,6 +19,16 @@ public class NodeStyleTests
         Assert.Null(style.BorderThickness);
         Assert.Null(style.Opacity);
         Assert.Null(style.CornerRadius);
+        Assert.Null(style.HeaderFontSize);
+        Assert.Null(style.HeaderFontWeight);
+        Assert.Null(style.HeaderFontFamily);
+        Assert.Null(style.HeaderPadding);
+        Assert.Null(style.BodyMinHeight);
+        Assert.Null(style.MinWidth);
+        Assert.Null(style.SelectionBorderBrush);
+        Assert.Null(style.SelectionBorderThickness);
+        Assert.Null(style.HoverBorderBrush);
+        Assert.Null(style.HoverBorderThickness);
     }
 
     [Fact]
@@ -79,6 +89,16 @@ public class NodeStyleTests
     [InlineData(nameof(NodeStyle.BorderThickness))]
     [InlineData(nameof(NodeStyle.Opacity))]
     [InlineData(nameof(NodeStyle.CornerRadius))]
+    [InlineData(nameof(NodeStyle.HeaderFontSize))]
+    [InlineData(nameof(NodeStyle.HeaderFontWeight))]
+    [InlineData(nameof(NodeStyle.HeaderFontFamily))]
+    [InlineData(nameof(NodeStyle.HeaderPadding))]
+    [InlineData(nameof(NodeStyle.BodyMinHeight))]
+    [InlineData(nameof(NodeStyle.MinWidth))]
+    [InlineData(nameof(NodeStyle.SelectionBorderBrush))]
+    [InlineData(nameof(NodeStyle.SelectionBorderThickness))]
+    [InlineData(nameof(NodeStyle.HoverBorderBrush))]
+    [InlineData(nameof(NodeStyle.HoverBorderThickness))]
     public void Setting_property_fires_PropertyChanged(string propertyName)
     {
         var style = new NodeStyle();
@@ -107,6 +127,36 @@ public class NodeStyleTests
                 break;
             case nameof(NodeStyle.CornerRadius):
                 style.CornerRadius = new CornerRadius(8);
+                break;
+            case nameof(NodeStyle.HeaderFontSize):
+                style.HeaderFontSize = 14.0;
+                break;
+            case nameof(NodeStyle.HeaderFontWeight):
+                style.HeaderFontWeight = FontWeight.Bold;
+                break;
+            case nameof(NodeStyle.HeaderFontFamily):
+                style.HeaderFontFamily = new FontFamily("Arial");
+                break;
+            case nameof(NodeStyle.HeaderPadding):
+                style.HeaderPadding = new Thickness(10, 6);
+                break;
+            case nameof(NodeStyle.BodyMinHeight):
+                style.BodyMinHeight = 10.0;
+                break;
+            case nameof(NodeStyle.MinWidth):
+                style.MinWidth = 200.0;
+                break;
+            case nameof(NodeStyle.SelectionBorderBrush):
+                style.SelectionBorderBrush = Brushes.Orange;
+                break;
+            case nameof(NodeStyle.SelectionBorderThickness):
+                style.SelectionBorderThickness = 3.0;
+                break;
+            case nameof(NodeStyle.HoverBorderBrush):
+                style.HoverBorderBrush = Brushes.Cyan;
+                break;
+            case nameof(NodeStyle.HoverBorderThickness):
+                style.HoverBorderThickness = 2.0;
                 break;
         }
 

@@ -47,11 +47,19 @@ internal class CanvasOverlay : Control
 
             if (node.IsSelected)
             {
-                context.DrawRectangle(null, selectedBorderPen, nodeRect, 6, 6);
+                var pen = node.Style?.SelectionBorderBrush != null || node.Style?.SelectionBorderThickness != null
+                    ? new Pen(node.Style?.SelectionBorderBrush ?? selectedBorderPen.Brush,
+                        node.Style?.SelectionBorderThickness ?? 2)
+                    : selectedBorderPen;
+                context.DrawRectangle(null, pen, nodeRect, 6, 6);
             }
             else if (node == _canvas.HoveredNode)
             {
-                context.DrawRectangle(null, hoveredBorderPen, nodeRect, 6, 6);
+                var pen = node.Style?.HoverBorderBrush != null || node.Style?.HoverBorderThickness != null
+                    ? new Pen(node.Style?.HoverBorderBrush ?? hoveredBorderPen.Brush,
+                        node.Style?.HoverBorderThickness ?? 1.5)
+                    : hoveredBorderPen;
+                context.DrawRectangle(null, pen, nodeRect, 6, 6);
             }
         }
 
@@ -145,11 +153,9 @@ internal class CanvasOverlay : Control
             }
 
             // Port labels (rendered when PortTemplate is null and port has a label)
-            var labelBrush = _canvas.ResolveBrush(
+            var defaultLabelBrush = _canvas.ResolveBrush(
                 NodiumGraphResources.PortLabelBrushKey,
                 NodiumGraphCanvas.DefaultPortLabelBrush);
-            const double labelFontSize = 11.0;
-            const double labelOffset = 8.0;
 
             foreach (var node in graph.Nodes)
             {
@@ -161,15 +167,18 @@ internal class CanvasOverlay : Control
 
                     var screenPos = transform.WorldToScreen(port.AbsolutePosition);
                     var placement = port.LabelPlacement ?? GetAutoPlacement(port.Angle);
-                    var scaledOffset = labelOffset * zoom;
+                    var portLabelFontSize = port.Style?.LabelFontSize ?? 11.0;
+                    var portLabelBrush = port.Style?.LabelBrush ?? defaultLabelBrush;
+                    var portLabelOffset = port.Style?.LabelOffset ?? 8.0;
+                    var scaledOffset = portLabelOffset * zoom;
 
                     var text = new FormattedText(
                         port.Label,
                         CultureInfo.InvariantCulture,
                         FlowDirection.LeftToRight,
                         Typeface.Default,
-                        labelFontSize * zoom,
-                        labelBrush);
+                        portLabelFontSize * zoom,
+                        portLabelBrush);
 
                     var textWidth = text.Width;
                     var textHeight = text.Height;
