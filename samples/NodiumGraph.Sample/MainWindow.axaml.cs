@@ -406,14 +406,20 @@ public partial class MainWindow : Window
 
         if (node == mergeNode)
         {
-            // Merge: header-less node, body is the whole node
-            return new TextBlock
+            // Merge: header-less node, body is the whole node — needs
+            // enough height for the 3 angle-based ports to spread out
+            return new Border
             {
-                Text = "Combines multiple inputs",
-                Foreground = new SolidColorBrush(Color.FromRgb(230, 230, 230)),
-                FontSize = 11,
-                TextWrapping = TextWrapping.Wrap,
-                HorizontalAlignment = HorizontalAlignment.Center
+                MinHeight = 50,
+                Child = new TextBlock
+                {
+                    Text = "Combines multiple inputs",
+                    Foreground = new SolidColorBrush(Color.FromRgb(230, 230, 230)),
+                    FontSize = 11,
+                    TextWrapping = TextWrapping.Wrap,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
             };
         }
 
