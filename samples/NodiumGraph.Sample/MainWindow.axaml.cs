@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
@@ -14,41 +15,131 @@ public partial class MainWindow : Window
 
         var graph = new Graph();
 
-        // Node A: Start — ports at edges (MinWidth=120, header ~30px tall)
-        var nodeA = new Node { Title = "Start", X = 100, Y = 150 };
-        var portAOut = new Port(nodeA, "Output", PortFlow.Output, new Point(120, 15));
-        nodeA.PortProvider = new FixedPortProvider(new[] { portAOut });
+        // ── 1. Input Source ─────────────────────────────────────────────
+        // Rectangle shape (default), AnglePortProvider, 1 output at 90°, green header
+        var inputNode = new Node
+        {
+            Title = "Input Source",
+            X = 100,
+            Y = 200,
+            Style = new NodeStyle
+            {
+                HeaderBackground = new SolidColorBrush(Color.FromRgb(76, 175, 80))
+            }
+        };
+        var inputOut = new Port(inputNode, "out", PortFlow.Output, default) { Angle = 90, Label = "out" };
+        var inputProvider = new AnglePortProvider();
+        inputProvider.AddPort(inputOut);
+        inputNode.PortProvider = inputProvider;
 
-        // Node B: Process
-        var nodeB = new Node { Title = "Process", X = 400, Y = 100 };
-        var portBIn = new Port(nodeB, "Input", PortFlow.Input, new Point(0, 15));
-        var portBOut = new Port(nodeB, "Output", PortFlow.Output, new Point(120, 15));
-        nodeB.PortProvider = new FixedPortProvider(new[] { portBIn, portBOut });
+        // ── 2. Transform ────────────────────────────────────────────────
+        // RoundedRectangleShape(8), 1 input at 270°, 2 outputs at 45° and 135°,
+        // blue header with custom border, diamond-shaped output ports
+        var transformNode = new Node
+        {
+            Title = "Transform",
+            X = 350,
+            Y = 150,
+            Shape = new RoundedRectangleShape(8),
+            Style = new NodeStyle
+            {
+                HeaderBackground = new SolidColorBrush(Color.FromRgb(66, 133, 244)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(40, 80, 160)),
+                BorderThickness = 2
+            }
+        };
+        var diamondStyle = new PortStyle { Shape = PortShape.Diamond };
+        var transformIn = new Port(transformNode, "in", PortFlow.Input, default) { Angle = 270, Label = "in" };
+        var transformOut1 = new Port(transformNode, "out1", PortFlow.Output, default) { Angle = 45, Label = "out1", Style = diamondStyle };
+        var transformOut2 = new Port(transformNode, "out2", PortFlow.Output, default) { Angle = 135, Label = "out2", Style = diamondStyle };
+        var transformProvider = new AnglePortProvider();
+        transformProvider.AddPort(transformIn);
+        transformProvider.AddPort(transformOut1);
+        transformProvider.AddPort(transformOut2);
+        transformNode.PortProvider = transformProvider;
 
-        // Node C: Filter
-        var nodeC = new Node { Title = "Filter", X = 400, Y = 300 };
-        var portCIn = new Port(nodeC, "Input", PortFlow.Input, new Point(0, 15));
-        var portCOut = new Port(nodeC, "Output", PortFlow.Output, new Point(120, 15));
-        nodeC.PortProvider = new FixedPortProvider(new[] { portCIn, portCOut });
+        // ── 3. Filter ───────────────────────────────────────────────────
+        // EllipseShape, 1 input at 270°, 1 output at 90°, orange header with opacity
+        var filterNode = new Node
+        {
+            Title = "Filter",
+            X = 350,
+            Y = 350,
+            Shape = new EllipseShape(),
+            Style = new NodeStyle
+            {
+                HeaderBackground = new SolidColorBrush(Color.FromRgb(255, 152, 0)),
+                Opacity = 0.85
+            }
+        };
+        var filterIn = new Port(filterNode, "in", PortFlow.Input, default) { Angle = 270, Label = "in" };
+        var filterOut = new Port(filterNode, "out", PortFlow.Output, default) { Angle = 90, Label = "out" };
+        var filterProvider = new AnglePortProvider();
+        filterProvider.AddPort(filterIn);
+        filterProvider.AddPort(filterOut);
+        filterNode.PortProvider = filterProvider;
 
-        // Node D: End
-        var nodeD = new Node { Title = "End", X = 700, Y = 200 };
-        var portDIn = new Port(nodeD, "Input", PortFlow.Input, new Point(0, 15));
-        nodeD.PortProvider = new FixedPortProvider(new[] { portDIn });
+        // ── 4. Merge ────────────────────────────────────────────────────
+        // Rectangle shape, 2 inputs at 225° and 315°, 1 output at 90°,
+        // ShowHeader = false, purple body
+        var mergeNode = new Node
+        {
+            Title = "Merge",
+            X = 600,
+            Y = 250,
+            ShowHeader = false,
+            Style = new NodeStyle
+            {
+                BodyBackground = new SolidColorBrush(Color.FromRgb(156, 39, 176))
+            }
+        };
+        var mergeIn1 = new Port(mergeNode, "input1", PortFlow.Input, default) { Angle = 225, Label = "input1" };
+        var mergeIn2 = new Port(mergeNode, "input2", PortFlow.Input, default) { Angle = 315, Label = "input2" };
+        var mergeOut = new Port(mergeNode, "out", PortFlow.Output, default) { Angle = 90, Label = "out" };
+        var mergeProvider = new AnglePortProvider();
+        mergeProvider.AddPort(mergeIn1);
+        mergeProvider.AddPort(mergeIn2);
+        mergeProvider.AddPort(mergeOut);
+        mergeNode.PortProvider = mergeProvider;
 
-        // Comment
+        // ── 5. Output Sink ──────────────────────────────────────────────
+        // Rectangle shape, FixedPortProvider with 1 input on left, red header
+        var outputNode = new Node
+        {
+            Title = "Output Sink",
+            X = 850,
+            Y = 250,
+            Style = new NodeStyle
+            {
+                HeaderBackground = new SolidColorBrush(Color.FromRgb(244, 67, 54))
+            }
+        };
+        var outputIn = new Port(outputNode, "in", PortFlow.Input, new Point(0, 15)) { Label = "in" };
+        outputNode.PortProvider = new FixedPortProvider(new[] { outputIn });
+
+        // ── 6. Comment ──────────────────────────────────────────────────
         var comment = new CommentNode { X = 100, Y = 50 };
         comment.Comment = "This is the pipeline entry point";
 
-        graph.AddNode(nodeA);
-        graph.AddNode(nodeB);
-        graph.AddNode(nodeC);
-        graph.AddNode(nodeD);
+        // ── Add nodes to graph ──────────────────────────────────────────
+        graph.AddNode(inputNode);
+        graph.AddNode(transformNode);
+        graph.AddNode(filterNode);
+        graph.AddNode(mergeNode);
+        graph.AddNode(outputNode);
         graph.AddNode(comment);
 
-        graph.AddConnection(new Connection(portAOut, portBIn));
-        graph.AddConnection(new Connection(portAOut, portCIn));
-        graph.AddConnection(new Connection(portBOut, portDIn));
+        // ── Connections ─────────────────────────────────────────────────
+        // Input -> Transform (out -> in)
+        graph.AddConnection(new Connection(inputOut, transformIn));
+        // Transform -> Filter (out1 -> in)
+        graph.AddConnection(new Connection(transformOut1, filterIn));
+        // Transform -> Merge (out2 -> input1)
+        graph.AddConnection(new Connection(transformOut2, mergeIn1));
+        // Filter -> Merge (out -> input2)
+        graph.AddConnection(new Connection(filterOut, mergeIn2));
+        // Merge -> Output (out -> in)
+        graph.AddConnection(new Connection(mergeOut, outputIn));
 
         Canvas.Graph = graph;
 
@@ -61,6 +152,17 @@ public partial class MainWindow : Window
         {
             if (GridStyleCombo.SelectedItem is ComboBoxItem { Tag: GridStyle style })
                 Canvas.GridStyle = style;
+        };
+
+        // Wire node feature toggles
+        CollapseTransformToggle.IsCheckedChanged += (_, _) =>
+        {
+            transformNode.IsCollapsed = CollapseTransformToggle.IsChecked == true;
+        };
+
+        ShowMergeHeaderToggle.IsCheckedChanged += (_, _) =>
+        {
+            mergeNode.ShowHeader = ShowMergeHeaderToggle.IsChecked == true;
         };
     }
 }

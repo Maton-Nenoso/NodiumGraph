@@ -64,6 +64,32 @@
                                       OnContent="On" OffContent="Off" />
                     </StackPanel>
 
+                    <!-- Snap section -->
+                    <TextBlock Text="Snap"
+                               FontSize="14" FontWeight="SemiBold" />
+
+                    <StackPanel Spacing="4">
+                        <ToggleSwitch IsChecked="{Binding #Canvas.ShowSnapGhost}"
+                                      Content="Snap Ghost"
+                                      OnContent="On" OffContent="Off" />
+                    </StackPanel>
+
+                    <!-- Node Features section -->
+                    <TextBlock Text="Node Features"
+                               FontSize="14" FontWeight="SemiBold" />
+
+                    <StackPanel Spacing="4">
+                        <ToggleSwitch x:Name="CollapseTransformToggle"
+                                      Content="Collapse Transform"
+                                      OnContent="On" OffContent="Off" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <ToggleSwitch x:Name="ShowMergeHeaderToggle"
+                                      Content="Show Merge Header"
+                                      OnContent="On" OffContent="Off" />
+                    </StackPanel>
+
                 </StackPanel>
             </ScrollViewer>
         </Border>
