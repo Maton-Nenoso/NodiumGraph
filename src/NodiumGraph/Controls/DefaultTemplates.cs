@@ -149,6 +149,29 @@ internal static class DefaultTemplates
             }
         });
 
+        // Collapse toggle: clickable arrow at the bottom, visible when IsCollapsible==true
+        var collapseArrow = new TextBlock
+        {
+            FontSize = 10,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = Brushes.Gray,
+            Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
+            Margin = new Thickness(0, 2, 0, 2),
+            [!TextBlock.TextProperty] = new Binding(nameof(Node.IsCollapsed))
+            {
+                Converter = new FuncValueConverter<bool, string>(collapsed => collapsed ? "\u25BC" : "\u25B2")
+            }
+        };
+        collapseArrow.Bind(Visual.IsVisibleProperty, new Binding(nameof(Node.IsCollapsible)));
+        collapseArrow.PointerPressed += (_, e) =>
+        {
+            if (collapseArrow.DataContext is Node n)
+            {
+                n.IsCollapsed = !n.IsCollapsed;
+                e.Handled = true;
+            }
+        };
+
         var border = new Border
         {
             CornerRadius = cornerRadius,
@@ -159,7 +182,8 @@ internal static class DefaultTemplates
                 {
                     header,
                     body,
-                    pill
+                    pill,
+                    collapseArrow
                 }
             }
         };

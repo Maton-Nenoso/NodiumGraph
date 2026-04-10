@@ -17,6 +17,7 @@ public class Node : INotifyPropertyChanged
     private bool _isSelected;
     private bool _showHeader = true;
     private bool _isCollapsed;
+    private bool _isCollapsible;
     private NodeStyle? _style;
     private INodeShape _shape = new RectangleShape();
 
@@ -84,6 +85,17 @@ public class Node : INotifyPropertyChanged
     {
         get => _showHeader;
         set => SetField(ref _showHeader, value);
+    }
+
+    /// <summary>
+    /// Controls whether the node shows a collapse/expand toggle.
+    /// When true, the default template renders a clickable arrow at the bottom
+    /// that toggles <see cref="IsCollapsed"/>.
+    /// </summary>
+    public bool IsCollapsible
+    {
+        get => _isCollapsible;
+        set => SetField(ref _isCollapsible, value);
     }
 
     /// <summary>

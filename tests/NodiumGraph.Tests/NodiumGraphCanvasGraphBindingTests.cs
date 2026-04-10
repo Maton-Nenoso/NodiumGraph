@@ -103,7 +103,7 @@ public class NodiumGraphCanvasGraphBindingTests
         graph.RemoveNode(node);
 
         // Only the CanvasOverlay remains
-        Assert.Equal(1, canvas.GetVisualChildren().Count());
+        Assert.Single(canvas.GetVisualChildren());
     }
 
     [AvaloniaFact]

@@ -24,7 +24,7 @@ public partial class MainWindow : Window
             Y = 200,
             Style = new NodeStyle
             {
-                HeaderBackground = new SolidColorBrush(Color.FromRgb(76, 175, 80))
+                HeaderBackground = new SolidColorBrush(Color.FromRgb(16, 185, 129))
             }
         };
         var inputOut = new Port(inputNode, "out", PortFlow.Output, default) { Angle = 90, Label = "out" };
@@ -40,6 +40,7 @@ public partial class MainWindow : Window
             Title = "Transform",
             X = 350,
             Y = 150,
+            IsCollapsible = true,
             Shape = new RoundedRectangleShape(8),
             Style = new NodeStyle
             {
@@ -49,12 +50,10 @@ public partial class MainWindow : Window
                     EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
                     GradientStops =
                     {
-                        new GradientStop(Color.FromRgb(66, 133, 244), 0),
-                        new GradientStop(Color.FromRgb(156, 39, 176), 1)
+                        new GradientStop(Color.FromRgb(99, 102, 241), 0),
+                        new GradientStop(Color.FromRgb(139, 92, 246), 1)
                     }
-                },
-                BorderBrush = new SolidColorBrush(Color.FromRgb(40, 80, 160)),
-                BorderThickness = 2
+                }
             }
         };
         var diamondStyle = new PortStyle { Shape = PortShape.Diamond };
@@ -74,11 +73,11 @@ public partial class MainWindow : Window
             Title = "Filter",
             X = 350,
             Y = 350,
+            IsCollapsible = true,
             Shape = new EllipseShape(),
             Style = new NodeStyle
             {
-                HeaderBackground = new SolidColorBrush(Color.FromRgb(255, 152, 0)),
-                Opacity = 0.85
+                HeaderBackground = new SolidColorBrush(Color.FromRgb(245, 158, 11))
             }
         };
         var filterIn = new Port(filterNode, "in", PortFlow.Input, default) { Angle = 270, Label = "in" };
@@ -99,7 +98,7 @@ public partial class MainWindow : Window
             ShowHeader = false,
             Style = new NodeStyle
             {
-                BodyBackground = new SolidColorBrush(Color.FromRgb(156, 39, 176))
+                BodyBackground = new SolidColorBrush(Color.FromRgb(139, 92, 246))
             }
         };
         var mergeIn1 = new Port(mergeNode, "input1", PortFlow.Input, default) { Angle = 225, Label = "input1" };
@@ -118,9 +117,10 @@ public partial class MainWindow : Window
             Title = "Output Sink",
             X = 850,
             Y = 250,
+            IsCollapsible = true,
             Style = new NodeStyle
             {
-                HeaderBackground = new SolidColorBrush(Color.FromRgb(244, 67, 54))
+                HeaderBackground = new SolidColorBrush(Color.FromRgb(239, 68, 68))
             }
         };
         var outputIn = new Port(outputNode, "in", PortFlow.Input, new Point(0, 15)) { Label = "in" };
@@ -167,7 +167,7 @@ public partial class MainWindow : Window
         // Wire node feature toggles
         CollapseTransformToggle.IsCheckedChanged += (_, _) =>
         {
-            transformNode.IsCollapsed = CollapseTransformToggle.IsChecked == true;
+            transformNode.IsCollapsible = CollapseTransformToggle.IsChecked == true;
         };
 
         ShowMergeHeaderToggle.IsCheckedChanged += (_, _) =>

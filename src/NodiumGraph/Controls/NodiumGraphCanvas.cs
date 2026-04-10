@@ -57,6 +57,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private bool _isMarqueeSelecting;
     private Point _marqueeStart;
     private Point _marqueeEnd;
+    private bool _fallbackTemplatesRegistered;
 
     // Fallback defaults (used when theme resources not found)
     internal static readonly SolidColorBrush DefaultGridBrush = new(Color.FromArgb(40, 128, 128, 128));
@@ -1231,8 +1232,10 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         else
         {
             // Custom subclass with no specific template — let DataTemplate resolution
-            // walk the visual tree. Add built-in as lowest-priority fallback.
-            container.DataTemplates.Add(DefaultTemplates.NodeTemplate);
+            // walk the visual tree. Fallback templates are registered on the canvas
+            // (not on each container) so that more-specific templates defined higher
+            // in the tree (e.g. Window.DataTemplates) take priority.
+            EnsureFallbackTemplates();
         }
 
         _nodeContainers[node] = container;
@@ -1245,6 +1248,19 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             layoutAware.LayoutInvalidated += OnLayoutAwareProviderInvalidated;
 
         InvalidateMeasure();
+    }
+
+    private void EnsureFallbackTemplates()
+    {
+        if (_fallbackTemplatesRegistered) return;
+        _fallbackTemplatesRegistered = true;
+
+        // Register on Application so it's checked LAST — after Window.DataTemplates
+        // and any other templates defined higher in the visual tree.
+        if (Application.Current is { } app)
+            app.DataTemplates.Add(DefaultTemplates.NodeTemplate);
+        else
+            DataTemplates.Add(DefaultTemplates.NodeTemplate);
     }
 
     private void RemoveNodeContainer(Node node)
@@ -1274,7 +1290,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             InvalidateArrange();
         else if (e.PropertyName is nameof(Node.IsSelected))
             InvalidateVisual();
-        else if (e.PropertyName is nameof(Node.ShowHeader) or nameof(Node.IsCollapsed))
+        else if (e.PropertyName is nameof(Node.ShowHeader) or nameof(Node.IsCollapsed) or nameof(Node.IsCollapsible))
             InvalidateMeasure();
     }
 
