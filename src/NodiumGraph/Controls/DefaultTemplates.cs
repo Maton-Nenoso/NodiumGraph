@@ -234,7 +234,8 @@ internal static class DefaultTemplates
 
     /// <summary>
     /// Resolves the appropriate template for a node. Checks custom template first,
-    /// then falls back to built-in defaults.
+    /// then falls back to built-in defaults. Returns null for custom Node subclasses
+    /// so that Avalonia's DataTemplate resolution from the visual tree can work.
     /// </summary>
     public static IDataTemplate? ResolveTemplate(Node node, IDataTemplate? customTemplate)
     {
@@ -245,6 +246,7 @@ internal static class DefaultTemplates
         {
             CommentNode => CommentNodeTemplate,
             GroupNode => GroupNodeTemplate,
+            _ when node.GetType() != typeof(Node) => null, // Custom subclass — let DataTemplate resolution work
             _ => NodeTemplate
         };
     }

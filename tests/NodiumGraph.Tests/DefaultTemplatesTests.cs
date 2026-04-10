@@ -63,4 +63,14 @@ public class DefaultTemplatesTests
         var template = DefaultTemplates.ResolveTemplate(node, custom);
         Assert.Same(custom, template);
     }
+
+    [AvaloniaFact]
+    public void ResolveTemplate_returns_null_for_custom_Node_subclass()
+    {
+        var node = new CustomTestNode();
+        var template = DefaultTemplates.ResolveTemplate(node, null);
+        Assert.Null(template);
+    }
+
+    private class CustomTestNode : Node { }
 }

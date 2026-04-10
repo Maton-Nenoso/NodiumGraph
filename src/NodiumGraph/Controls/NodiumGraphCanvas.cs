@@ -1222,8 +1222,19 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             DataContext = node,
             Content = node,
-            ContentTemplate = template
         };
+
+        if (template != null)
+        {
+            container.ContentTemplate = template;
+        }
+        else
+        {
+            // Custom subclass with no specific template — let DataTemplate resolution
+            // walk the visual tree. Add built-in as lowest-priority fallback.
+            container.DataTemplates.Add(DefaultTemplates.NodeTemplate);
+        }
+
         _nodeContainers[node] = container;
         LogicalChildren.Add(container);
         VisualChildren.Add(container);

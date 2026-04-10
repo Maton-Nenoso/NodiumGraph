@@ -1,10 +1,5 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Templates;
-using Avalonia.Data;
-using Avalonia.Data.Converters;
-using Avalonia.Layout;
 using Avalonia.Media;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
@@ -20,9 +15,9 @@ public partial class MainWindow : Window
 
         var graph = new Graph();
 
-        // ── 1. Input Source ─────────────────────────────────────────────
-        // Rectangle shape (default), AnglePortProvider, 1 output at 90°, green header
-        var inputNode = new Node
+        // -- 1. Input Source --
+        // Rectangle shape (default), AnglePortProvider, 1 output at 90 deg, green header
+        var inputNode = new InputSourceNode
         {
             Title = "Input Source",
             X = 100,
@@ -37,10 +32,10 @@ public partial class MainWindow : Window
         inputProvider.AddPort(inputOut);
         inputNode.PortProvider = inputProvider;
 
-        // ── 2. Transform ────────────────────────────────────────────────
-        // RoundedRectangleShape(8), 1 input at 270°, 2 outputs at 45° and 135°,
+        // -- 2. Transform --
+        // RoundedRectangleShape(8), 1 input at 270 deg, 2 outputs at 45 deg and 135 deg,
         // blue header with custom border, diamond-shaped output ports
-        var transformNode = new Node
+        var transformNode = new TransformNode
         {
             Title = "Transform",
             X = 350,
@@ -72,9 +67,9 @@ public partial class MainWindow : Window
         transformProvider.AddPort(transformOut2);
         transformNode.PortProvider = transformProvider;
 
-        // ── 3. Filter ───────────────────────────────────────────────────
-        // EllipseShape, 1 input at 270°, 1 output at 90°, orange header with opacity
-        var filterNode = new Node
+        // -- 3. Filter --
+        // EllipseShape, 1 input at 270 deg, 1 output at 90 deg, orange header with opacity
+        var filterNode = new FilterNode
         {
             Title = "Filter",
             X = 350,
@@ -93,10 +88,10 @@ public partial class MainWindow : Window
         filterProvider.AddPort(filterOut);
         filterNode.PortProvider = filterProvider;
 
-        // ── 4. Merge ────────────────────────────────────────────────────
-        // Rectangle shape, 2 inputs at 225° and 315°, 1 output at 90°,
+        // -- 4. Merge --
+        // Rectangle shape, 2 inputs at 225 deg and 315 deg, 1 output at 90 deg,
         // ShowHeader = false, purple body
-        var mergeNode = new Node
+        var mergeNode = new MergeNode
         {
             Title = "Merge",
             X = 600,
@@ -116,9 +111,9 @@ public partial class MainWindow : Window
         mergeProvider.AddPort(mergeOut);
         mergeNode.PortProvider = mergeProvider;
 
-        // ── 5. Output Sink ──────────────────────────────────────────────
+        // -- 5. Output Sink --
         // Rectangle shape, FixedPortProvider with 1 input on left, red header
-        var outputNode = new Node
+        var outputNode = new OutputSinkNode
         {
             Title = "Output Sink",
             X = 850,
@@ -131,11 +126,11 @@ public partial class MainWindow : Window
         var outputIn = new Port(outputNode, "in", PortFlow.Input, new Point(0, 15)) { Label = "in" };
         outputNode.PortProvider = new FixedPortProvider(new[] { outputIn });
 
-        // ── 6. Comment ──────────────────────────────────────────────────
+        // -- 6. Comment --
         var comment = new CommentNode { X = 100, Y = 50 };
         comment.Comment = "This is the pipeline entry point";
 
-        // ── Add nodes to graph ──────────────────────────────────────────
+        // -- Add nodes to graph --
         graph.AddNode(inputNode);
         graph.AddNode(transformNode);
         graph.AddNode(filterNode);
@@ -143,7 +138,7 @@ public partial class MainWindow : Window
         graph.AddNode(outputNode);
         graph.AddNode(comment);
 
-        // ── Connections ─────────────────────────────────────────────────
+        // -- Connections --
         // Input -> Transform (out -> in)
         graph.AddConnection(new Connection(inputOut, transformIn));
         // Transform -> Filter (out1 -> in)
@@ -155,10 +150,7 @@ public partial class MainWindow : Window
         // Merge -> Output (out -> in)
         graph.AddConnection(new Connection(mergeOut, outputIn));
 
-        // Set custom template BEFORE graph so containers use it during creation
-        Canvas.NodeTemplate = CreateNodeTemplate(
-            inputNode, transformNode, filterNode, mergeNode, outputNode);
-
+        // Don't set Canvas.NodeTemplate — let DataTemplate resolution from Window work
         Canvas.Graph = graph;
 
         // Wire a simple connection handler
@@ -183,305 +175,6 @@ public partial class MainWindow : Window
             mergeNode.ShowHeader = ShowMergeHeaderToggle.IsChecked == true;
         };
     }
-    /// <summary>
-    /// Creates a custom FuncDataTemplate that renders nodes with rich body content.
-    /// CommentNode is handled inline since FuncDataTemplate&lt;Node&gt; matches all Node subtypes.
-    /// </summary>
-    private static IDataTemplate CreateNodeTemplate(
-        Node inputNode, Node transformNode, Node filterNode, Node mergeNode, Node outputNode)
-    {
-        return new FuncDataTemplate<Node>((node, _) =>
-        {
-            // CommentNode: render the same way as the built-in CommentNodeTemplate
-            if (node is CommentNode)
-            {
-                return new Border
-                {
-                    CornerRadius = new CornerRadius(4),
-                    Background = new SolidColorBrush(Color.FromArgb(40, 255, 220, 100)),
-                    Padding = new Thickness(8),
-                    Child = new TextBlock
-                    {
-                        [!TextBlock.TextProperty] = new Binding(nameof(CommentNode.Comment)),
-                        Foreground = new SolidColorBrush(Color.FromRgb(255, 220, 100)),
-                        FontSize = 12,
-                        TextWrapping = TextWrapping.Wrap,
-                        MaxWidth = 200
-                    }
-                };
-            }
-
-            var style = node?.Style;
-            var cornerRadius = style?.CornerRadius ?? new CornerRadius(6);
-
-            // Header bar
-            var header = new Border
-            {
-                CornerRadius = new CornerRadius(cornerRadius.TopLeft, cornerRadius.TopRight, 0, 0),
-                Padding = new Thickness(8, 4),
-                [!Visual.IsVisibleProperty] = new Binding(nameof(Node.ShowHeader)),
-                Child = new TextBlock
-                {
-                    [!TextBlock.TextProperty] = new Binding(nameof(Node.Title)),
-                    FontWeight = FontWeight.SemiBold,
-                    FontSize = 12
-                }
-            };
-
-            var headerText = (TextBlock)header.Child;
-            if (style?.HeaderForeground != null)
-                headerText.Foreground = style.HeaderForeground;
-            else
-            {
-                headerText.Foreground = Brushes.White;
-                headerText.Bind(TextBlock.ForegroundProperty,
-                    headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderForegroundBrushKey));
-            }
-
-            if (style?.HeaderBackground != null)
-                header.Background = style.HeaderBackground;
-            else
-                header.Bind(Border.BackgroundProperty,
-                    header.GetResourceObservable(NodiumGraphResources.NodeHeaderBrushKey));
-
-            // Body with custom content
-            var bodyContent = BuildBodyContent(node!, inputNode, transformNode, filterNode, mergeNode, outputNode);
-            var body = new Border
-            {
-                MinHeight = 4,
-                Padding = bodyContent != null ? new Thickness(8, 6) : new Thickness(0),
-                Child = bodyContent,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(Node.IsCollapsed))
-                {
-                    Converter = InvertBoolConverter.Instance
-                }
-            };
-
-            // Pill indicator for headerless collapsed nodes
-            var pill = new Border
-            {
-                Height = 8,
-                MinWidth = 40,
-                CornerRadius = new CornerRadius(4),
-                IsVisible = false
-            };
-
-            if (style?.HeaderBackground != null)
-                pill.Background = style.HeaderBackground;
-            else
-                pill.Bind(Border.BackgroundProperty,
-                    pill.GetResourceObservable(NodiumGraphResources.NodeHeaderBrushKey));
-
-            pill.Bind(Visual.IsVisibleProperty, new MultiBinding
-            {
-                Converter = BoolConverters.And,
-                Bindings =
-                {
-                    new Binding(nameof(Node.IsCollapsed)),
-                    new Binding(nameof(Node.ShowHeader)) { Converter = InvertBoolConverter.Instance }
-                }
-            });
-
-            var border = new Border
-            {
-                CornerRadius = cornerRadius,
-                BorderThickness = new Thickness(style?.BorderThickness ?? 1),
-                MinWidth = 130,
-                Child = new StackPanel
-                {
-                    Children =
-                    {
-                        header,
-                        body,
-                        pill
-                    }
-                }
-            };
-
-            if (style?.BodyBackground != null)
-                border.Background = style.BodyBackground;
-            else
-                border.Bind(Border.BackgroundProperty,
-                    border.GetResourceObservable(NodiumGraphResources.NodeBodyBrushKey));
-
-            if (style?.BorderBrush != null)
-                border.BorderBrush = style.BorderBrush;
-            else
-                border.Bind(Border.BorderBrushProperty,
-                    border.GetResourceObservable(NodiumGraphResources.NodeBorderBrushKey));
-
-            if (style?.Opacity != null)
-                border.Opacity = style.Opacity.Value;
-
-            return border;
-        }, supportsRecycling: false);
-    }
-
-    /// <summary>
-    /// Builds the body content control for a specific node.
-    /// Returns null for nodes without custom body content.
-    /// </summary>
-    private static Control? BuildBodyContent(
-        Node node, Node inputNode, Node transformNode, Node filterNode, Node mergeNode, Node outputNode)
-    {
-        var labelColor = new SolidColorBrush(Color.FromRgb(160, 160, 160));
-        var valueColor = new SolidColorBrush(Color.FromRgb(210, 210, 210));
-
-        if (node == inputNode)
-        {
-            // Input Source: description + format info
-            return new StackPanel
-            {
-                Spacing = 3,
-                Children =
-                {
-                    new TextBlock
-                    {
-                        Text = "Reads data from external source",
-                        Foreground = labelColor,
-                        FontSize = 11,
-                        TextWrapping = TextWrapping.Wrap
-                    },
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Spacing = 4,
-                        Children =
-                        {
-                            new TextBlock { Text = "Format:", Foreground = labelColor, FontSize = 11 },
-                            new TextBlock { Text = "CSV", Foreground = valueColor, FontSize = 11, FontWeight = FontWeight.SemiBold }
-                        }
-                    }
-                }
-            };
-        }
-
-        if (node == transformNode)
-        {
-            // Transform: property rows
-            return new StackPanel
-            {
-                Spacing = 3,
-                Children =
-                {
-                    CreatePropertyRow("Operation", "Map", labelColor, valueColor),
-                    CreatePropertyRow("Parallel", "true", labelColor, valueColor)
-                }
-            };
-        }
-
-        if (node == filterNode)
-        {
-            // Filter: slider with label
-            var valueText = new TextBlock
-            {
-                Text = "0.5",
-                Foreground = valueColor,
-                FontSize = 11,
-                HorizontalAlignment = HorizontalAlignment.Right
-            };
-            var slider = new Slider
-            {
-                Minimum = 0,
-                Maximum = 1,
-                Value = 0.5,
-                SmallChange = 0.1,
-                Width = 110
-            };
-            slider.PropertyChanged += (_, e) =>
-            {
-                if (e.Property == Slider.ValueProperty)
-                    valueText.Text = slider.Value.ToString("F2");
-            };
-
-            return new StackPanel
-            {
-                Spacing = 2,
-                Children =
-                {
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Children =
-                        {
-                            new TextBlock { Text = "Threshold", Foreground = labelColor, FontSize = 11 },
-                        }
-                    },
-                    slider,
-                    valueText
-                }
-            };
-        }
-
-        if (node == mergeNode)
-        {
-            // Merge: header-less node, body is the whole node — needs
-            // enough height for the 3 angle-based ports to spread out
-            return new Border
-            {
-                MinHeight = 50,
-                Child = new TextBlock
-                {
-                    Text = "Combines multiple inputs",
-                    Foreground = new SolidColorBrush(Color.FromRgb(230, 230, 230)),
-                    FontSize = 11,
-                    TextWrapping = TextWrapping.Wrap,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
-            };
-        }
-
-        if (node == outputNode)
-        {
-            // Output Sink: property + checkbox
-            return new StackPanel
-            {
-                Spacing = 4,
-                Children =
-                {
-                    CreatePropertyRow("Destination", "stdout", labelColor, valueColor),
-                    new CheckBox
-                    {
-                        Content = "Append mode",
-                        FontSize = 11,
-                        Foreground = labelColor,
-                        IsChecked = false
-                    }
-                }
-            };
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Creates a label: value row for property display in node bodies.
-    /// </summary>
-    private static StackPanel CreatePropertyRow(string label, string value, IBrush labelBrush, IBrush valueBrush)
-    {
-        return new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 4,
-            Children =
-            {
-                new TextBlock { Text = label + ":", Foreground = labelBrush, FontSize = 11 },
-                new TextBlock { Text = value, Foreground = valueBrush, FontSize = 11, FontWeight = FontWeight.SemiBold }
-            }
-        };
-    }
-}
-
-file class InvertBoolConverter : IValueConverter
-{
-    public static readonly InvertBoolConverter Instance = new();
-
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => value is bool b ? !b : true;
-
-    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => value is bool b ? !b : false;
 }
 
 file class SampleConnectionHandler(Graph graph) : IConnectionHandler

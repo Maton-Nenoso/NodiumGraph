@@ -1,8 +1,190 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ng="clr-namespace:NodiumGraph.Controls;assembly=NodiumGraph"
+        xmlns:model="clr-namespace:NodiumGraph.Model;assembly=NodiumGraph"
+        xmlns:local="clr-namespace:NodiumGraph.Sample"
         x:Class="NodiumGraph.Sample.MainWindow"
         Title="NodiumGraph Sample" Width="1280" Height="800">
+
+    <Window.Resources>
+        <local:BooleanInvertConverter x:Key="InvertBool" />
+    </Window.Resources>
+
+    <Window.DataTemplates>
+
+        <!-- InputSourceNode: green header, CSV format info -->
+        <DataTemplate DataType="local:InputSourceNode">
+            <Border CornerRadius="6"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource NodiumNodeBorderBrush}"
+                    Background="{DynamicResource NodiumNodeBodyBrush}"
+                    MinWidth="130">
+                <StackPanel>
+                    <!-- Header -->
+                    <Border CornerRadius="6,6,0,0"
+                            Background="#4CAF50"
+                            Padding="8,4"
+                            IsVisible="{ReflectionBinding ShowHeader}">
+                        <TextBlock Text="{ReflectionBinding Title}"
+                                   Foreground="White"
+                                   FontWeight="SemiBold"
+                                   FontSize="12" />
+                    </Border>
+                    <!-- Body -->
+                    <Border Padding="8,6"
+                            IsVisible="{ReflectionBinding IsCollapsed, Converter={StaticResource InvertBool}}">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="Reads data from external source"
+                                       Foreground="#A0A0A0"
+                                       FontSize="11"
+                                       TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Format:" Foreground="#A0A0A0" FontSize="11" />
+                                <TextBlock Text="CSV" Foreground="#D2D2D2" FontSize="11" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- TransformNode: blue-to-purple gradient header, dark blue border -->
+        <DataTemplate DataType="local:TransformNode">
+            <Border CornerRadius="6"
+                    BorderThickness="2"
+                    BorderBrush="#2850A0"
+                    Background="{DynamicResource NodiumNodeBodyBrush}"
+                    MinWidth="130">
+                <StackPanel>
+                    <!-- Header -->
+                    <Border CornerRadius="6,6,0,0"
+                            Padding="8,4"
+                            IsVisible="{ReflectionBinding ShowHeader}">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                                <GradientStop Color="#4285F4" Offset="0" />
+                                <GradientStop Color="#9C27B0" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Text="{ReflectionBinding Title}"
+                                   Foreground="White"
+                                   FontWeight="SemiBold"
+                                   FontSize="12" />
+                    </Border>
+                    <!-- Body -->
+                    <Border Padding="8,6"
+                            IsVisible="{ReflectionBinding IsCollapsed, Converter={StaticResource InvertBool}}">
+                        <StackPanel Spacing="3">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Operation:" Foreground="#A0A0A0" FontSize="11" />
+                                <TextBlock Text="Map" Foreground="#D2D2D2" FontSize="11" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Parallel:" Foreground="#A0A0A0" FontSize="11" />
+                                <TextBlock Text="true" Foreground="#D2D2D2" FontSize="11" FontWeight="SemiBold" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- FilterNode: orange header, opacity 0.85, slider -->
+        <DataTemplate DataType="local:FilterNode">
+            <Border CornerRadius="6"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource NodiumNodeBorderBrush}"
+                    Background="{DynamicResource NodiumNodeBodyBrush}"
+                    MinWidth="130"
+                    Opacity="0.85">
+                <StackPanel>
+                    <!-- Header -->
+                    <Border CornerRadius="6,6,0,0"
+                            Background="#FF9800"
+                            Padding="8,4"
+                            IsVisible="{ReflectionBinding ShowHeader}">
+                        <TextBlock Text="{ReflectionBinding Title}"
+                                   Foreground="White"
+                                   FontWeight="SemiBold"
+                                   FontSize="12" />
+                    </Border>
+                    <!-- Body -->
+                    <Border Padding="8,6"
+                            IsVisible="{ReflectionBinding IsCollapsed, Converter={StaticResource InvertBool}}">
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Threshold" Foreground="#A0A0A0" FontSize="11" />
+                            <Slider x:Name="FilterSlider"
+                                    Minimum="0" Maximum="1"
+                                    Value="0.5"
+                                    SmallChange="0.1"
+                                    Width="110" />
+                            <TextBlock Text="{Binding #FilterSlider.Value, StringFormat='{}{0:F2}'}"
+                                       Foreground="#D2D2D2"
+                                       FontSize="11"
+                                       HorizontalAlignment="Right" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- MergeNode: no header, purple body, centered text -->
+        <DataTemplate DataType="local:MergeNode">
+            <Border CornerRadius="6"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource NodiumNodeBorderBrush}"
+                    Background="#9C27B0"
+                    MinWidth="130">
+                <Border Padding="8,6"
+                        MinHeight="50"
+                        IsVisible="{ReflectionBinding IsCollapsed, Converter={StaticResource InvertBool}}">
+                    <TextBlock Text="Combines multiple inputs"
+                               Foreground="#E6E6E6"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center" />
+                </Border>
+            </Border>
+        </DataTemplate>
+
+        <!-- OutputSinkNode: red header, destination + checkbox -->
+        <DataTemplate DataType="local:OutputSinkNode">
+            <Border CornerRadius="6"
+                    BorderThickness="1"
+                    BorderBrush="{DynamicResource NodiumNodeBorderBrush}"
+                    Background="{DynamicResource NodiumNodeBodyBrush}"
+                    MinWidth="130">
+                <StackPanel>
+                    <!-- Header -->
+                    <Border CornerRadius="6,6,0,0"
+                            Background="#F44336"
+                            Padding="8,4"
+                            IsVisible="{ReflectionBinding ShowHeader}">
+                        <TextBlock Text="{ReflectionBinding Title}"
+                                   Foreground="White"
+                                   FontWeight="SemiBold"
+                                   FontSize="12" />
+                    </Border>
+                    <!-- Body -->
+                    <Border Padding="8,6"
+                            IsVisible="{ReflectionBinding IsCollapsed, Converter={StaticResource InvertBool}}">
+                        <StackPanel Spacing="4">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="Destination:" Foreground="#A0A0A0" FontSize="11" />
+                                <TextBlock Text="stdout" Foreground="#D2D2D2" FontSize="11" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <CheckBox Content="Append mode"
+                                      FontSize="11"
+                                      Foreground="#A0A0A0"
+                                      IsChecked="False" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+    </Window.DataTemplates>
 
     <Grid ColumnDefinitions="220,*">
 
