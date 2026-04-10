@@ -1,0 +1,11 @@
+{
+  "planPath": "docs/superpowers/plans/2026-04-10-node-overhaul-plan.md",
+  "tasks": [
+    {"id": 6, "subject": "Task 1: NodeStyle & PortStyle", "status": "pending"},
+    {"id": 7, "subject": "Task 2: Header Toggle", "status": "pending", "blockedBy": [6]},
+    {"id": 8, "subject": "Task 3: Angle-based Ports, Labels, Shapes", "status": "pending", "blockedBy": [6]},
+    {"id": 9, "subject": "Task 4: Node Collapse", "status": "pending", "blockedBy": [7, 8]},
+    {"id": 10, "subject": "Task 5: Grid Snap Ghost", "status": "pending", "blockedBy": [6]}
+  ],
+  "lastUpdated": "2026-04-10T00:00:00Z"
+}
