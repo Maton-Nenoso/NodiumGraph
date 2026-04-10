@@ -65,6 +65,8 @@ internal class CanvasOverlay : Control
                 NodiumGraphResources.PortOutlineBrushKey,
                 NodiumGraphCanvas.DefaultPortOutlineBrush);
 
+            var defaultPortPen = new Pen(defaultPortOutlineBrush, 1.0);
+
             foreach (var node in graph.Nodes)
             {
                 if (node.PortProvider == null) continue;
@@ -74,13 +76,13 @@ internal class CanvasOverlay : Control
                     var style = port.Style;
 
                     var fill = style?.Fill ?? defaultPortBrush;
-                    var strokeBrush = style?.Stroke ?? defaultPortOutlineBrush;
-                    var strokeWidth = style?.StrokeWidth ?? 1.0;
                     var shape = style?.Shape ?? PortShape.Circle;
                     var radius = style?.Size ?? defaultPortRadius;
                     var scaledRadius = radius * zoom;
 
-                    var pen = new Pen(strokeBrush, strokeWidth);
+                    var pen = (style?.Stroke != null || style?.StrokeWidth != null)
+                        ? new Pen(style?.Stroke ?? defaultPortOutlineBrush, style?.StrokeWidth ?? 1.0)
+                        : defaultPortPen;
 
                     switch (shape)
                     {

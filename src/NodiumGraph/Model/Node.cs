@@ -65,6 +65,13 @@ public class Node : INotifyPropertyChanged
     /// <summary>
     /// Per-instance visual overrides. Null properties fall through to theme, then default.
     /// </summary>
+    /// <remarks>
+    /// Style properties are applied when the node's DataTemplate is first created.
+    /// Changing style properties at runtime will not automatically update the node's
+    /// visuals — the consumer must force a template rebuild (e.g., by removing and
+    /// re-adding the node) for changes to take effect. This is a known limitation
+    /// of the FuncDataTemplate approach.
+    /// </remarks>
     public NodeStyle? Style
     {
         get => _style;

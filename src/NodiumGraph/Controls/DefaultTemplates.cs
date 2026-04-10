@@ -36,8 +36,11 @@ internal static class DefaultTemplates
         if (style?.HeaderForeground != null)
             headerText.Foreground = style.HeaderForeground;
         else
+        {
+            headerText.Foreground = Brushes.White;
             headerText.Bind(TextBlock.ForegroundProperty,
                 headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderForegroundBrushKey));
+        }
 
         if (style?.HeaderBackground != null)
             header.Background = style.HeaderBackground;
