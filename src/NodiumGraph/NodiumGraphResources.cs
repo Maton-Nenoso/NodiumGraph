@@ -33,6 +33,7 @@ public static class NodiumGraphResources
 
     // Default node template
     public const string NodeHeaderBrushKey = "NodiumGraphNodeHeaderBrush";
+    public const string NodeHeaderForegroundBrushKey = "NodiumGraphNodeHeaderForegroundBrush";
     public const string NodeBodyBrushKey = "NodiumGraphNodeBodyBrush";
     public const string NodeBorderBrushKey = "NodiumGraphNodeBorderBrush";
 

@@ -12,6 +12,7 @@ namespace NodiumGraph.Model;
 public class NodeStyle : INotifyPropertyChanged
 {
     private IBrush? _headerBackground;
+    private IBrush? _headerForeground;
     private IBrush? _bodyBackground;
     private IBrush? _borderBrush;
     private double? _borderThickness;
@@ -25,6 +26,15 @@ public class NodeStyle : INotifyPropertyChanged
     {
         get => _headerBackground;
         set => SetField(ref _headerBackground, value);
+    }
+
+    /// <summary>
+    /// Foreground brush for the node header text.
+    /// </summary>
+    public IBrush? HeaderForeground
+    {
+        get => _headerForeground;
+        set => SetField(ref _headerForeground, value);
     }
 
     /// <summary>

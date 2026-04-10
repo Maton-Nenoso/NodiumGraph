@@ -13,6 +13,7 @@ public class NodeStyleTests
     {
         var style = new NodeStyle();
         Assert.Null(style.HeaderBackground);
+        Assert.Null(style.HeaderForeground);
         Assert.Null(style.BodyBackground);
         Assert.Null(style.BorderBrush);
         Assert.Null(style.BorderThickness);
@@ -25,6 +26,13 @@ public class NodeStyleTests
     {
         var style = new NodeStyle { HeaderBackground = Brushes.Red };
         Assert.Same(Brushes.Red, style.HeaderBackground);
+    }
+
+    [Fact]
+    public void HeaderForeground_set_and_get()
+    {
+        var style = new NodeStyle { HeaderForeground = Brushes.Yellow };
+        Assert.Same(Brushes.Yellow, style.HeaderForeground);
     }
 
     [Fact]
@@ -65,6 +73,7 @@ public class NodeStyleTests
 
     [Theory]
     [InlineData(nameof(NodeStyle.HeaderBackground))]
+    [InlineData(nameof(NodeStyle.HeaderForeground))]
     [InlineData(nameof(NodeStyle.BodyBackground))]
     [InlineData(nameof(NodeStyle.BorderBrush))]
     [InlineData(nameof(NodeStyle.BorderThickness))]
@@ -80,6 +89,9 @@ public class NodeStyleTests
         {
             case nameof(NodeStyle.HeaderBackground):
                 style.HeaderBackground = Brushes.Red;
+                break;
+            case nameof(NodeStyle.HeaderForeground):
+                style.HeaderForeground = Brushes.Yellow;
                 break;
             case nameof(NodeStyle.BodyBackground):
                 style.BodyBackground = Brushes.Blue;

@@ -26,13 +26,19 @@ internal static class DefaultTemplates
             Child = new TextBlock
             {
                 [!TextBlock.TextProperty] = new Binding(nameof(Node.Title)),
-                Foreground = Brushes.White,
                 FontWeight = FontWeight.SemiBold,
                 FontSize = 12
             }
         };
 
         // Resolution: per-instance style → theme resource → default
+        var headerText = (TextBlock)header.Child;
+        if (style?.HeaderForeground != null)
+            headerText.Foreground = style.HeaderForeground;
+        else
+            headerText.Bind(TextBlock.ForegroundProperty,
+                headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderForegroundBrushKey));
+
         if (style?.HeaderBackground != null)
             header.Background = style.HeaderBackground;
         else
