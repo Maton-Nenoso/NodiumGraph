@@ -48,7 +48,16 @@ public partial class MainWindow : Window
             Shape = new RoundedRectangleShape(8),
             Style = new NodeStyle
             {
-                HeaderBackground = new SolidColorBrush(Color.FromRgb(66, 133, 244)),
+                HeaderBackground = new LinearGradientBrush
+                {
+                    StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative),
+                    EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+                    GradientStops =
+                    {
+                        new GradientStop(Color.FromRgb(66, 133, 244), 0),
+                        new GradientStop(Color.FromRgb(156, 39, 176), 1)
+                    }
+                },
                 BorderBrush = new SolidColorBrush(Color.FromRgb(40, 80, 160)),
                 BorderThickness = 2
             }
