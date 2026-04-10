@@ -81,7 +81,11 @@ Visual-only property controlling whether the default template renders the header
 
 ### Template scope
 
-`ShowHeader` and `IsCollapsed` are respected by the **built-in default Node template only**. The specialized built-in templates (`CommentNodeTemplate`, `GroupNodeTemplate`) do not have a header/body split and ignore these properties. Consumers using fully custom templates can also ignore them, or bind to them if desired.
+`ShowHeader` is respected by the **built-in default Node template only**. The specialized built-in templates (`CommentNodeTemplate`, `GroupNodeTemplate`) do not have a header/body split and ignore it. Consumers using custom templates can bind to it if desired.
+
+`IsCollapsed` has two layers — see Section 4 for full details:
+- **Behavioral** (canvas-enforced, always applies): port hiding, connection blocking
+- **Visual** (template-driven): how the node shrinks. Built-in templates handle this; custom templates should bind to `IsCollapsed` for visual consistency.
 
 ## 3. Port Positioning, Labels, and Node Shapes
 
@@ -170,6 +174,27 @@ The canvas is responsible for triggering redraws after port positions change. Th
 
 Port INPC (`PropertyChanged` on `Position`, `Angle`, etc.) is for **consumer code** that wants to react to port changes (e.g., updating a sidebar inspector). The canvas rendering path does not subscribe to individual port PropertyChanged events — it invalidates via the UpdateLayout call path above.
 
+### Runtime port-geometry changes
+
+`Port.Angle` is publicly settable. Changing it at runtime (outside ArrangeOverride) must also recompute the port's position and trigger a redraw. The contract:
+
+1. `AnglePortProvider` subscribes to each managed port's `PropertyChanged`
+2. When `Angle` changes, the provider immediately recomputes that port's `Position` (using the last-known width, height, and shape from the most recent `UpdateLayout` call)
+3. `AnglePortProvider` raises a `LayoutInvalidated` event
+4. The canvas subscribes to `ILayoutAwarePortProvider.LayoutInvalidated` and calls `InvalidateVisual()` when fired
+
+This extends the `ILayoutAwarePortProvider` interface:
+
+```csharp
+public interface ILayoutAwarePortProvider : IPortProvider
+{
+    void UpdateLayout(double width, double height, INodeShape? shape);
+    event Action? LayoutInvalidated;
+}
+```
+
+This keeps the provider and canvas decoupled — the provider doesn't reference the canvas, it just raises an event. The canvas subscribes when a node's port provider is `ILayoutAwarePortProvider` and unsubscribes when the node is removed.
+
 ### Label auto-positioning
 
 When `LabelPlacement` is null (default), derived from angle:
@@ -191,26 +216,38 @@ Labels rendered by CanvasOverlay adjacent to port shapes, small text (10px defau
 
 ## 4. Node Collapse
 
-Per-node toggle that collapses the node to header-only, hiding body content and ports.
+Per-node toggle that collapses the node, hiding body content and ports. Collapse has two distinct layers: behavioral (canvas-enforced) and visual (template-driven).
 
 ### Model change
 
 - `Node.IsCollapsed` : `bool` (default `false`, INPC)
 
-### Visual behavior
+### Behavioral collapse (canvas-enforced, always applies)
 
-See Header Toggle section for the ShowHeader x IsCollapsed interaction table.
+These behaviors are enforced by the canvas regardless of which template the node uses:
 
-### Port behavior when collapsed
+- **Ports hidden:** not rendered by CanvasOverlay, not hit-testable when `IsCollapsed == true`
+- **Connection blocking:** new connections cannot be started from or dropped onto a collapsed node's ports
+- **Existing connections remain:** connection endpoints use the port's current `AbsolutePosition` (which may or may not have changed depending on whether the template shrinks the node)
+- **Port repositioning via UpdateLayout:** port providers that implement `ILayoutAwarePortProvider` receive the node's current dimensions (whatever the template rendered) via `UpdateLayout` and reposition ports accordingly:
+  - **AnglePortProvider**: recalculates boundary points against current node size
+  - **FixedPortProvider**: does not implement `ILayoutAwarePortProvider` — ports retain original positions
+  - **DynamicPortProvider**: does not implement `ILayoutAwarePortProvider` — ports retain original positions
 
-- Ports are hidden visually (not rendered by CanvasOverlay, not hit-testable)
-- Ports still exist on the model
-- Port providers that implement `ILayoutAwarePortProvider` receive collapsed dimensions via `UpdateLayout` and reposition ports to the collapsed boundary:
-  - **AnglePortProvider**: recalculates boundary points against collapsed node size
-  - **FixedPortProvider**: does not implement `ILayoutAwarePortProvider` — ports retain their original positions. Connections to ports outside collapsed bounds will visually extend beyond the collapsed node. This is acceptable since the ports still exist logically.
-  - **DynamicPortProvider**: does not implement `ILayoutAwarePortProvider` — same behavior as FixedPortProvider.
-- For providers implementing `ILayoutAwarePortProvider`, existing connections follow ports to collapsed positions (connections visually "pull in" toward smaller node)
-- New connections cannot be started from or dropped onto collapsed node ports
+### Visual collapse (template-driven)
+
+How the node visually shrinks is the template's responsibility:
+
+- **Default Node template**: collapses to header-only (body hidden). When `ShowHeader == false`, shows minimal pill/bar indicator. `Node.Height` updates to reflect collapsed size after layout.
+- **CommentNodeTemplate / GroupNodeTemplate**: these built-in templates do not handle `IsCollapsed` in this spec. They render at full size. Behavioral collapse still applies (ports hidden, connections blocked). Adding visual collapse to specialized templates is a future enhancement.
+- **Custom templates**: should bind to `Node.IsCollapsed` for visual consistency. If they don't, the node remains visually full-size but behavioral collapse still applies — ports are hidden and connections are blocked, which may look inconsistent to the user.
+
+| ShowHeader | IsCollapsed | Default template renders                        |
+|------------|-------------|--------------------------------------------------|
+| true       | false       | Full node (header + body)                        |
+| true       | true        | Header bar only, body hidden                     |
+| false      | false       | Body only (no header)                            |
+| false      | true        | Minimal pill/bar indicator with node border style |
 
 ### Collapse trigger
 
@@ -218,9 +255,9 @@ No built-in collapse button. Consumer sets `node.IsCollapsed = true` via their o
 
 ### Sizing
 
-- Collapsed height = header height only (or minimal indicator height if headerless)
+- Collapsed height depends on the template (default template: header height or minimal indicator)
 - Width unchanged
-- `Node.Height` updates to reflect collapsed size after layout
+- `Node.Height` updates to reflect whatever the template actually renders after layout
 
 ## 5. Grid Snap Ghost
 
