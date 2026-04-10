@@ -15,6 +15,10 @@ public class Node : INotifyPropertyChanged
     private double _height;
     private string _title;
     private bool _isSelected;
+    private bool _showHeader = true;
+    private bool _isCollapsed;
+    private NodeStyle? _style;
+    private INodeShape _shape = new RectangleShape();
 
     public Node()
     {
@@ -49,6 +53,16 @@ public class Node : INotifyPropertyChanged
 
     public IPortProvider? PortProvider { get; set; }
 
+    /// <summary>
+    /// Defines the geometric boundary shape used for angle-based port positioning.
+    /// Defaults to RectangleShape.
+    /// </summary>
+    public INodeShape Shape
+    {
+        get => _shape;
+        set => SetField(ref _shape, value);
+    }
+
     public string Title
     {
         get => _title;
@@ -59,6 +73,45 @@ public class Node : INotifyPropertyChanged
     {
         get => _isSelected;
         internal set => SetField(ref _isSelected, value);
+    }
+
+    /// <summary>
+    /// Controls whether the default template renders the header bar.
+    /// When false, the header is hidden and node height shrinks naturally.
+    /// Title remains unchanged regardless of this value.
+    /// </summary>
+    public bool ShowHeader
+    {
+        get => _showHeader;
+        set => SetField(ref _showHeader, value);
+    }
+
+    /// <summary>
+    /// Controls whether the node is collapsed. When true:
+    /// - Behavioral (canvas-enforced): ports are hidden, not hit-testable, new connections blocked.
+    /// - Visual (default template): body section hidden, height shrinks naturally.
+    /// No built-in collapse button — consumer triggers via this setter.
+    /// </summary>
+    public bool IsCollapsed
+    {
+        get => _isCollapsed;
+        set => SetField(ref _isCollapsed, value);
+    }
+
+    /// <summary>
+    /// Per-instance visual overrides. Null properties fall through to theme, then default.
+    /// </summary>
+    /// <remarks>
+    /// Style properties are applied when the node's DataTemplate is first created.
+    /// Changing style properties at runtime will not automatically update the node's
+    /// visuals — the consumer must force a template rebuild (e.g., by removing and
+    /// re-adding the node) for changes to take effect. This is a known limitation
+    /// of the FuncDataTemplate approach.
+    /// </remarks>
+    public NodeStyle? Style
+    {
+        get => _style;
+        set => SetField(ref _style, value);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

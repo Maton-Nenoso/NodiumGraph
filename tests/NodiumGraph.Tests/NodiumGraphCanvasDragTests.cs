@@ -66,4 +66,19 @@ public class NodiumGraphCanvasDragTests
         Assert.Equal(new Point(150, 200), reportedMoves[0].NewPosition);
     }
 
+    [AvaloniaFact]
+    public void ShowSnapGhost_defaults_to_false()
+    {
+        var canvas = new NodiumGraphCanvas();
+        Assert.False(canvas.ShowSnapGhost);
+    }
+
+    [AvaloniaFact]
+    public void ShowSnapGhost_property_can_be_set_and_read()
+    {
+        var canvas = new NodiumGraphCanvas();
+        canvas.ShowSnapGhost = true;
+        Assert.True(canvas.ShowSnapGhost);
+    }
+
 }
