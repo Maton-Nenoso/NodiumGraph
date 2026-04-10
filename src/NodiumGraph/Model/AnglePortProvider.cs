@@ -13,12 +13,13 @@ public class AnglePortProvider : ILayoutAwarePortProvider
     private static readonly INodeShape DefaultShape = new RectangleShape();
 
     private readonly List<Port> _ports = new();
+    private readonly IReadOnlyList<Port> _readOnlyPorts;
     private readonly double _hitRadiusSq;
     private double _lastWidth;
     private double _lastHeight;
     private INodeShape _lastShape = DefaultShape;
 
-    public IReadOnlyList<Port> Ports => _ports.AsReadOnly();
+    public IReadOnlyList<Port> Ports => _readOnlyPorts;
 
     public event Action? LayoutInvalidated;
 
@@ -26,6 +27,7 @@ public class AnglePortProvider : ILayoutAwarePortProvider
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(hitRadius);
         _hitRadiusSq = hitRadius * hitRadius;
+        _readOnlyPorts = _ports.AsReadOnly();
     }
 
     /// <summary>
@@ -53,17 +55,28 @@ public class AnglePortProvider : ILayoutAwarePortProvider
 
     /// <summary>
     /// Distributes all ports evenly around the boundary at equal angular intervals.
+    /// Batches recomputation so LayoutInvalidated fires only once.
     /// </summary>
     public void DistributeEvenly()
     {
         if (_ports.Count == 0) return;
+
+        // Detach handler to avoid per-port recompute + LayoutInvalidated
+        foreach (var port in _ports)
+            port.PropertyChanged -= OnPortPropertyChanged;
 
         var step = 360.0 / _ports.Count;
         for (var i = 0; i < _ports.Count; i++)
         {
             _ports[i].Angle = i * step;
         }
-        // Positions will be recomputed via PropertyChanged on each Angle set
+
+        // Re-attach handler
+        foreach (var port in _ports)
+            port.PropertyChanged += OnPortPropertyChanged;
+
+        // Single bulk recompute and single event
+        RecomputeAllPositions();
     }
 
     public void UpdateLayout(double width, double height, INodeShape? shape)

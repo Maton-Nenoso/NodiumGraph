@@ -8,6 +8,8 @@ namespace NodiumGraph.Model;
 /// </summary>
 public class RoundedRectangleShape : INodeShape
 {
+    private static readonly RectangleShape FallbackRectangle = new();
+
     /// <summary>
     /// The corner radius. Clamped to at most half the smaller dimension during computation.
     /// </summary>
@@ -28,7 +30,7 @@ public class RoundedRectangleShape : INodeShape
         if (r < 1e-12)
         {
             // Degenerate to plain rectangle
-            return new RectangleShape().GetBoundaryPoint(angleDegrees, width, height);
+            return FallbackRectangle.GetBoundaryPoint(angleDegrees, width, height);
         }
 
         var angleRad = angleDegrees * Math.PI / 180.0;
@@ -38,7 +40,7 @@ public class RoundedRectangleShape : INodeShape
         var dy = -Math.Cos(angleRad);
 
         // First, find the rectangle intersection point
-        var rectPoint = new RectangleShape().GetBoundaryPoint(angleDegrees, width, height);
+        var rectPoint = FallbackRectangle.GetBoundaryPoint(angleDegrees, width, height);
         var rx = rectPoint.X;
         var ry = rectPoint.Y;
 

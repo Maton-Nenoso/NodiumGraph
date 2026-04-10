@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using NodiumGraph.Model;
 using Avalonia;
 using Xunit;
@@ -80,5 +81,95 @@ public class PortTests
         var node = new Node();
         var port = new Port(node, new Point(0, 0));
         Assert.Equal(PortFlow.Input, port.Flow);
+    }
+
+    [Fact]
+    public void Setting_Angle_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+
+        var changedProps = new List<string?>();
+        port.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        port.Angle = 90;
+
+        Assert.Single(changedProps);
+        Assert.Equal(nameof(Port.Angle), changedProps[0]);
+    }
+
+    [Fact]
+    public void Setting_Angle_to_same_value_does_not_fire_PropertyChanged()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+        port.Angle = 45;
+
+        var fired = false;
+        port.PropertyChanged += (_, _) => fired = true;
+
+        port.Angle = 45;
+
+        Assert.False(fired);
+    }
+
+    [Fact]
+    public void Setting_Label_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+
+        var changedProps = new List<string?>();
+        port.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        port.Label = "Input";
+
+        Assert.Single(changedProps);
+        Assert.Equal(nameof(Port.Label), changedProps[0]);
+    }
+
+    [Fact]
+    public void Setting_Label_to_same_value_does_not_fire_PropertyChanged()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+        port.Label = "Input";
+
+        var fired = false;
+        port.PropertyChanged += (_, _) => fired = true;
+
+        port.Label = "Input";
+
+        Assert.False(fired);
+    }
+
+    [Fact]
+    public void Setting_LabelPlacement_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+
+        var changedProps = new List<string?>();
+        port.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        port.LabelPlacement = PortLabelPlacement.Right;
+
+        Assert.Single(changedProps);
+        Assert.Equal(nameof(Port.LabelPlacement), changedProps[0]);
+    }
+
+    [Fact]
+    public void Setting_LabelPlacement_to_same_value_does_not_fire_PropertyChanged()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+        port.LabelPlacement = PortLabelPlacement.Above;
+
+        var fired = false;
+        port.PropertyChanged += (_, _) => fired = true;
+
+        port.LabelPlacement = PortLabelPlacement.Above;
+
+        Assert.False(fired);
     }
 }

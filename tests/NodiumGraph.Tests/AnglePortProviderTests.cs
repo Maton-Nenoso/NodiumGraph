@@ -261,6 +261,31 @@ public class AnglePortProviderTests
     }
 
     [Fact]
+    public void DistributeEvenly_fires_LayoutInvalidated_exactly_once()
+    {
+        var provider = new AnglePortProvider();
+        var node = new Node();
+
+        var p1 = new Port(node, "A", PortFlow.Input, new Point(0, 0));
+        var p2 = new Port(node, "B", PortFlow.Output, new Point(0, 0));
+        var p3 = new Port(node, "C", PortFlow.Input, new Point(0, 0));
+        var p4 = new Port(node, "D", PortFlow.Output, new Point(0, 0));
+
+        provider.AddPort(p1);
+        provider.AddPort(p2);
+        provider.AddPort(p3);
+        provider.AddPort(p4);
+        provider.UpdateLayout(100, 100, new RectangleShape());
+
+        var fireCount = 0;
+        provider.LayoutInvalidated += () => fireCount++;
+
+        provider.DistributeEvenly();
+
+        Assert.Equal(1, fireCount);
+    }
+
+    [Fact]
     public void ResolvePort_returns_nearest_within_radius()
     {
         var provider = new AnglePortProvider();
