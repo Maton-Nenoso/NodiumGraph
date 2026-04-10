@@ -89,8 +89,9 @@ internal static class MinimapRenderer
         }
 
         // Draw viewport rectangle
-        var viewTopLeft = viewportTransform.ScreenToWorld(canvasBounds.TopLeft);
-        var viewBottomRight = viewportTransform.ScreenToWorld(canvasBounds.BottomRight);
+        // Use canvas-local coordinates (0,0 to width,height), not parent-relative Bounds
+        var viewTopLeft = viewportTransform.ScreenToWorld(new Point(0, 0));
+        var viewBottomRight = viewportTransform.ScreenToWorld(new Point(canvasBounds.Width, canvasBounds.Height));
 
         var viewRect = new Rect(
             offsetX + (viewTopLeft.X - minX) * scale,
