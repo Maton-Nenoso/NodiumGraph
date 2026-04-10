@@ -38,21 +38,56 @@ internal static class DefaultTemplates
         var header = new Border
         {
             CornerRadius = new CornerRadius(cornerRadius.TopLeft, cornerRadius.TopRight, 0, 0),
-            Padding = style?.HeaderPadding ?? new Thickness(8, 4),
             [!Visual.IsVisibleProperty] = new Binding(nameof(Node.ShowHeader)),
             Child = new TextBlock
             {
                 [!TextBlock.TextProperty] = new Binding(nameof(Node.Title)),
-                FontWeight = style?.HeaderFontWeight ?? FontWeight.SemiBold,
-                FontSize = style?.HeaderFontSize ?? 12
             }
         };
 
-        if (style?.HeaderFontFamily != null)
-            ((TextBlock)header.Child).FontFamily = style.HeaderFontFamily;
-
         // Resolution: per-instance style → theme resource → default
         var headerText = (TextBlock)header.Child;
+
+        // HeaderFontSize: style > theme > 12
+        if (style?.HeaderFontSize != null)
+            headerText.FontSize = style.HeaderFontSize.Value;
+        else
+        {
+            headerText.FontSize = 12;
+            headerText.Bind(TextBlock.FontSizeProperty,
+                headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderFontSizeKey));
+        }
+
+        // HeaderFontWeight: style > theme > SemiBold
+        if (style?.HeaderFontWeight != null)
+            headerText.FontWeight = style.HeaderFontWeight.Value;
+        else
+        {
+            headerText.FontWeight = FontWeight.SemiBold;
+            headerText.Bind(TextBlock.FontWeightProperty,
+                headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderFontWeightKey));
+        }
+
+        // HeaderFontFamily: style > theme > system default (don't set)
+        if (style?.HeaderFontFamily != null)
+            headerText.FontFamily = style.HeaderFontFamily;
+        else
+        {
+            headerText.Bind(TextBlock.FontFamilyProperty,
+                headerText.GetResourceObservable(NodiumGraphResources.NodeHeaderFontFamilyKey));
+        }
+
+        // HeaderPadding: style > theme > Thickness(8, 4)
+        if (style?.HeaderPadding != null)
+            header.Padding = style.HeaderPadding.Value;
+        else
+        {
+            header.Padding = new Thickness(8, 4);
+            header.Bind(Decorator.PaddingProperty,
+                header.GetResourceObservable(NodiumGraphResources.NodeHeaderPaddingKey));
+        }
+
+        // HeaderForeground: style > theme > White
         if (style?.HeaderForeground != null)
             headerText.Foreground = style.HeaderForeground;
         else
@@ -71,12 +106,21 @@ internal static class DefaultTemplates
         // Body: hidden when IsCollapsed==true
         var body = new Border
         {
-            MinHeight = style?.BodyMinHeight ?? 4,
             [!Visual.IsVisibleProperty] = new Binding(nameof(Node.IsCollapsed))
             {
                 Converter = InvertBoolConverter.Instance
             }
         };
+
+        // BodyMinHeight: style > theme > 4
+        if (style?.BodyMinHeight != null)
+            body.MinHeight = style.BodyMinHeight.Value;
+        else
+        {
+            body.MinHeight = 4;
+            body.Bind(Layoutable.MinHeightProperty,
+                body.GetResourceObservable(NodiumGraphResources.NodeBodyMinHeightKey));
+        }
 
         // Pill indicator: shown when ShowHeader==false AND IsCollapsed==true.
         // Uses a MultiBinding with BoolConverters.And — binds to IsCollapsed and !ShowHeader.
@@ -109,7 +153,6 @@ internal static class DefaultTemplates
         {
             CornerRadius = cornerRadius,
             BorderThickness = new Thickness(style?.BorderThickness ?? 1),
-            MinWidth = style?.MinWidth ?? 120,
             Child = new StackPanel
             {
                 Children =
@@ -120,6 +163,16 @@ internal static class DefaultTemplates
                 }
             }
         };
+
+        // MinWidth: style > theme > 120
+        if (style?.MinWidth != null)
+            border.MinWidth = style.MinWidth.Value;
+        else
+        {
+            border.MinWidth = 120;
+            border.Bind(Layoutable.MinWidthProperty,
+                border.GetResourceObservable(NodiumGraphResources.NodeMinWidthKey));
+        }
 
         if (style?.BodyBackground != null)
             border.Background = style.BodyBackground;

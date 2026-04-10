@@ -28,13 +28,20 @@ internal class CanvasOverlay : Control
         var transform = new ViewportTransform(_canvas.ViewportZoom, _canvas.ViewportOffset);
         var zoom = _canvas.ViewportZoom;
 
-        // Resolve brushes/pens from theme resources
-        var selectedBorderPen = _canvas.ResolvePen(
+        // Resolve default brushes and thicknesses from theme resources
+        var defaultSelectedBrush = _canvas.ResolveBrush(
             NodiumGraphResources.NodeSelectedBorderBrushKey,
-            NodiumGraphCanvas.DefaultSelectedBorderBrush, 2);
-        var hoveredBorderPen = _canvas.ResolvePen(
+            NodiumGraphCanvas.DefaultSelectedBorderBrush);
+        var defaultSelectedThickness = ResolveResource<double>(
+            NodiumGraphResources.NodeSelectedBorderThicknessKey, 2);
+        var defaultHoveredBrush = _canvas.ResolveBrush(
             NodiumGraphResources.NodeHoveredBorderBrushKey,
-            NodiumGraphCanvas.DefaultHoveredBorderBrush, 1.5);
+            NodiumGraphCanvas.DefaultHoveredBorderBrush);
+        var defaultHoveredThickness = ResolveResource<double>(
+            NodiumGraphResources.NodeHoveredBorderThicknessKey, 1.5);
+
+        var selectedBorderPen = new Pen(defaultSelectedBrush, defaultSelectedThickness);
+        var hoveredBorderPen = new Pen(defaultHoveredBrush, defaultHoveredThickness);
 
         // Node state borders (hovered + selected)
         foreach (var node in graph.Nodes)
@@ -48,16 +55,16 @@ internal class CanvasOverlay : Control
             if (node.IsSelected)
             {
                 var pen = node.Style?.SelectionBorderBrush != null || node.Style?.SelectionBorderThickness != null
-                    ? new Pen(node.Style?.SelectionBorderBrush ?? selectedBorderPen.Brush,
-                        node.Style?.SelectionBorderThickness ?? 2)
+                    ? new Pen(node.Style?.SelectionBorderBrush ?? defaultSelectedBrush,
+                        node.Style?.SelectionBorderThickness ?? defaultSelectedThickness)
                     : selectedBorderPen;
                 context.DrawRectangle(null, pen, nodeRect, 6, 6);
             }
             else if (node == _canvas.HoveredNode)
             {
                 var pen = node.Style?.HoverBorderBrush != null || node.Style?.HoverBorderThickness != null
-                    ? new Pen(node.Style?.HoverBorderBrush ?? hoveredBorderPen.Brush,
-                        node.Style?.HoverBorderThickness ?? 1.5)
+                    ? new Pen(node.Style?.HoverBorderBrush ?? defaultHoveredBrush,
+                        node.Style?.HoverBorderThickness ?? defaultHoveredThickness)
                     : hoveredBorderPen;
                 context.DrawRectangle(null, pen, nodeRect, 6, 6);
             }
@@ -156,6 +163,10 @@ internal class CanvasOverlay : Control
             var defaultLabelBrush = _canvas.ResolveBrush(
                 NodiumGraphResources.PortLabelBrushKey,
                 NodiumGraphCanvas.DefaultPortLabelBrush);
+            var defaultLabelFontSize = ResolveResource<double>(
+                NodiumGraphResources.PortLabelFontSizeKey, 11.0);
+            var defaultLabelOffset = ResolveResource<double>(
+                NodiumGraphResources.PortLabelOffsetKey, 8.0);
 
             foreach (var node in graph.Nodes)
             {
@@ -167,9 +178,9 @@ internal class CanvasOverlay : Control
 
                     var screenPos = transform.WorldToScreen(port.AbsolutePosition);
                     var placement = port.LabelPlacement ?? GetAutoPlacement(port.Angle);
-                    var portLabelFontSize = port.Style?.LabelFontSize ?? 11.0;
+                    var portLabelFontSize = port.Style?.LabelFontSize ?? defaultLabelFontSize;
                     var portLabelBrush = port.Style?.LabelBrush ?? defaultLabelBrush;
-                    var portLabelOffset = port.Style?.LabelOffset ?? 8.0;
+                    var portLabelOffset = port.Style?.LabelOffset ?? defaultLabelOffset;
                     var scaledOffset = portLabelOffset * zoom;
 
                     var text = new FormattedText(
@@ -311,6 +322,16 @@ internal class CanvasOverlay : Control
             MinimapRenderer.Render(context, _canvas.Bounds, graph, transform, _canvas.MinimapPosition,
                 mmBg, mmNode, mmSelected, mmViewport);
         }
+    }
+
+    /// <summary>
+    /// Resolves a non-brush resource from the Avalonia resource tree, falling back to a default.
+    /// </summary>
+    private T ResolveResource<T>(string key, T fallback)
+    {
+        if (_canvas.TryFindResource(key, out var value) && value is T typed)
+            return typed;
+        return fallback;
     }
 
     /// <summary>

@@ -38,6 +38,24 @@ public static class NodiumGraphResources
     public const string NodeBodyBrushKey = "NodiumGraphNodeBodyBrush";
     public const string NodeBorderBrushKey = "NodiumGraphNodeBorderBrush";
 
+    // Node header text
+    public const string NodeHeaderFontSizeKey = "NodiumGraphNodeHeaderFontSize";
+    public const string NodeHeaderFontWeightKey = "NodiumGraphNodeHeaderFontWeight";
+    public const string NodeHeaderFontFamilyKey = "NodiumGraphNodeHeaderFontFamily";
+    public const string NodeHeaderPaddingKey = "NodiumGraphNodeHeaderPadding";
+
+    // Node sizing
+    public const string NodeBodyMinHeightKey = "NodiumGraphNodeBodyMinHeight";
+    public const string NodeMinWidthKey = "NodiumGraphNodeMinWidth";
+
+    // Node state border thickness
+    public const string NodeSelectedBorderThicknessKey = "NodiumGraphNodeSelectedBorderThickness";
+    public const string NodeHoveredBorderThicknessKey = "NodiumGraphNodeHoveredBorderThickness";
+
+    // Port labels
+    public const string PortLabelFontSizeKey = "NodiumGraphPortLabelFontSize";
+    public const string PortLabelOffsetKey = "NodiumGraphPortLabelOffset";
+
     // Minimap
     public const string MinimapBackgroundBrushKey = "NodiumGraphMinimapBackgroundBrush";
     public const string MinimapNodeBrushKey = "NodiumGraphMinimapNodeBrush";
