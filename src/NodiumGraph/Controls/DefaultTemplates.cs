@@ -14,8 +14,12 @@ namespace NodiumGraph.Controls;
 internal static class DefaultTemplates
 {
     /// <summary>
-    /// Default template for plain Node instances. Uses NodePresenter with
-    /// per-instance NodeStyle overrides applied programmatically.
+    /// Default <see cref="IDataTemplate"/> for <see cref="Node"/> instances, creating a <see cref="NodePresenter"/>.
+    /// <para>
+    /// <b>Limitation:</b> <see cref="NodeStyle"/> properties are read once at template instantiation.
+    /// Changing <see cref="Node.Style"/> at runtime will rebuild the container automatically if the canvas
+    /// handles the <c>Node.Style</c> property change (see <c>OnNodePropertyChanged</c>).
+    /// </para>
     /// </summary>
     public static IDataTemplate NodeTemplate { get; } = new FuncDataTemplate<Node>((node, _) =>
     {

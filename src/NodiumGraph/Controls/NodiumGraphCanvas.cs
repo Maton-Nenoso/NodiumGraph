@@ -1421,6 +1421,18 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             }
             InvalidateVisual();
         }
+        else if (e.PropertyName == nameof(Node.Style))
+        {
+            // NodeStyle is applied at template construction time by DefaultTemplates.
+            // When Style changes, rebuild the container to pick up the new values.
+            if (sender is Node node && _nodeContainers.TryGetValue(node, out var container))
+            {
+                var template = DefaultTemplates.ResolveTemplate(node, NodeTemplate);
+                if (template != null)
+                    container.ContentTemplate = template;
+                InvalidateMeasure();
+            }
+        }
     }
 
     protected override Size MeasureOverride(Size availableSize)
