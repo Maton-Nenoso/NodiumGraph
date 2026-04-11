@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat ~/.claude/mcpServers/*.json)",
+      "Bash(cat ~/.claude/plugins/*/config.json)"
+    ]
+  }
+}

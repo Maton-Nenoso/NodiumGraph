@@ -93,6 +93,7 @@ Undo/redo, layout algorithms, serialization, context menus, keyboard shortcuts, 
 ## Claude special instructions
 
 Always use maximum thinking effort. Take your time and think deeply about every problem.
+Use jcodemunch-mcp for code lookup whenever available. Prefer symbol search, outlines, and targeted retrieval over reading full files.
 
 ### Avalonia API usage
 
