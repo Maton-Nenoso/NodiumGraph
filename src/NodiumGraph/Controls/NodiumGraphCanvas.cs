@@ -1116,6 +1116,13 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     private static double CrossProduct(Vector a, Vector b) => a.X * b.Y - a.Y * b.X;
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (Graph != null && _nodeContainers.Count == 0)
+            OnGraphChanged(null, Graph);
+    }
+
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);

@@ -204,6 +204,30 @@ public class NodiumGraphCanvasGraphBindingTests
     }
 
     [AvaloniaFact]
+    public void Reattaching_canvas_restores_graph_subscriptions()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        graph.AddNode(new Node());
+        canvas.Graph = graph;
+
+        var panel = new Avalonia.Controls.Panel();
+        panel.Children.Add(canvas);
+        var window = new Avalonia.Controls.Window { Content = panel, Width = 800, Height = 600 };
+        window.Show();
+
+        // Detach
+        panel.Children.Remove(canvas);
+        Assert.Equal(0, canvas.NodeContainerCount);
+
+        // Re-attach
+        panel.Children.Add(canvas);
+        Assert.Equal(1, canvas.NodeContainerCount);
+
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void Arrange_writes_measured_size_back_to_node()
     {
         var canvas = new NodiumGraphCanvas();
