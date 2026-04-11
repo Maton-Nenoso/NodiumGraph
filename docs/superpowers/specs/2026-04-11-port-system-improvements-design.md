@@ -210,6 +210,6 @@ Port already implements `INotifyPropertyChanged`. The canvas subscribes to `Prop
 | `Model/PortStyle.cs` | Add `LabelPlacement` property (moved from Port). Ensure `INotifyPropertyChanged` fires for all property setters. |
 | `Model/ILayoutAwarePortProvider.cs` | No change |
 | `Model/PortLabelPlacement.cs` | **Delete** — label placement moves to `PortStyle.LabelPlacement` (enum stays, file moves) |
-| `Controls/NodiumGraphCanvas.cs` | Unify hit-test, track _lastResolvedProvider, subscribe to port/connection events |
+| `Controls/NodiumGraphCanvas.cs` | Unify hit-test, track _commitProvider for rollback, subscribe to port/connection/style events |
 | `Controls/CanvasOverlay.cs` | Update port rendering — label placement reads from `PortStyle.LabelPlacement` with a position-based default heuristic (left/right of node center) replacing the angle-based auto-placement |
 | Sample app (`MainWindow.axaml.cs`) | Update to new API (remove AnglePortProvider usage) |
