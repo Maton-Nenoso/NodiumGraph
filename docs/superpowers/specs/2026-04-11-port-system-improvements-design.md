@@ -25,7 +25,7 @@ This is a clean-break redesign (pre-1.0, no backwards compatibility constraints)
 
 ### Added to Port
 
-- `MaxConnections` (int?, null = unlimited) — metadata for validators, not enforced by the library
+- `MaxConnections` (uint?, null = unlimited) — metadata for validators, not enforced by the library. Uses `uint?` to prevent nonsensical negative values.
 
 ### Kept on Port
 
@@ -39,7 +39,7 @@ This is a clean-break redesign (pre-1.0, no backwards compatibility constraints)
 - `Position` changes (port moved)
 - `Owner.X` or `Owner.Y` changes (node moved)
 
-Port subscribes to `Owner.PropertyChanged` and invalidates the cache on `X` or `Y` changes.
+Port subscribes to `Owner.PropertyChanged` and invalidates the cache on `X` or `Y` changes. The subscription is established in the constructor. When a port is removed from a provider (via `RemovePort`, `CancelResolve`, or pruning), the provider calls a `Detach()` method on Port that unsubscribes from Owner's PropertyChanged to prevent leaking removed ports.
 
 ## 2. Provider Consolidation
 
@@ -53,9 +53,13 @@ Port subscribes to `Owner.PropertyChanged` and invalidates the cache on `X` or `
 ```csharp
 public interface INodeShape
 {
+    /// <param name="position">Center-relative coordinates (0,0 = node center)</param>
+    /// <returns>Center-relative point on the boundary</returns>
     Point GetNearestBoundaryPoint(Point position, double width, double height);
 }
 ```
+
+All coordinates are **center-relative** (consistent with the existing `GetBoundaryPoint` convention). Callers convert to/from world-space or top-left-relative as needed.
 
 Implementations (`RectangleShape`, `EllipseShape`, `RoundedRectangleShape`) updated to implement the new method. Used by DynamicPortProvider for boundary snapping and optionally by layout-aware FixedPortProvider for repositioning on resize.
 
@@ -72,8 +76,8 @@ public interface IPortProvider
 }
 ```
 
-- `ResolvePort(Point, bool preview)` — when `preview: true`, returns nearest port for visual feedback without creating. When `preview: false`, may create (DynamicPortProvider).
-- `CancelResolve()` — provider cleans up the last port it created during resolve. DynamicPortProvider removes it; FixedPortProvider is a no-op.
+- `ResolvePort(Point, bool preview)` — when `preview: true`, returns nearest existing port for visual feedback without side effects (no port creation, no state changes). When `preview: false`, may create a new port (DynamicPortProvider). FixedPortProvider ignores the flag since it never creates.
+- `CancelResolve()` — provider cleans up the last port it created via `ResolvePort(pos, false)`. DynamicPortProvider removes it; FixedPortProvider is a no-op. Only the single most recently created port is tracked — when `ResolvePort(pos, false)` is called again, the previous "last created" is replaced (the earlier port persists as a committed port).
 - `PortAdded` / `PortRemoved` — canvas subscribes for re-render triggers.
 
 ### ILayoutAwarePortProvider (unchanged)
@@ -92,7 +96,7 @@ public interface ILayoutAwarePortProvider : IPortProvider
 - Configurable hit radius (constructor parameter, default 20.0)
 - `AddPort(Port)` / `RemovePort(Port)` for mutability after construction
 - Fires `PortAdded` / `PortRemoved` events
-- Optionally implements `ILayoutAwarePortProvider` to reposition ports on node resize using `INodeShape.GetNearestBoundaryPoint`
+- Implements `ILayoutAwarePortProvider` with a constructor flag `layoutAware` (default `false`). When `true`, `UpdateLayout` repositions ports to the nearest boundary point using `INodeShape.GetNearestBoundaryPoint`. When `false`, `UpdateLayout` is a no-op.
 - `CancelResolve()` is a no-op
 
 ### DynamicPortProvider
@@ -101,7 +105,7 @@ public interface ILayoutAwarePortProvider : IPortProvider
 - Uses `INodeShape.GetNearestBoundaryPoint` instead of hardcoded rectangle math
 - Reuse threshold (default 15.0) and max distance (default 50.0) remain configurable
 - `CancelResolve()` removes the last dynamically created port
-- `AutoPruneOnDisconnect` (bool, default `false`) — when enabled, removes ports with zero connections after a disconnection event. Only applies to ports created by this provider.
+- `AutoPruneOnDisconnect` (bool, default `false`) — when enabled, removes ports with zero connections after a disconnection event. All ports in a DynamicPortProvider are dynamically created, so all are candidates for pruning.
 - `PruneUnconnected(Graph graph)` — manual cleanup, always available
 - Fires `PortAdded` / `PortRemoved` events
 
@@ -133,10 +137,10 @@ No heap allocations in the hot path — `Point` is a value type, distance math i
 ### Disconnected Port (opt-in)
 
 When `AutoPruneOnDisconnect` is `true`:
-- Canvas subscribes to `Graph.Connections.CollectionChanged`
-- On connection removal, canvas identifies affected ports and notifies their providers
-- DynamicPortProvider checks if the port has zero remaining connections and removes it
-- FixedPortProvider ignores the notification (its ports are intentionally declared)
+- DynamicPortProvider exposes a `NotifyDisconnected(Port port, Graph graph)` method
+- Canvas subscribes to `Graph.Connections.CollectionChanged`; on removal, calls `NotifyDisconnected` on the port's owner's provider (if it is a DynamicPortProvider)
+- DynamicPortProvider checks if the port has zero remaining connections in the graph and removes it
+- This method is specific to DynamicPortProvider, not on IPortProvider — FixedPortProvider ports are never auto-pruned
 
 ### Manual Cleanup (always available)
 
@@ -175,7 +179,7 @@ When `AutoPruneOnDisconnect` is `true`:
 | `Model/EllipseShape.cs` | Implement GetNearestBoundaryPoint |
 | `Model/RoundedRectangleShape.cs` | Implement GetNearestBoundaryPoint |
 | `Model/ILayoutAwarePortProvider.cs` | No change |
-| `Model/PortLabelPlacement.cs` | **Delete** (or move to PortStyle) |
+| `Model/PortLabelPlacement.cs` | **Delete** — label placement moves to `PortStyle.LabelPlacement` (enum stays, file moves) |
 | `Controls/NodiumGraphCanvas.cs` | Unify hit-test, track _lastResolvedProvider, subscribe to port/connection events |
-| `Controls/CanvasOverlay.cs` | Update port rendering (no more Angle-based auto-placement) |
+| `Controls/CanvasOverlay.cs` | Update port rendering — label placement reads from `PortStyle.LabelPlacement` with a position-based default heuristic (left/right of node center) replacing the angle-based auto-placement |
 | Sample app (`MainWindow.axaml.cs`) | Update to new API (remove AnglePortProvider usage) |
