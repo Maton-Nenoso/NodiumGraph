@@ -1,0 +1,16 @@
+{
+  "planPath": "docs/superpowers/plans/2026-04-11-port-system-improvements.md",
+  "tasks": [
+    {"id": 1, "subject": "Task 1: Refocus INodeShape from angle-based to nearest-boundary-point", "status": "pending"},
+    {"id": 2, "subject": "Task 2: Simplify Port model", "status": "pending", "blockedBy": [1]},
+    {"id": 3, "subject": "Task 3: Update IPortProvider interface and delete AnglePortProvider", "status": "pending", "blockedBy": [2]},
+    {"id": 4, "subject": "Task 4: Rewrite FixedPortProvider with new interface", "status": "pending", "blockedBy": [3]},
+    {"id": 5, "subject": "Task 5: Rewrite DynamicPortProvider with new interface and cleanup", "status": "pending", "blockedBy": [3]},
+    {"id": 6, "subject": "Task 6: Ensure Node.PortProvider fires PropertyChanged", "status": "pending", "blockedBy": [2]},
+    {"id": 7, "subject": "Task 7: Update NodiumGraphCanvas — unify hit-test, rollback, event wiring", "status": "pending", "blockedBy": [4, 5, 6]},
+    {"id": 8, "subject": "Task 8: Update CanvasOverlay for label placement", "status": "pending", "blockedBy": [7]},
+    {"id": 9, "subject": "Task 9: Update sample app to use new API", "status": "pending", "blockedBy": [7, 8]},
+    {"id": 10, "subject": "Task 10: Run full test suite and verify clean build", "status": "pending", "blockedBy": [9]}
+  ],
+  "lastUpdated": "2026-04-11T00:00:00Z"
+}
