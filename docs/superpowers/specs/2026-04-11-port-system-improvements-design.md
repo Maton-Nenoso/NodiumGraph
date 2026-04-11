@@ -185,10 +185,11 @@ Port already implements `INotifyPropertyChanged`. The canvas subscribes to `Prop
 
 - Remove `HitTestPort()` method with hardcoded radius
 - `ResolvePortForConnection()` renamed or refactored to use `ResolvePort(pos, preview)` on each provider
-- Subscribe to `PortAdded` / `PortRemoved` on each node's provider for render invalidation
-- Subscribe to `Port.PropertyChanged` (via PortAdded/PortRemoved lifecycle) for port mutation redraw
-- Track `_lastResolvedProvider` for cancel/rollback cleanup
-- Call `CancelResolve()` on any unsuccessful commit (validation fail, handler rejection), not just empty-space cancel
+- On initial provider attachment (node added to graph or canvas initialized) and on provider replacement: enumerate the provider's existing `Ports`, subscribe to each port's `PropertyChanged` and its `Style.PropertyChanged`. Then subscribe to `PortAdded` / `PortRemoved` for future membership changes.
+- On `PortAdded`: subscribe to the new port's `PropertyChanged` and `Style.PropertyChanged`
+- On `PortRemoved`: unsubscribe from the port's `PropertyChanged` and `Style.PropertyChanged`
+- Track `_commitProvider` (the provider that handled `ResolvePort(pos, false)` on commit) for rollback cleanup
+- Call `_commitProvider.CancelResolve()` on any unsuccessful commit (validation fail, handler rejection, empty-space cancel)
 - Subscribe to `Graph.Connections.CollectionChanged` to notify providers of disconnections (for auto-prune)
 - Handle `Node.PortProvider` replacement: `Node` fires `PropertyChanged` for `PortProvider`. Canvas subscribes to `Node.PropertyChanged`; on `PortProvider` change, unsubscribes from old provider's events (PortAdded/PortRemoved and all per-port PropertyChanged subscriptions), subscribes to new provider's events, and re-subscribes to existing ports in the new provider.
 
@@ -206,6 +207,7 @@ Port already implements `INotifyPropertyChanged`. The canvas subscribes to `Prop
 | `Model/EllipseShape.cs` | Implement GetNearestBoundaryPoint |
 | `Model/RoundedRectangleShape.cs` | Implement GetNearestBoundaryPoint |
 | `Model/Node.cs` | Ensure `PortProvider` setter fires `PropertyChanged` for canvas resubscription |
+| `Model/PortStyle.cs` | Add `LabelPlacement` property (moved from Port). Ensure `INotifyPropertyChanged` fires for all property setters. |
 | `Model/ILayoutAwarePortProvider.cs` | No change |
 | `Model/PortLabelPlacement.cs` | **Delete** — label placement moves to `PortStyle.LabelPlacement` (enum stays, file moves) |
 | `Controls/NodiumGraphCanvas.cs` | Unify hit-test, track _lastResolvedProvider, subscribe to port/connection events |
