@@ -792,47 +792,52 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (_isDrawingConnection && _connectionSourcePort != null)
         {
             var position = e.GetPosition(this);
-            _commitProvider = null;
             Port? targetPort = null;
 
-            if (Graph != null)
+            try
             {
-                var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
-                var worldPosition = transform.ScreenToWorld(position);
-
-                foreach (var node in Graph.Nodes)
+                if (Graph != null)
                 {
-                    if (node.IsCollapsed) continue;
-                    if (node.PortProvider == null) continue;
-                    var port = node.PortProvider.ResolvePort(worldPosition, preview: false);
-                    if (port != null)
+                    var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+                    var worldPosition = transform.ScreenToWorld(position);
+
+                    foreach (var node in Graph.Nodes)
                     {
-                        targetPort = port;
-                        _commitProvider = node.PortProvider;
-                        break;
+                        if (node.IsCollapsed) continue;
+                        if (node.PortProvider == null) continue;
+                        var port = node.PortProvider.ResolvePort(worldPosition, preview: false);
+                        if (port != null)
+                        {
+                            targetPort = port;
+                            _commitProvider = node.PortProvider;
+                            break;
+                        }
                     }
                 }
-            }
 
-            var connected = false;
-            if (targetPort != null && targetPort != _connectionSourcePort)
-            {
-                var canConnect = ConnectionValidator?.CanConnect(_connectionSourcePort, targetPort) ?? true;
-                if (canConnect)
+                var connected = false;
+                if (targetPort != null && targetPort != _connectionSourcePort)
                 {
-                    var result = ConnectionHandler?.OnConnectionRequested(_connectionSourcePort, targetPort);
-                    if (result is { IsSuccess: true })
-                        connected = true;
+                    var canConnect = ConnectionValidator?.CanConnect(_connectionSourcePort, targetPort) ?? true;
+                    if (canConnect)
+                    {
+                        var result = ConnectionHandler?.OnConnectionRequested(_connectionSourcePort, targetPort);
+                        if (result is { IsSuccess: true })
+                            connected = true;
+                    }
                 }
+
+                if (!connected)
+                    _commitProvider?.CancelResolve();
+            }
+            finally
+            {
+                _commitProvider = null;
+                _isDrawingConnection = false;
+                _connectionSourcePort = null;
+                _connectionTargetPort = null;
             }
 
-            if (!connected)
-                _commitProvider?.CancelResolve();
-
-            _commitProvider = null;
-            _isDrawingConnection = false;
-            _connectionSourcePort = null;
-            _connectionTargetPort = null;
             InvalidateVisual();
             e.Handled = true;
             return;
@@ -1438,11 +1443,11 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             var desired = container.DesiredSize;
 
-            // DesiredSize includes the shadow margin from the NodePresenter template.
-            // Subtract it to get the actual node content dimensions.
-            const double sp = ShadowPadding;
-            var contentWidth = desired.Width - sp * 2;
-            var contentHeight = desired.Height - sp * 2;
+            // ShadowPadding only applies to NodePresenter-backed containers (base Node).
+            // GroupNode/CommentNode templates use plain Border without shadow margin.
+            var pad = node is CommentNode or GroupNode ? 0.0 : ShadowPadding;
+            var contentWidth = desired.Width - pad * 2;
+            var contentHeight = desired.Height - pad * 2;
             if (contentWidth > 0) node.Width = contentWidth;
             if (contentHeight > 0) node.Height = contentHeight;
 
@@ -1451,11 +1456,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
             var screenPos = transform.WorldToScreen(new Point(node.X, node.Y));
 
-            // Arrange at full size (content + shadow margin). Offset position
-            // so the visible node aligns with screenPos despite the margin.
             container.RenderTransform = new ScaleTransform(ViewportZoom, ViewportZoom);
             container.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
-            var adjusted = new Point(screenPos.X - sp * ViewportZoom, screenPos.Y - sp * ViewportZoom);
+            var adjusted = new Point(screenPos.X - pad * ViewportZoom, screenPos.Y - pad * ViewportZoom);
             container.Arrange(new Rect(adjusted, desired));
         }
 

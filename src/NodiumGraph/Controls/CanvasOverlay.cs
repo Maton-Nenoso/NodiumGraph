@@ -12,6 +12,8 @@ namespace NodiumGraph.Controls;
 /// </summary>
 internal class CanvasOverlay : Control
 {
+    private static readonly SolidColorBrush SnapGhostBrush = new(Color.FromArgb(77, 255, 255, 255));
+
     private readonly NodiumGraphCanvas _canvas;
 
     public CanvasOverlay(NodiumGraphCanvas canvas)
@@ -76,8 +78,7 @@ internal class CanvasOverlay : Control
             var ghostScreen = transform.WorldToScreen(ghostPos);
             var ghostSize = new Size(_canvas.SnapGhostSize.Width * zoom, _canvas.SnapGhostSize.Height * zoom);
             var ghostRect = new Rect(ghostScreen, ghostSize);
-            var ghostBrush = new SolidColorBrush(Color.FromArgb(77, 255, 255, 255)); // ~30% white
-            context.DrawRectangle(ghostBrush, null, ghostRect, 6, 6);
+            context.DrawRectangle(SnapGhostBrush, null, ghostRect, 6, 6);
         }
 
         // Port visuals (only default when no custom template)
