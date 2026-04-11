@@ -133,8 +133,12 @@ public class AnglePortProvider : ILayoutAwarePortProvider
     {
         if (_lastWidth <= 0 || _lastHeight <= 0) return;
 
-        // GetBoundaryPoint returns center-relative coordinates
-        var centerRelative = _lastShape.GetBoundaryPoint(port.Angle, _lastWidth, _lastHeight);
+        // Convert angle (0=top, clockwise) to a far-off position in that direction,
+        // then project onto the shape boundary.
+        var angleRad = port.Angle * Math.PI / 180.0;
+        var farX = Math.Sin(angleRad) * (_lastWidth + _lastHeight) * 10;
+        var farY = -Math.Cos(angleRad) * (_lastWidth + _lastHeight) * 10;
+        var centerRelative = _lastShape.GetNearestBoundaryPoint(new Point(farX, farY), _lastWidth, _lastHeight);
 
         // Convert to top-left-relative for Port.Position
         port.Position = new Point(
