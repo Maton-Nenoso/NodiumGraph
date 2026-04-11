@@ -20,6 +20,7 @@ public class PortStyleTests
         Assert.Null(style.LabelFontSize);
         Assert.Null(style.LabelBrush);
         Assert.Null(style.LabelOffset);
+        Assert.Null(style.LabelPlacement);
     }
 
     [Fact]
@@ -66,6 +67,7 @@ public class PortStyleTests
     [InlineData(nameof(PortStyle.LabelFontSize))]
     [InlineData(nameof(PortStyle.LabelBrush))]
     [InlineData(nameof(PortStyle.LabelOffset))]
+    [InlineData(nameof(PortStyle.LabelPlacement))]
     public void Setting_property_fires_PropertyChanged(string propertyName)
     {
         var style = new PortStyle();
@@ -97,6 +99,9 @@ public class PortStyleTests
                 break;
             case nameof(PortStyle.LabelOffset):
                 style.LabelOffset = 12.0;
+                break;
+            case nameof(PortStyle.LabelPlacement):
+                style.LabelPlacement = PortLabelPlacement.Right;
                 break;
         }
 
@@ -204,5 +209,39 @@ public class PortStyleTests
 
         port.Style = style;
         Assert.False(fired);
+    }
+
+    [Fact]
+    public void LabelPlacement_set_and_get()
+    {
+        var style = new PortStyle { LabelPlacement = PortLabelPlacement.Right };
+        Assert.Equal(PortLabelPlacement.Right, style.LabelPlacement);
+    }
+
+    [Fact]
+    public void LabelPlacement_defaults_to_null()
+    {
+        var style = new PortStyle();
+        Assert.Null(style.LabelPlacement);
+    }
+
+    [Fact]
+    public void LabelPlacement_same_value_does_not_fire_PropertyChanged()
+    {
+        var style = new PortStyle { LabelPlacement = PortLabelPlacement.Above };
+        var fired = false;
+        ((INotifyPropertyChanged)style).PropertyChanged += (_, _) => fired = true;
+
+        style.LabelPlacement = PortLabelPlacement.Above;
+        Assert.False(fired);
+    }
+
+    [Fact]
+    public void PortLabelPlacement_enum_has_expected_values()
+    {
+        Assert.Equal(0, (int)PortLabelPlacement.Left);
+        Assert.Equal(1, (int)PortLabelPlacement.Right);
+        Assert.Equal(2, (int)PortLabelPlacement.Above);
+        Assert.Equal(3, (int)PortLabelPlacement.Below);
     }
 }

@@ -12,4 +12,10 @@
     <AvaloniaResource Include="Themes\Generic.axaml" />
   </ItemGroup>
 
+  <!-- TODO Task 3: AnglePortProvider references Port.Angle which was removed in Task 2.
+       AnglePortProvider is deleted in Task 3. Excluded from compilation until then. -->
+  <ItemGroup>
+    <Compile Remove="Model\AnglePortProvider.cs" />
+  </ItemGroup>
+
 </Project>

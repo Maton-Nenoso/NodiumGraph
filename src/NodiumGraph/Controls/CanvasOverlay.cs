@@ -177,7 +177,7 @@ internal class CanvasOverlay : Control
                     if (string.IsNullOrEmpty(port.Label)) continue;
 
                     var screenPos = transform.WorldToScreen(port.AbsolutePosition);
-                    var placement = port.LabelPlacement ?? GetAutoPlacement(port.Angle);
+                    var placement = port.Style?.LabelPlacement ?? GetAutoPlacement(port, node);
                     var portLabelFontSize = port.Style?.LabelFontSize ?? defaultLabelFontSize;
                     var portLabelBrush = port.Style?.LabelBrush ?? defaultLabelBrush;
                     var portLabelOffset = port.Style?.LabelOffset ?? defaultLabelOffset;
@@ -335,20 +335,12 @@ internal class CanvasOverlay : Control
     }
 
     /// <summary>
-    /// Determines label placement based on port angle when no explicit placement is set.
-    /// 315-45 (top) -> Below, 45-135 (right) -> Left, 135-225 (bottom) -> Above, 225-315 (left) -> Right.
+    /// Determines label placement based on port position relative to the node center.
+    /// Ports on the right half get Right placement; ports on the left half get Left placement.
     /// </summary>
-    private static PortLabelPlacement GetAutoPlacement(double angleDegrees)
+    private static PortLabelPlacement GetAutoPlacement(Port port, Node node)
     {
-        // Normalize to 0-360
-        var angle = ((angleDegrees % 360) + 360) % 360;
-
-        if (angle >= 315 || angle < 45)
-            return PortLabelPlacement.Below;
-        if (angle >= 45 && angle < 135)
-            return PortLabelPlacement.Left;
-        if (angle >= 135 && angle < 225)
-            return PortLabelPlacement.Above;
-        return PortLabelPlacement.Right;
+        var nodeCenter = node.Width / 2.0;
+        return port.Position.X >= nodeCenter ? PortLabelPlacement.Right : PortLabelPlacement.Left;
     }
 }

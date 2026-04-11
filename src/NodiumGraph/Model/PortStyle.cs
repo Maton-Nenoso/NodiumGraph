@@ -5,6 +5,17 @@ using Avalonia.Media;
 namespace NodiumGraph.Model;
 
 /// <summary>
+/// Controls where a port label is rendered relative to the port visual.
+/// </summary>
+public enum PortLabelPlacement
+{
+    Left,
+    Right,
+    Above,
+    Below
+}
+
+/// <summary>
 /// Per-instance visual overrides for a port. All properties are nullable —
 /// null means "fall through to theme resource, then to hardcoded default."
 /// </summary>
@@ -18,6 +29,7 @@ public class PortStyle : INotifyPropertyChanged
     private double? _labelFontSize;
     private IBrush? _labelBrush;
     private double? _labelOffset;
+    private PortLabelPlacement? _labelPlacement;
 
     /// <summary>
     /// Fill brush for the port.
@@ -89,6 +101,16 @@ public class PortStyle : INotifyPropertyChanged
     {
         get => _labelOffset;
         set => SetField(ref _labelOffset, value);
+    }
+
+    /// <summary>
+    /// Where the label is placed relative to the port visual.
+    /// When null, placement is determined by position heuristic (left/right of node center).
+    /// </summary>
+    public PortLabelPlacement? LabelPlacement
+    {
+        get => _labelPlacement;
+        set => SetField(ref _labelPlacement, value);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

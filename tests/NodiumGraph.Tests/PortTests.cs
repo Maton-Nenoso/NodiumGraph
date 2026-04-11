@@ -84,36 +84,6 @@ public class PortTests
     }
 
     [Fact]
-    public void Setting_Angle_fires_PropertyChanged()
-    {
-        var node = new Node();
-        var port = new Port(node, new Point(0, 0));
-
-        var changedProps = new List<string?>();
-        port.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
-
-        port.Angle = 90;
-
-        Assert.Single(changedProps);
-        Assert.Equal(nameof(Port.Angle), changedProps[0]);
-    }
-
-    [Fact]
-    public void Setting_Angle_to_same_value_does_not_fire_PropertyChanged()
-    {
-        var node = new Node();
-        var port = new Port(node, new Point(0, 0));
-        port.Angle = 45;
-
-        var fired = false;
-        port.PropertyChanged += (_, _) => fired = true;
-
-        port.Angle = 45;
-
-        Assert.False(fired);
-    }
-
-    [Fact]
     public void Setting_Label_fires_PropertyChanged()
     {
         var node = new Node();
@@ -144,32 +114,140 @@ public class PortTests
     }
 
     [Fact]
-    public void Setting_LabelPlacement_fires_PropertyChanged()
+    public void MaxConnections_defaults_to_null()
     {
         var node = new Node();
         var port = new Port(node, new Point(0, 0));
-
-        var changedProps = new List<string?>();
-        port.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
-
-        port.LabelPlacement = PortLabelPlacement.Right;
-
-        Assert.Single(changedProps);
-        Assert.Equal(nameof(Port.LabelPlacement), changedProps[0]);
+        Assert.Null(port.MaxConnections);
     }
 
     [Fact]
-    public void Setting_LabelPlacement_to_same_value_does_not_fire_PropertyChanged()
+    public void MaxConnections_can_be_set()
     {
         var node = new Node();
         var port = new Port(node, new Point(0, 0));
-        port.LabelPlacement = PortLabelPlacement.Above;
+        port.MaxConnections = 3;
+        Assert.Equal(3u, port.MaxConnections);
+    }
+
+    [Fact]
+    public void MaxConnections_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+        var changedProps = new List<string?>();
+        port.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        port.MaxConnections = 1;
+
+        Assert.Contains(nameof(Port.MaxConnections), changedProps);
+    }
+
+    [Fact]
+    public void MaxConnections_same_value_does_not_fire_PropertyChanged()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+        port.MaxConnections = 2;
 
         var fired = false;
         port.PropertyChanged += (_, _) => fired = true;
 
-        port.LabelPlacement = PortLabelPlacement.Above;
+        port.MaxConnections = 2;
 
         Assert.False(fired);
+    }
+
+    [Fact]
+    public void AbsolutePosition_is_cached_and_invalidated_on_node_move()
+    {
+        var node = new Node { X = 10, Y = 10 };
+        var port = new Port(node, new Point(5, 5));
+
+        // Prime the cache
+        var first = port.AbsolutePosition;
+        Assert.Equal(new Point(15, 15), first);
+
+        // Move node — cache should be invalidated
+        node.X = 100;
+        node.Y = 200;
+
+        var second = port.AbsolutePosition;
+        Assert.Equal(new Point(105, 205), second);
+    }
+
+    [Fact]
+    public void AbsolutePosition_is_invalidated_on_position_change()
+    {
+        var node = new Node { X = 0, Y = 0 };
+        var port = new Port(node, new Point(10, 10));
+
+        var first = port.AbsolutePosition;
+        Assert.Equal(new Point(10, 10), first);
+
+        port.Position = new Point(20, 30);
+
+        var second = port.AbsolutePosition;
+        Assert.Equal(new Point(20, 30), second);
+    }
+
+    [Fact]
+    public void AbsolutePosition_fires_PropertyChanged_when_node_moves()
+    {
+        var node = new Node { X = 0, Y = 0 };
+        var port = new Port(node, new Point(5, 5));
+
+        var firedProps = new List<string?>();
+        port.PropertyChanged += (_, e) => firedProps.Add(e.PropertyName);
+
+        node.X = 50;
+
+        Assert.Contains(nameof(Port.AbsolutePosition), firedProps);
+    }
+
+    [Fact]
+    public void AbsolutePosition_fires_PropertyChanged_when_position_changes()
+    {
+        var node = new Node { X = 0, Y = 0 };
+        var port = new Port(node, new Point(5, 5));
+
+        var firedProps = new List<string?>();
+        port.PropertyChanged += (_, e) => firedProps.Add(e.PropertyName);
+
+        port.Position = new Point(20, 20);
+
+        Assert.Contains(nameof(Port.AbsolutePosition), firedProps);
+    }
+
+    [Fact]
+    public void Detach_unsubscribes_from_owner()
+    {
+        var node = new Node { X = 0, Y = 0 };
+        var port = new Port(node, new Point(5, 5));
+
+        // Prime the cache
+        var initial = port.AbsolutePosition;
+        Assert.Equal(new Point(5, 5), initial);
+
+        port.Detach();
+
+        var firedProps = new List<string?>();
+        port.PropertyChanged += (_, e) => firedProps.Add(e.PropertyName);
+
+        // After detach, moving the node should NOT notify AbsolutePosition
+        node.X = 100;
+
+        Assert.DoesNotContain(nameof(Port.AbsolutePosition), firedProps);
+    }
+
+    [Fact]
+    public void Detach_can_be_called_twice_safely()
+    {
+        var node = new Node();
+        var port = new Port(node, new Point(0, 0));
+
+        // Should not throw
+        port.Detach();
+        port.Detach();
     }
 }

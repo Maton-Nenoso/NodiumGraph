@@ -11,9 +11,11 @@ public class Port : INotifyPropertyChanged
 {
     private Point _position;
     private PortStyle? _style;
-    private double _angle;
     private string? _label;
-    private PortLabelPlacement? _labelPlacement;
+    private uint? _maxConnections;
+    private Point _cachedAbsolutePosition;
+    private bool _absolutePositionDirty = true;
+    private bool _isDetached;
 
     public Guid Id { get; } = Guid.NewGuid();
     public Node Owner { get; }
@@ -23,13 +25,32 @@ public class Port : INotifyPropertyChanged
     public Point Position
     {
         get => _position;
-        internal set => SetField(ref _position, value);
+        internal set
+        {
+            if (SetField(ref _position, value))
+            {
+                _absolutePositionDirty = true;
+                OnPropertyChanged(nameof(AbsolutePosition));
+            }
+        }
     }
 
     /// <summary>
     /// World-space position computed from the owner node's location and this port's relative position.
+    /// Cached and invalidated when the owner node moves or the port's relative position changes.
     /// </summary>
-    public Point AbsolutePosition => new(Owner.X + Position.X, Owner.Y + Position.Y);
+    public Point AbsolutePosition
+    {
+        get
+        {
+            if (_absolutePositionDirty)
+            {
+                _cachedAbsolutePosition = new Point(Owner.X + Position.X, Owner.Y + Position.Y);
+                _absolutePositionDirty = false;
+            }
+            return _cachedAbsolutePosition;
+        }
+    }
 
     /// <summary>
     /// Per-instance visual overrides. Null properties fall through to theme, then default.
@@ -38,16 +59,6 @@ public class Port : INotifyPropertyChanged
     {
         get => _style;
         set => SetField(ref _style, value);
-    }
-
-    /// <summary>
-    /// Angle in degrees for angle-based positioning. 0 = top, clockwise (90 = right, 180 = bottom, 270 = left).
-    /// Used by AnglePortProvider to compute boundary position.
-    /// </summary>
-    public double Angle
-    {
-        get => _angle;
-        set => SetField(ref _angle, value);
     }
 
     /// <summary>
@@ -61,14 +72,13 @@ public class Port : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Controls where the label is placed relative to the port.
-    /// When null, placement is auto-determined from the port's angle:
-    /// top (315-45) -> Below, right (45-135) -> Left, bottom (135-225) -> Above, left (225-315) -> Right.
+    /// Maximum number of simultaneous connections allowed on this port.
+    /// Null means unlimited. This is metadata for connection validators — the library never enforces it.
     /// </summary>
-    public PortLabelPlacement? LabelPlacement
+    public uint? MaxConnections
     {
-        get => _labelPlacement;
-        set => SetField(ref _labelPlacement, value);
+        get => _maxConnections;
+        set => SetField(ref _maxConnections, value);
     }
 
     public Port(Node owner, string name, PortFlow flow, Point position)
@@ -77,10 +87,29 @@ public class Port : INotifyPropertyChanged
         Name = name ?? throw new ArgumentNullException(nameof(name));
         Flow = flow;
         _position = position;
+        Owner.PropertyChanged += OnOwnerPropertyChanged;
     }
 
-    public Port(Node owner, Point position) : this(owner, string.Empty, PortFlow.Input, position)
+    public Port(Node owner, Point position) : this(owner, string.Empty, PortFlow.Input, position) { }
+
+    /// <summary>
+    /// Unsubscribes from the owner node's PropertyChanged event.
+    /// Call when removing this port from its provider to prevent memory leaks.
+    /// </summary>
+    internal void Detach()
     {
+        if (_isDetached) return;
+        Owner.PropertyChanged -= OnOwnerPropertyChanged;
+        _isDetached = true;
+    }
+
+    private void OnOwnerPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(Node.X) or nameof(Node.Y))
+        {
+            _absolutePositionDirty = true;
+            OnPropertyChanged(nameof(AbsolutePosition));
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
