@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -58,6 +59,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private Point _marqueeStart;
     private Point _marqueeEnd;
     private bool _fallbackTemplatesRegistered;
+    private IPortProvider? _commitProvider;
+    private readonly Dictionary<IPortProvider, Action<Port>> _providerAddedHandlers = new();
+    private readonly Dictionary<IPortProvider, Action<Port>> _providerRemovedHandlers = new();
 
     // Extra space around each node container so box shadows aren't clipped
     private const double ShadowPadding = 20;
@@ -339,44 +343,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal Point? SnapGhostPosition => _snapGhostPosition;
     internal Size SnapGhostSize => _snapGhostSize;
 
-    internal Port? HitTestPort(Point screenPosition)
-    {
-        if (Graph == null) return null;
-
-        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
-        var worldPosition = transform.ScreenToWorld(screenPosition);
-        const double hitRadiusSq = 20.0 * 20.0;
-
-        foreach (var node in Graph.Nodes)
-        {
-            if (node.IsCollapsed) continue;
-            if (node.PortProvider == null) continue;
-
-            // Search existing ports without creating new ones
-            Port? closest = null;
-            var closestDistSq = double.MaxValue;
-
-            foreach (var port in node.PortProvider.Ports)
-            {
-                var abs = port.AbsolutePosition;
-                var dx = abs.X - worldPosition.X;
-                var dy = abs.Y - worldPosition.Y;
-                var distSq = dx * dx + dy * dy;
-
-                if (distSq < hitRadiusSq && distSq < closestDistSq)
-                {
-                    closest = port;
-                    closestDistSq = distSq;
-                }
-            }
-
-            if (closest != null) return closest;
-        }
-
-        return null;
-    }
-
-    internal Port? ResolvePortForConnection(Point screenPosition)
+    internal Port? ResolvePort(Point screenPosition, bool preview)
     {
         if (Graph == null) return null;
         var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
@@ -386,10 +353,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             if (node.IsCollapsed) continue;
             if (node.PortProvider == null) continue;
-            var port = node.PortProvider.ResolvePort(worldPosition, preview: true);
+            var port = node.PortProvider.ResolvePort(worldPosition, preview);
             if (port != null) return port;
         }
-
         return null;
     }
 
@@ -611,7 +577,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (!props.IsLeftButtonPressed) return;
 
         // Check port hit first (ports are on top of nodes)
-        var hitPort = HitTestPort(position);
+        var hitPort = ResolvePort(position, preview: true);
         if (hitPort != null)
         {
             _isDrawingConnection = true;
@@ -677,7 +643,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             _connectionPreviewEnd = e.GetPosition(this);
 
             // Check if hovering over a valid target port
-            var targetPort = HitTestPort(_connectionPreviewEnd);
+            var targetPort = ResolvePort(_connectionPreviewEnd, preview: true);
             _connectionTargetPort = targetPort != _connectionSourcePort ? targetPort : null;
             _connectionPreviewValid = _connectionTargetPort != null &&
                 (ConnectionValidator?.CanConnect(_connectionSourcePort, _connectionTargetPort) ?? true);
@@ -824,8 +790,29 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (_isDrawingConnection && _connectionSourcePort != null)
         {
             var position = e.GetPosition(this);
-            var targetPort = ResolvePortForConnection(position);
+            _commitProvider = null;
+            Port? targetPort = null;
 
+            if (Graph != null)
+            {
+                var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+                var worldPosition = transform.ScreenToWorld(position);
+
+                foreach (var node in Graph.Nodes)
+                {
+                    if (node.IsCollapsed) continue;
+                    if (node.PortProvider == null) continue;
+                    var port = node.PortProvider.ResolvePort(worldPosition, preview: false);
+                    if (port != null)
+                    {
+                        targetPort = port;
+                        _commitProvider = node.PortProvider;
+                        break;
+                    }
+                }
+            }
+
+            var connected = false;
             if (targetPort != null && targetPort != _connectionSourcePort)
             {
                 var canConnect = ConnectionValidator?.CanConnect(_connectionSourcePort, targetPort) ?? true;
@@ -833,14 +820,14 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 {
                     var result = ConnectionHandler?.OnConnectionRequested(_connectionSourcePort, targetPort);
                     if (result is { IsSuccess: true })
-                    {
-                        // Connection accepted — canvas will pick it up via CollectionChanged
-                        // when the handler adds it to the graph
-                    }
-                    // If result is null (no handler) or failure, connection is rejected silently
+                        connected = true;
                 }
             }
 
+            if (!connected)
+                _commitProvider?.CancelResolve();
+
+            _commitProvider = null;
             _isDrawingConnection = false;
             _connectionSourcePort = null;
             _connectionTargetPort = null;
@@ -1165,6 +1152,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             foreach (var node in oldGraph.Nodes)
             {
                 node.PropertyChanged -= OnNodePropertyChanged;
+                if (node.PortProvider != null)
+                    DetachProvider(node.PortProvider);
                 if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
                     layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
             }
@@ -1204,6 +1193,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             foreach (var (node, container) in _nodeContainers)
             {
                 node.PropertyChanged -= OnNodePropertyChanged;
+                if (node.PortProvider != null)
+                    DetachProvider(node.PortProvider);
                 if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
                     layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
                 LogicalChildren.Remove(container);
@@ -1216,7 +1207,22 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     private void OnConnectionsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
+        {
+            foreach (Connection conn in e.OldItems)
+            {
+                NotifyProviderOfDisconnect(conn.SourcePort);
+                NotifyProviderOfDisconnect(conn.TargetPort);
+            }
+        }
         InvalidateVisual();
+    }
+
+    private void NotifyProviderOfDisconnect(Port port)
+    {
+        if (Graph == null) return;
+        if (port.Owner.PortProvider is DynamicPortProvider dynamicProvider)
+            dynamicProvider.NotifyDisconnected(port, Graph);
     }
 
     private void AddNodeContainer(Node node)
@@ -1248,6 +1254,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
         node.PropertyChanged += OnNodePropertyChanged;
 
+        if (node.PortProvider != null)
+            AttachProvider(node.PortProvider);
+
         if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
             layoutAware.LayoutInvalidated += OnLayoutAwareProviderInvalidated;
 
@@ -1273,6 +1282,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             node.PropertyChanged -= OnNodePropertyChanged;
 
+            if (node.PortProvider != null)
+                DetachProvider(node.PortProvider);
+
             if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
                 layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
 
@@ -1288,7 +1300,58 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         InvalidateVisual();
     }
 
-    private void OnNodePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void AttachProvider(IPortProvider provider)
+    {
+        foreach (var port in provider.Ports)
+            SubscribeToPort(port);
+
+        Action<Port> onAdded = p => { SubscribeToPort(p); InvalidateVisual(); };
+        Action<Port> onRemoved = p => { UnsubscribeFromPort(p); InvalidateVisual(); };
+        provider.PortAdded += onAdded;
+        provider.PortRemoved += onRemoved;
+        _providerAddedHandlers[provider] = onAdded;
+        _providerRemovedHandlers[provider] = onRemoved;
+    }
+
+    private void DetachProvider(IPortProvider provider)
+    {
+        foreach (var port in provider.Ports)
+            UnsubscribeFromPort(port);
+
+        if (_providerAddedHandlers.TryGetValue(provider, out var onAdded))
+            provider.PortAdded -= onAdded;
+        if (_providerRemovedHandlers.TryGetValue(provider, out var onRemoved))
+            provider.PortRemoved -= onRemoved;
+        _providerAddedHandlers.Remove(provider);
+        _providerRemovedHandlers.Remove(provider);
+    }
+
+    private void SubscribeToPort(Port port)
+    {
+        port.PropertyChanged += OnPortPropertyChanged;
+        if (port.Style != null)
+            port.Style.PropertyChanged += OnPortStylePropertyChanged;
+    }
+
+    private void UnsubscribeFromPort(Port port)
+    {
+        port.PropertyChanged -= OnPortPropertyChanged;
+        if (port.Style != null)
+            port.Style.PropertyChanged -= OnPortStylePropertyChanged;
+    }
+
+    private void OnPortPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(Port.AbsolutePosition) or nameof(Port.Label) or nameof(Port.Style))
+            InvalidateVisual();
+    }
+
+    private void OnPortStylePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        InvalidateVisual();
+    }
+
+    private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(Node.X) or nameof(Node.Y))
             InvalidateArrange();
@@ -1296,6 +1359,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             InvalidateVisual();
         else if (e.PropertyName is nameof(Node.ShowHeader) or nameof(Node.IsCollapsed) or nameof(Node.IsCollapsible))
             InvalidateMeasure();
+        else if (e.PropertyName == nameof(Node.PortProvider))
+        {
+            if (sender is Node node && node.PortProvider != null)
+                AttachProvider(node.PortProvider);
+            InvalidateVisual();
+        }
     }
 
     protected override Size MeasureOverride(Size availableSize)

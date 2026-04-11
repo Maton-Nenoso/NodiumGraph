@@ -96,7 +96,7 @@ public class NodiumGraphCanvasMethodTests
         Assert.Empty(node.PortProvider.Ports);
 
         // Hit-test near the node boundary — should NOT create a port
-        canvas.HitTestPort(new Point(100, 150));
+        canvas.ResolvePort(new Point(100, 150), preview: true);
 
         Assert.Empty(node.PortProvider.Ports);
     }

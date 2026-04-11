@@ -24,7 +24,7 @@ public class NodiumGraphCanvasConnectionDrawTests
         canvas.Graph = graph;
 
         // Port absolute position is (300, 150). At zoom 1, offset 0 that's screen (300, 150)
-        var hit = canvas.HitTestPort(new Point(300, 150));
+        var hit = canvas.ResolvePort(new Point(300, 150), preview: true);
         Assert.Same(port, hit);
     }
 
@@ -41,7 +41,7 @@ public class NodiumGraphCanvasConnectionDrawTests
         graph.AddNode(node);
         canvas.Graph = graph;
 
-        var hit = canvas.HitTestPort(new Point(0, 0));
+        var hit = canvas.ResolvePort(new Point(0, 0), preview: true);
         Assert.Null(hit);
     }
 
