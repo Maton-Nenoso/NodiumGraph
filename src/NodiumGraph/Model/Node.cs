@@ -20,6 +20,7 @@ public class Node : INotifyPropertyChanged
     private bool _isCollapsible;
     private NodeStyle? _style;
     private INodeShape _shape = new RectangleShape();
+    private IPortProvider? _portProvider;
 
     public Node()
     {
@@ -52,7 +53,11 @@ public class Node : INotifyPropertyChanged
         internal set => SetField(ref _height, value);
     }
 
-    public IPortProvider? PortProvider { get; set; }
+    public IPortProvider? PortProvider
+    {
+        get => _portProvider;
+        set => SetField(ref _portProvider, value);
+    }
 
     /// <summary>
     /// Defines the geometric boundary shape used for angle-based port positioning.

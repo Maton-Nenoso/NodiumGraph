@@ -89,6 +89,18 @@ public class NodeTests
     }
 
     [Fact]
+    public void Setting_PortProvider_fires_PropertyChanged()
+    {
+        var node = new Node();
+        var changedProps = new List<string?>();
+        node.PropertyChanged += (_, e) => changedProps.Add(e.PropertyName);
+
+        node.PortProvider = new FixedPortProvider();
+
+        Assert.Contains(nameof(Node.PortProvider), changedProps);
+    }
+
+    [Fact]
     public void Title_defaults_to_type_name()
     {
         var node = new Node();
