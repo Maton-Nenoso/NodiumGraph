@@ -12,10 +12,5 @@
     <ProjectReference Include="..\..\src\NodiumGraph\NodiumGraph.csproj" />
   </ItemGroup>
 
-  <!-- TODO Task 3: AnglePortProvider tests reference Port.Angle which was removed in Task 2.
-       These tests are deleted in Task 3 along with AnglePortProvider. Excluded until then. -->
-  <ItemGroup>
-    <Compile Remove="AnglePortProviderTests.cs" />
-  </ItemGroup>
 
 </Project>

@@ -2,11 +2,11 @@ using Avalonia;
 
 namespace NodiumGraph.Model;
 
-/// <summary>
-/// Strategy for providing and resolving ports on a node.
-/// </summary>
 public interface IPortProvider
 {
     IReadOnlyList<Port> Ports { get; }
-    Port? ResolvePort(Point position);
+    Port? ResolvePort(Point position, bool preview);
+    void CancelResolve();
+    event Action<Port>? PortAdded;
+    event Action<Port>? PortRemoved;
 }
