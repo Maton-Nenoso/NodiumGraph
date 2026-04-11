@@ -62,4 +62,26 @@ public class BezierRouterTests
 
         Assert.True(farOffset > nearOffset);
     }
+
+    [Fact]
+    public void Route_right_to_left_does_not_cross()
+    {
+        var router = new BezierRouter();
+        var nodeA = new Node { X = 300, Y = 0 };
+        var nodeB = new Node { X = 100, Y = 0 };
+        var source = new Port(nodeA, new Point(0, 50));  // AbsolutePosition = (300, 50)
+        var target = new Port(nodeB, new Point(0, 50));  // AbsolutePosition = (100, 50)
+
+        var points = router.Route(source, target);
+
+        var cp1 = points[1];
+        var cp2 = points[2];
+
+        // For right-to-left: cp1 should be pushed LEFT (toward target), so cp1.X <= start.X
+        Assert.True(cp1.X <= points[0].X,
+            $"cp1.X ({cp1.X}) should be <= start.X ({points[0].X}) for right-to-left connection");
+        // cp2 should be pushed RIGHT (toward source), so cp2.X >= end.X
+        Assert.True(cp2.X >= points[3].X,
+            $"cp2.X ({cp2.X}) should be >= end.X ({points[3].X}) for right-to-left connection");
+    }
 }

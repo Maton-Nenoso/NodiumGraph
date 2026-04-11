@@ -18,11 +18,15 @@ public class BezierRouter : IConnectionRouter
         var start = source.AbsolutePosition;
         var end = target.AbsolutePosition;
 
-        var dx = Math.Abs(end.X - start.X);
-        var offset = Math.Max(dx * 0.4, MinOffset);
+        var dx = end.X - start.X;
+        var offset = Math.Max(Math.Abs(dx) * 0.4, MinOffset);
 
-        var cp1 = new Point(start.X + offset, start.Y);
-        var cp2 = new Point(end.X - offset, end.Y);
+        // Push control points in the direction of travel.
+        // Left-to-right (dx >= 0): cp1 right, cp2 left (toward each other).
+        // Right-to-left (dx < 0): cp1 left, cp2 right (toward each other).
+        var sign = dx >= 0 ? 1.0 : -1.0;
+        var cp1 = new Point(start.X + offset * sign, start.Y);
+        var cp2 = new Point(end.X - offset * sign, end.Y);
 
         return [start, cp1, cp2, end];
     }
