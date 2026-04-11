@@ -15,20 +15,20 @@ public partial class MainWindow : Window
         var graph = new Graph();
 
         // -- 1. Input Source --
-        // Rectangle shape (default), AnglePortProvider, 1 output at 90 deg
+        // Rectangle shape, 1 output port on the right side
         var inputNode = new InputSourceNode
         {
             Title = "Input Source",
             X = 100,
             Y = 200,
         };
-        var inputOut = new Port(inputNode, "out", PortFlow.Output, default) { Angle = 90, Label = "out" };
-        var inputProvider = new AnglePortProvider();
+        var inputProvider = new FixedPortProvider(layoutAware: true);
+        var inputOut = new Port(inputNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out" };
         inputProvider.AddPort(inputOut);
         inputNode.PortProvider = inputProvider;
 
         // -- 2. Transform --
-        // RoundedRectangleShape(8), 1 input at 270 deg, 2 outputs at 45 deg and 135 deg,
+        // RoundedRectangleShape(8), 1 input on left, 2 outputs on right side,
         // blue header with custom border, diamond-shaped output ports
         var transformNode = new TransformNode
         {
@@ -39,17 +39,17 @@ public partial class MainWindow : Window
             Shape = new RoundedRectangleShape(8),
         };
         var diamondStyle = new PortStyle { Shape = PortShape.Diamond };
-        var transformIn = new Port(transformNode, "in", PortFlow.Input, default) { Angle = 270, Label = "in" };
-        var transformOut1 = new Port(transformNode, "out1", PortFlow.Output, default) { Angle = 45, Label = "out1", Style = diamondStyle };
-        var transformOut2 = new Port(transformNode, "out2", PortFlow.Output, default) { Angle = 135, Label = "out2", Style = diamondStyle };
-        var transformProvider = new AnglePortProvider();
+        var transformProvider = new FixedPortProvider(layoutAware: true);
+        var transformIn = new Port(transformNode, "in", PortFlow.Input, new Point(0, 30)) { Label = "in" };
+        var transformOut1 = new Port(transformNode, "out1", PortFlow.Output, new Point(120, 15)) { Label = "out1", Style = diamondStyle };
+        var transformOut2 = new Port(transformNode, "out2", PortFlow.Output, new Point(120, 45)) { Label = "out2", Style = diamondStyle };
         transformProvider.AddPort(transformIn);
         transformProvider.AddPort(transformOut1);
         transformProvider.AddPort(transformOut2);
         transformNode.PortProvider = transformProvider;
 
         // -- 3. Filter --
-        // EllipseShape, 1 input at 270 deg, 1 output at 90 deg, orange header with opacity
+        // EllipseShape, 1 input on left, 1 output on right, orange header with opacity
         var filterNode = new FilterNode
         {
             Title = "Filter",
@@ -58,15 +58,15 @@ public partial class MainWindow : Window
             IsCollapsible = true,
             Shape = new EllipseShape(),
         };
-        var filterIn = new Port(filterNode, "in", PortFlow.Input, default) { Angle = 270, Label = "in" };
-        var filterOut = new Port(filterNode, "out", PortFlow.Output, default) { Angle = 90, Label = "out" };
-        var filterProvider = new AnglePortProvider();
+        var filterProvider = new FixedPortProvider(layoutAware: true);
+        var filterIn = new Port(filterNode, "in", PortFlow.Input, new Point(0, 30)) { Label = "in" };
+        var filterOut = new Port(filterNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out" };
         filterProvider.AddPort(filterIn);
         filterProvider.AddPort(filterOut);
         filterNode.PortProvider = filterProvider;
 
         // -- 4. Merge --
-        // Rectangle shape, 2 inputs at 225 deg and 315 deg, 1 output at 90 deg,
+        // Rectangle shape, 2 inputs on the left (upper and lower), 1 output on the right,
         // ShowHeader = false, purple body
         var mergeNode = new MergeNode
         {
@@ -75,10 +75,10 @@ public partial class MainWindow : Window
             Y = 250,
             ShowHeader = false,
         };
-        var mergeIn1 = new Port(mergeNode, "input1", PortFlow.Input, default) { Angle = 225, Label = "input1" };
-        var mergeIn2 = new Port(mergeNode, "input2", PortFlow.Input, default) { Angle = 315, Label = "input2" };
-        var mergeOut = new Port(mergeNode, "out", PortFlow.Output, default) { Angle = 90, Label = "out" };
-        var mergeProvider = new AnglePortProvider();
+        var mergeProvider = new FixedPortProvider(layoutAware: true);
+        var mergeIn1 = new Port(mergeNode, "input1", PortFlow.Input, new Point(0, 15)) { Label = "input1" };
+        var mergeIn2 = new Port(mergeNode, "input2", PortFlow.Input, new Point(0, 45)) { Label = "input2" };
+        var mergeOut = new Port(mergeNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out" };
         mergeProvider.AddPort(mergeIn1);
         mergeProvider.AddPort(mergeIn2);
         mergeProvider.AddPort(mergeOut);
