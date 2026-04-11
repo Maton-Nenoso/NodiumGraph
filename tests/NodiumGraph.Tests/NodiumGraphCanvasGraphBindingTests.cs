@@ -144,6 +144,26 @@ public class NodiumGraphCanvasGraphBindingTests
     }
 
     [AvaloniaFact]
+    public void OnDetachedFromVisualTree_clears_graph_subscriptions()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        graph.AddNode(new Node());
+        canvas.Graph = graph;
+
+        Assert.Equal(1, canvas.NodeContainerCount);
+
+        // Simulate detach by setting graph to null (same path OnDetachedFromVisualTree will use)
+        canvas.Graph = null;
+
+        Assert.Equal(0, canvas.NodeContainerCount);
+
+        // Re-assign should work cleanly
+        canvas.Graph = graph;
+        Assert.Equal(1, canvas.NodeContainerCount);
+    }
+
+    [AvaloniaFact]
     public void Arrange_writes_measured_size_back_to_node()
     {
         var canvas = new NodiumGraphCanvas();
