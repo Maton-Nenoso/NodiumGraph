@@ -58,7 +58,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private bool _isMarqueeSelecting;
     private Point _marqueeStart;
     private Point _marqueeEnd;
-    private bool _fallbackTemplatesRegistered;
+    private static bool _fallbackTemplatesRegistered;
     private IPortProvider? _commitProvider;
     private readonly Dictionary<IPortProvider, Action<Port>> _providerAddedHandlers = new();
     private readonly Dictionary<IPortProvider, Action<Port>> _providerRemovedHandlers = new();
