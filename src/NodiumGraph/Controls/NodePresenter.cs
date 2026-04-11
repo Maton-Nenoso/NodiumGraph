@@ -47,6 +47,15 @@ public class NodePresenter : ContentControl
     public static readonly StyledProperty<IBrush?> CollapseToggleForegroundProperty =
         AvaloniaProperty.Register<NodePresenter, IBrush?>(nameof(CollapseToggleForeground));
 
+    public static readonly StyledProperty<double> CollapseToggleFontSizeProperty =
+        AvaloniaProperty.Register<NodePresenter, double>(nameof(CollapseToggleFontSize), 8);
+
+    public static readonly StyledProperty<string> CollapseExpandedGlyphProperty =
+        AvaloniaProperty.Register<NodePresenter, string>(nameof(CollapseExpandedGlyph), "\u25B2");
+
+    public static readonly StyledProperty<string> CollapseCollapsedGlyphProperty =
+        AvaloniaProperty.Register<NodePresenter, string>(nameof(CollapseCollapsedGlyph), "\u25BC");
+
     /// <summary>Background brush for the header bar.</summary>
     public IBrush? HeaderBackground
     {
@@ -101,5 +110,26 @@ public class NodePresenter : ContentControl
     {
         get => GetValue(CollapseToggleForegroundProperty);
         set => SetValue(CollapseToggleForegroundProperty, value);
+    }
+
+    /// <summary>Font size for the collapse toggle glyphs. Default: 8.</summary>
+    public double CollapseToggleFontSize
+    {
+        get => GetValue(CollapseToggleFontSizeProperty);
+        set => SetValue(CollapseToggleFontSizeProperty, value);
+    }
+
+    /// <summary>Glyph shown when the node body is expanded. Default: ▲.</summary>
+    public string CollapseExpandedGlyph
+    {
+        get => GetValue(CollapseExpandedGlyphProperty);
+        set => SetValue(CollapseExpandedGlyphProperty, value);
+    }
+
+    /// <summary>Glyph shown when the node body is collapsed. Default: ▼.</summary>
+    public string CollapseCollapsedGlyph
+    {
+        get => GetValue(CollapseCollapsedGlyphProperty);
+        set => SetValue(CollapseCollapsedGlyphProperty, value);
     }
 }

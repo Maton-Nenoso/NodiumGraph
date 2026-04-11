@@ -1,7 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ng="clr-namespace:NodiumGraph.Controls;assembly=NodiumGraph"
-        xmlns:model="clr-namespace:NodiumGraph.Model;assembly=NodiumGraph"
         xmlns:local="clr-namespace:NodiumGraph.Sample"
         x:Class="NodiumGraph.Sample.MainWindow"
         Title="NodiumGraph Sample" Width="1280" Height="800">

@@ -64,6 +64,9 @@
             <Setter Property="Padding" Value="10,8" />
             <!-- Collapse toggle -->
             <Setter Property="CollapseToggleForeground" Value="#94A3B8" />
+            <Setter Property="CollapseToggleFontSize" Value="8" />
+            <Setter Property="CollapseExpandedGlyph" Value="&#x25B2;" />
+            <Setter Property="CollapseCollapsedGlyph" Value="&#x25BC;" />
             <Setter Property="Template">
                 <ControlTemplate TargetType="ng:NodePresenter" x:DataType="m:Node">
                     <!-- Shadow wrapper: margin gives room for the shadow to render -->
@@ -106,15 +109,15 @@
                                           Cursor="Hand"
                                           MinHeight="14">
                                 <Panel>
-                                    <TextBlock Text="&#x25B2;"
+                                    <TextBlock Text="{TemplateBinding CollapseExpandedGlyph}"
                                                IsVisible="{Binding !IsCollapsed}"
                                                HorizontalAlignment="Center"
-                                               FontSize="8"
+                                               FontSize="{TemplateBinding CollapseToggleFontSize}"
                                                Foreground="{TemplateBinding CollapseToggleForeground}" />
-                                    <TextBlock Text="&#x25BC;"
+                                    <TextBlock Text="{TemplateBinding CollapseCollapsedGlyph}"
                                                IsVisible="{Binding IsCollapsed}"
                                                HorizontalAlignment="Center"
-                                               FontSize="8"
+                                               FontSize="{TemplateBinding CollapseToggleFontSize}"
                                                Foreground="{TemplateBinding CollapseToggleForeground}" />
                                 </Panel>
                             </ToggleButton>
