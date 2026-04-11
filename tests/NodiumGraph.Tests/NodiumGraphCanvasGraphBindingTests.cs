@@ -144,8 +144,10 @@ public class NodiumGraphCanvasGraphBindingTests
     }
 
     [AvaloniaFact]
-    public void OnDetachedFromVisualTree_clears_graph_subscriptions()
+    public void Setting_graph_to_null_unsubscribes_collection_events()
     {
+        // Regression test: Graph = null takes the OnPropertyChanged path (not OnDetachedFromVisualTree).
+        // Verifies that subscription teardown works correctly via that path.
         var canvas = new NodiumGraphCanvas();
         var graph = new Graph();
         graph.AddNode(new Node());
@@ -153,7 +155,6 @@ public class NodiumGraphCanvasGraphBindingTests
 
         Assert.Equal(1, canvas.NodeContainerCount);
 
-        // Simulate detach by setting graph to null (same path OnDetachedFromVisualTree will use)
         canvas.Graph = null;
 
         Assert.Equal(0, canvas.NodeContainerCount);
@@ -161,6 +162,45 @@ public class NodiumGraphCanvasGraphBindingTests
         // Re-assign should work cleanly
         canvas.Graph = graph;
         Assert.Equal(1, canvas.NodeContainerCount);
+    }
+
+    [AvaloniaFact]
+    public void OnDetachedFromVisualTree_clears_graph_subscriptions()
+    {
+        // Arrange: attach the canvas to a real visual tree via a Window so that
+        // removing it from the panel actually triggers OnDetachedFromVisualTree.
+        var graph = new Graph();
+        graph.AddNode(new Node());
+
+        var canvas = new NodiumGraphCanvas { Graph = graph };
+        // Use a Panel (not StackPanel) so the canvas receives a finite availableSize
+        // during measure (StackPanel passes Infinity which NodiumGraphCanvas reflects back).
+        var panel = new Avalonia.Controls.Panel();
+        panel.Children.Add(canvas);
+
+        var window = new Avalonia.Controls.Window
+        {
+            Content = panel,
+            Width = 800,
+            Height = 600,
+        };
+        window.Show();
+
+        // Sanity: one container was created while attached.
+        Assert.Equal(1, canvas.NodeContainerCount);
+
+        // Act: remove the canvas from the panel — this detaches it from the visual tree
+        // and triggers OnDetachedFromVisualTree.
+        panel.Children.Remove(canvas);
+
+        // After detach the containers must be cleared.
+        Assert.Equal(0, canvas.NodeContainerCount);
+
+        // Adding a node to the graph must NOT re-subscribe or increment the count.
+        graph.AddNode(new Node());
+        Assert.Equal(0, canvas.NodeContainerCount);
+
+        window.Close();
     }
 
     [AvaloniaFact]
