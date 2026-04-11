@@ -1,0 +1,13 @@
+{
+  "planPath": "docs/superpowers/plans/2026-04-11-code-review-fixes.md",
+  "tasks": [
+    {"id": 1, "subject": "Task 1: Canvas lifecycle — OnDetachedFromVisualTree subscription cleanup [Critical]", "status": "pending"},
+    {"id": 2, "subject": "Task 2: Make _fallbackTemplatesRegistered static [Critical]", "status": "pending"},
+    {"id": 3, "subject": "Task 3: BezierRouter right-to-left control point fix [Critical]", "status": "pending"},
+    {"id": 4, "subject": "Task 4: Model layer defensive fixes [Important]", "status": "pending"},
+    {"id": 5, "subject": "Task 5: Canvas rendering fixes — ShadowPadding, allocations, connection safety [Important]", "status": "pending"},
+    {"id": 6, "subject": "Task 6: Grid and router minor fixes [Minor]", "status": "pending"},
+    {"id": 7, "subject": "Task 7: API documentation and Node.Style change handling [Important]", "status": "pending"}
+  ],
+  "lastUpdated": "2026-04-11T00:00:00Z"
+}
