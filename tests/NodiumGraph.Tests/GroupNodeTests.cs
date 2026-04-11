@@ -86,4 +86,11 @@ public class GroupNodeTests
         Assert.Equal(80, c2.X);
         Assert.Equal(100, c2.Y);
     }
+
+    [Fact]
+    public void RemoveChild_null_throws()
+    {
+        var group = new GroupNode();
+        Assert.Throws<ArgumentNullException>(() => group.RemoveChild(null!));
+    }
 }

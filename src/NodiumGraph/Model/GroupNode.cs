@@ -46,6 +46,7 @@ public class GroupNode : Node
 
     public void RemoveChild(Node node)
     {
+        ArgumentNullException.ThrowIfNull(node);
         _children.Remove(node);
     }
 }

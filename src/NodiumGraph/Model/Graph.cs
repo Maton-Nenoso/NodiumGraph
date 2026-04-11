@@ -49,6 +49,7 @@ public class Graph
         foreach (var conn in toRemove)
             _connections.Remove(conn);
 
+        node.IsSelected = false;
         _selectedNodes.Remove(node);
         _nodes.Remove(node);
     }

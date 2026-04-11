@@ -96,4 +96,13 @@ public class ResultOfTTests
         Assert.True(result.IsSuccess);
         Assert.Same(connection, result.Value);
     }
+
+    [Fact]
+    public void ResultT_implicit_null_error_throws()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+        {
+            Result<int> result = (Error)null!;
+        });
+    }
 }

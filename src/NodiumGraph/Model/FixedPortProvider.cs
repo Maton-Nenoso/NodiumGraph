@@ -37,7 +37,11 @@ public class FixedPortProvider : ILayoutAwarePortProvider
         : this(hitRadius, layoutAware)
     {
         ArgumentNullException.ThrowIfNull(ports);
-        _ports.AddRange(ports);
+        foreach (var port in ports)
+        {
+            ArgumentNullException.ThrowIfNull(port, nameof(ports));
+            _ports.Add(port);
+        }
     }
 
     public void AddPort(Port port)

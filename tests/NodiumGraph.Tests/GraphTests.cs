@@ -234,4 +234,18 @@ public class GraphTests
         Assert.Throws<InvalidOperationException>(() =>
             graph.AddConnection(new Connection(portA, portB)));
     }
+
+    [Fact]
+    public void RemoveNode_resets_IsSelected()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        graph.Select(node);
+        node.IsSelected = true; // accessible via InternalsVisibleTo
+
+        graph.RemoveNode(node);
+
+        Assert.False(node.IsSelected);
+    }
 }

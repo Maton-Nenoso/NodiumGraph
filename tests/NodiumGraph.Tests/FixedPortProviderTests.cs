@@ -275,4 +275,11 @@ public class FixedPortProviderTests
 
         Assert.Equal(new Point(0, 50), port.Position);
     }
+
+    [Fact]
+    public void Constructor_with_null_element_throws()
+    {
+        var ports = new Port[] { null! };
+        Assert.Throws<ArgumentNullException>(() => new FixedPortProvider(ports));
+    }
 }

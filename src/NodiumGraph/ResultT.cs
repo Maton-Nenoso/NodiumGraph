@@ -12,7 +12,7 @@ public class Result<T> : Result
         if (value is null) throw new ArgumentNullException(nameof(value));
         Value = value;
     }
-    private Result(Error error) : base(false, error) { }
+    private Result(Error error) : base(false, error ?? throw new ArgumentNullException(nameof(error))) { }
 
     public static implicit operator Result<T>(T value) => new(value);
     public static implicit operator Result<T>(Error error) => new(error);
