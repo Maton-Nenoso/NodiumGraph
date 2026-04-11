@@ -33,7 +33,7 @@ This is a clean-break redesign (pre-1.0, no backwards compatibility constraints)
 
 ### AbsolutePosition Caching
 
-`AbsolutePosition` is currently recomputed on every access (`new Point(Owner.X + Position.X, Owner.Y + Position.Y)`). With 500+ nodes and 4 ports each, this causes thousands of unnecessary allocations per frame.
+`AbsolutePosition` is currently recomputed on every access (`new Point(Owner.X + Position.X, Owner.Y + Position.Y)`). While `Point` is a value type (no heap allocation), the repeated arithmetic and property reads across 500+ nodes with 4 ports each add unnecessary CPU work per frame.
 
 **Fix:** Cache the computed value. Invalidate when:
 - `Position` changes (port moved)
@@ -127,12 +127,20 @@ No heap allocations in the hot path — `Point` is a value type, distance math i
 
 ## 4. DynamicPortProvider Cleanup
 
-### Cancelled Drag (always)
+### Unsuccessful Commit (always)
 
+The canvas calls `CancelResolve()` on the last resolved provider whenever a connection is **not** successfully established. This includes:
+
+1. **Empty-space cancel** — user releases on empty space (no target port found)
+2. **Validation rejection** — `CanConnect(source, target)` returns false
+3. **Handler failure** — `OnConnectionRequested` returns a failed `Result<Connection>`
+
+Flow:
 1. During drag, canvas tracks `_lastResolvedProvider` (whichever provider returned a port)
-2. On cancel (mouse released on empty space), canvas calls `_lastResolvedProvider.CancelResolve()`
-3. DynamicPortProvider removes the last port it created; FixedPortProvider does nothing
-4. Canvas resets `_lastResolvedProvider` to null
+2. On commit: canvas calls `ResolvePort(pos, false)` to get the target port
+3. If validation fails or handler rejects, canvas calls `_lastResolvedProvider.CancelResolve()` to roll back the created port
+4. Only on successful connection establishment does the port persist
+5. Canvas resets `_lastResolvedProvider` to null
 
 ### Disconnected Port (opt-in)
 
@@ -148,7 +156,7 @@ When `AutoPruneOnDisconnect` is `true`:
 
 ## 5. Observable Port Collections
 
-`PortAdded` and `PortRemoved` events on `IPortProvider` allow the canvas to subscribe and invalidate rendering when ports change.
+`PortAdded` and `PortRemoved` events on `IPortProvider` allow the canvas to subscribe and invalidate rendering when port membership changes.
 
 - `FixedPortProvider.AddPort(Port)` fires `PortAdded`
 - `FixedPortProvider.RemovePort(Port)` fires `PortRemoved`
@@ -157,13 +165,22 @@ When `AutoPruneOnDisconnect` is `true`:
 - `DynamicPortProvider.PruneUnconnected()` fires `PortRemoved` per port
 - Auto-prune-on-disconnect fires `PortRemoved`
 
+### Port Property Changes
+
+Collection events cover membership but not mutations to existing ports (Position, Label, Style changes, layout-driven repositioning). The canvas also needs to redraw when a port's visual properties change.
+
+Port already implements `INotifyPropertyChanged`. The canvas subscribes to `PropertyChanged` on each port (via `PortAdded`, unsubscribes via `PortRemoved`) and invalidates the visual layer on relevant property changes (`Position`, `Label`, `Style`). This also covers layout-driven repositioning where the provider updates `Port.Position` after a resize.
+
 ## 6. Canvas Wiring Changes
 
 - Remove `HitTestPort()` method with hardcoded radius
 - `ResolvePortForConnection()` renamed or refactored to use `ResolvePort(pos, preview)` on each provider
 - Subscribe to `PortAdded` / `PortRemoved` on each node's provider for render invalidation
-- Track `_lastResolvedProvider` for cancel cleanup
+- Subscribe to `Port.PropertyChanged` (via PortAdded/PortRemoved lifecycle) for port mutation redraw
+- Track `_lastResolvedProvider` for cancel/rollback cleanup
+- Call `CancelResolve()` on any unsuccessful commit (validation fail, handler rejection), not just empty-space cancel
 - Subscribe to `Graph.Connections.CollectionChanged` to notify providers of disconnections (for auto-prune)
+- Handle `Node.PortProvider` replacement: `Node` fires `PropertyChanged` for `PortProvider`. Canvas subscribes to `Node.PropertyChanged`; on `PortProvider` change, unsubscribes from old provider's events (PortAdded/PortRemoved and all per-port PropertyChanged subscriptions), subscribes to new provider's events, and re-subscribes to existing ports in the new provider.
 
 ## Files Affected
 
