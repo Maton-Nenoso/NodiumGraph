@@ -144,6 +144,7 @@ internal static class GridRenderer
 
     private static bool IsMajor(double value, double majorSpacing)
     {
-        return Math.Abs(value % majorSpacing) < 0.5;
+        var remainder = Math.Abs(value % majorSpacing);
+        return remainder < majorSpacing * 0.01 || remainder > majorSpacing * 0.99;
     }
 }

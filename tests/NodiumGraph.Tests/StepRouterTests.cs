@@ -43,4 +43,19 @@ public class StepRouterTests
 
         Assert.Equal(2, points.Count);
     }
+
+    [Fact]
+    public void Route_vertically_aligned_returns_two_points()
+    {
+        var router = new StepRouter();
+        var nodeA = new Node { X = 100, Y = 50 };
+        var nodeB = new Node { X = 100, Y = 200 };
+        var source = new Port(nodeA, new Point(0, 0));  // AbsolutePosition = (100, 50)
+        var target = new Port(nodeB, new Point(0, 0));  // AbsolutePosition = (100, 200)
+        var points = router.Route(source, target);
+
+        Assert.Equal(2, points.Count);
+        Assert.Equal(new Point(100, 50), points[0]);
+        Assert.Equal(new Point(100, 200), points[1]);
+    }
 }

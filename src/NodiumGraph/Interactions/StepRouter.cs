@@ -18,6 +18,9 @@ public class StepRouter : IConnectionRouter
         if (Math.Abs(start.Y - end.Y) < 0.001)
             return [start, end];
 
+        if (Math.Abs(start.X - end.X) < 0.001)
+            return [start, end];
+
         var midX = (start.X + end.X) / 2;
 
         return
