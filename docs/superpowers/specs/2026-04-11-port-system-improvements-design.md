@@ -136,11 +136,13 @@ The canvas calls `CancelResolve()` on the last resolved provider whenever a conn
 3. **Handler failure** — `OnConnectionRequested` returns a failed `Result<Connection>`
 
 Flow:
-1. During drag, canvas tracks `_lastResolvedProvider` (whichever provider returned a port)
-2. On commit: canvas calls `ResolvePort(pos, false)` to get the target port
-3. If validation fails or handler rejects, canvas calls `_lastResolvedProvider.CancelResolve()` to roll back the created port
+1. On commit: canvas calls `ResolvePort(pos, false)` on each node's provider to get the target port, and records which provider returned it as `_commitProvider`
+2. Canvas runs validation (`CanConnect`) and handler (`OnConnectionRequested`)
+3. If validation fails or handler rejects, canvas calls `_commitProvider.CancelResolve()` to roll back the port created during this commit
 4. Only on successful connection establishment does the port persist
-5. Canvas resets `_lastResolvedProvider` to null
+5. Canvas resets `_commitProvider` to null
+
+Note: `_commitProvider` is tracked separately from preview-time state. The preview path (`ResolvePort(pos, true)`) never creates ports and has no rollback concern. The commit path may hit a different provider than preview did (e.g., preview returned null but commit creates a dynamic port), so rollback must always target the commit-time provider.
 
 ### Disconnected Port (opt-in)
 
@@ -171,6 +173,14 @@ Collection events cover membership but not mutations to existing ports (Position
 
 Port already implements `INotifyPropertyChanged`. The canvas subscribes to `PropertyChanged` on each port (via `PortAdded`, unsubscribes via `PortRemoved`) and invalidates the visual layer on relevant property changes (`Position`, `Label`, `Style`). This also covers layout-driven repositioning where the provider updates `Port.Position` after a resize.
 
+### PortStyle Mutation
+
+`PortStyle` is mutable and implements `INotifyPropertyChanged`. If a consumer updates `port.Style.Fill` without replacing the `Style` instance, `Port.PropertyChanged` for `Style` does not fire. To handle this:
+
+- When a port's `Style` is set (including initial assignment), the canvas subscribes to `PortStyle.PropertyChanged` on the style instance
+- When `Style` is replaced, the canvas unsubscribes from the old instance and subscribes to the new one
+- Any `PortStyle.PropertyChanged` event invalidates the port visual layer
+
 ## 6. Canvas Wiring Changes
 
 - Remove `HitTestPort()` method with hardcoded radius
@@ -195,6 +205,7 @@ Port already implements `INotifyPropertyChanged`. The canvas subscribes to `Prop
 | `Model/RectangleShape.cs` | Implement GetNearestBoundaryPoint |
 | `Model/EllipseShape.cs` | Implement GetNearestBoundaryPoint |
 | `Model/RoundedRectangleShape.cs` | Implement GetNearestBoundaryPoint |
+| `Model/Node.cs` | Ensure `PortProvider` setter fires `PropertyChanged` for canvas resubscription |
 | `Model/ILayoutAwarePortProvider.cs` | No change |
 | `Model/PortLabelPlacement.cs` | **Delete** — label placement moves to `PortStyle.LabelPlacement` (enum stays, file moves) |
 | `Controls/NodiumGraphCanvas.cs` | Unify hit-test, track _lastResolvedProvider, subscribe to port/connection events |
