@@ -17,14 +17,18 @@ public class RectangleShape : INodeShape
         if (cx != position.X || cy != position.Y)
             return new Point(cx, cy);
         // Inside: snap to nearest edge
-        var distLeft = cx + halfW;
         var distRight = halfW - cx;
-        var distTop = cy + halfH;
+        var distLeft = cx + halfW;
         var distBottom = halfH - cy;
-        var minDist = Math.Min(Math.Min(distLeft, distRight), Math.Min(distTop, distBottom));
-        if (minDist == distRight) return new Point(halfW, cy);
-        if (minDist == distLeft) return new Point(-halfW, cy);
-        if (minDist == distBottom) return new Point(cx, halfH);
-        return new Point(cx, -halfH);
+        var distTop = cy + halfH;
+
+        var minDist = distRight;
+        var result = new Point(halfW, cy);
+
+        if (distLeft < minDist) { minDist = distLeft; result = new Point(-halfW, cy); }
+        if (distBottom < minDist) { minDist = distBottom; result = new Point(cx, halfH); }
+        if (distTop < minDist) { result = new Point(cx, -halfH); }
+
+        return result;
     }
 }

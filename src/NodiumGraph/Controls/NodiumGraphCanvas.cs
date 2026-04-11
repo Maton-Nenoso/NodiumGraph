@@ -62,6 +62,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private IPortProvider? _commitProvider;
     private readonly Dictionary<IPortProvider, Action<Port>> _providerAddedHandlers = new();
     private readonly Dictionary<IPortProvider, Action<Port>> _providerRemovedHandlers = new();
+    private readonly Dictionary<Node, IPortProvider> _nodeProviders = new();
+    private readonly Dictionary<Port, PortStyle?> _portStyles = new();
 
     // Extra space around each node container so box shadows aren't clipped
     private const double ShadowPadding = 20;
@@ -1153,7 +1155,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             {
                 node.PropertyChanged -= OnNodePropertyChanged;
                 if (node.PortProvider != null)
-                    DetachProvider(node.PortProvider);
+                    DetachProvider(node, node.PortProvider);
                 if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
                     layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
             }
@@ -1194,7 +1196,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             {
                 node.PropertyChanged -= OnNodePropertyChanged;
                 if (node.PortProvider != null)
-                    DetachProvider(node.PortProvider);
+                    DetachProvider(node, node.PortProvider);
                 if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
                     layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
                 LogicalChildren.Remove(container);
@@ -1255,7 +1257,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         node.PropertyChanged += OnNodePropertyChanged;
 
         if (node.PortProvider != null)
-            AttachProvider(node.PortProvider);
+            AttachProvider(node, node.PortProvider);
 
         if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
             layoutAware.LayoutInvalidated += OnLayoutAwareProviderInvalidated;
@@ -1283,7 +1285,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             node.PropertyChanged -= OnNodePropertyChanged;
 
             if (node.PortProvider != null)
-                DetachProvider(node.PortProvider);
+                DetachProvider(node, node.PortProvider);
 
             if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
                 layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
@@ -1300,7 +1302,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         InvalidateVisual();
     }
 
-    private void AttachProvider(IPortProvider provider)
+    private void AttachProvider(Node node, IPortProvider provider)
     {
         foreach (var port in provider.Ports)
             SubscribeToPort(port);
@@ -1311,9 +1313,10 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         provider.PortRemoved += onRemoved;
         _providerAddedHandlers[provider] = onAdded;
         _providerRemovedHandlers[provider] = onRemoved;
+        _nodeProviders[node] = provider;
     }
 
-    private void DetachProvider(IPortProvider provider)
+    private void DetachProvider(Node node, IPortProvider provider)
     {
         foreach (var port in provider.Ports)
             UnsubscribeFromPort(port);
@@ -1324,6 +1327,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             provider.PortRemoved -= onRemoved;
         _providerAddedHandlers.Remove(provider);
         _providerRemovedHandlers.Remove(provider);
+        _nodeProviders.Remove(node);
     }
 
     private void SubscribeToPort(Port port)
@@ -1331,18 +1335,36 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         port.PropertyChanged += OnPortPropertyChanged;
         if (port.Style != null)
             port.Style.PropertyChanged += OnPortStylePropertyChanged;
+        _portStyles[port] = port.Style;
     }
 
     private void UnsubscribeFromPort(Port port)
     {
         port.PropertyChanged -= OnPortPropertyChanged;
-        if (port.Style != null)
-            port.Style.PropertyChanged -= OnPortStylePropertyChanged;
+        if (_portStyles.TryGetValue(port, out var trackedStyle) && trackedStyle != null)
+            trackedStyle.PropertyChanged -= OnPortStylePropertyChanged;
+        _portStyles.Remove(port);
     }
 
     private void OnPortPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(Port.AbsolutePosition) or nameof(Port.Label) or nameof(Port.Style))
+        if (e.PropertyName == nameof(Port.Style) && sender is Port port)
+        {
+            // The old Style reference is already gone — look up via tracked handler.
+            // Unsubscribe from whatever style was previously wired (if any) by
+            // removing our handler from the port's current snapshot, then re-subscribing.
+            // Because PropertyChanged fires after the field is set, we track old styles
+            // via _portStyleMap so we can unsubscribe.
+            if (_portStyles.TryGetValue(port, out var oldStyle) && oldStyle != null)
+                oldStyle.PropertyChanged -= OnPortStylePropertyChanged;
+
+            if (port.Style != null)
+                port.Style.PropertyChanged += OnPortStylePropertyChanged;
+
+            _portStyles[port] = port.Style;
+            InvalidateVisual();
+        }
+        else if (e.PropertyName is nameof(Port.AbsolutePosition) or nameof(Port.Label))
             InvalidateVisual();
     }
 
@@ -1361,8 +1383,23 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             InvalidateMeasure();
         else if (e.PropertyName == nameof(Node.PortProvider))
         {
-            if (sender is Node node && node.PortProvider != null)
-                AttachProvider(node.PortProvider);
+            if (sender is Node node)
+            {
+                // Detach old provider (tracked before PropertyChanged fired)
+                if (_nodeProviders.TryGetValue(node, out var oldProvider))
+                {
+                    DetachProvider(node, oldProvider);
+                    if (oldProvider is ILayoutAwarePortProvider oldLayout)
+                        oldLayout.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
+                }
+
+                if (node.PortProvider != null)
+                {
+                    AttachProvider(node, node.PortProvider);
+                    if (node.PortProvider is ILayoutAwarePortProvider newLayout)
+                        newLayout.LayoutInvalidated += OnLayoutAwareProviderInvalidated;
+                }
+            }
             InvalidateVisual();
         }
     }

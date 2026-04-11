@@ -27,6 +27,11 @@ public class EllipseShape : INodeShape
         var px = position.X;
         var py = position.Y;
 
+        // At the center every boundary point is equidistant in the angular sense;
+        // return the top of the ellipse as a stable, deterministic default.
+        if (Math.Abs(px) < 1e-12 && Math.Abs(py) < 1e-12)
+            return new Point(0, -b);
+
         // Seed with the angular projection (exact for circles, close for ellipses)
         var t = Math.Atan2(py, px);
 
