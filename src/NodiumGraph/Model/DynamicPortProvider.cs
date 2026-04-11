@@ -18,6 +18,12 @@ public class DynamicPortProvider : IPortProvider
 
     public IReadOnlyList<Port> Ports => _ports.AsReadOnly();
 
+    // TODO(Task 5): Replace stubs with full implementation
+#pragma warning disable CS0067
+    public event Action<Port>? PortAdded;
+    public event Action<Port>? PortRemoved;
+#pragma warning restore CS0067
+
     public DynamicPortProvider(Node owner, double reuseThreshold = DefaultReuseThreshold, double maxDistance = DefaultMaxDistance)
     {
         ArgumentNullException.ThrowIfNull(owner);
@@ -28,7 +34,9 @@ public class DynamicPortProvider : IPortProvider
         _maxDistanceSq = maxDistance * maxDistance;
     }
 
-    public Port? ResolvePort(Point position)
+    public void CancelResolve() { }
+
+    public Port? ResolvePort(Point position, bool preview)
     {
         if (_owner.Width <= 0 || _owner.Height <= 0)
             return null;

@@ -386,7 +386,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             if (node.IsCollapsed) continue;
             if (node.PortProvider == null) continue;
-            var port = node.PortProvider.ResolvePort(worldPosition);
+            var port = node.PortProvider.ResolvePort(worldPosition, preview: true);
             if (port != null) return port;
         }
 

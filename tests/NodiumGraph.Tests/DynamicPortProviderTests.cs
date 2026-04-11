@@ -24,7 +24,7 @@ public class DynamicPortProviderTests
         node.Height = 50;
         var provider = new DynamicPortProvider(node);
 
-        var port = provider.ResolvePort(new Point(110, 25));
+        var port = provider.ResolvePort(new Point(110, 25), preview: true);
 
         Assert.NotNull(port);
         Assert.Same(node, port!.Owner);
@@ -39,8 +39,8 @@ public class DynamicPortProviderTests
         node.Height = 50;
         var provider = new DynamicPortProvider(node);
 
-        var port1 = provider.ResolvePort(new Point(110, 25));
-        var port2 = provider.ResolvePort(new Point(112, 26));
+        var port1 = provider.ResolvePort(new Point(110, 25), preview: true);
+        var port2 = provider.ResolvePort(new Point(112, 26), preview: true);
 
         Assert.Same(port1, port2);
         Assert.Single(provider.Ports);
@@ -54,8 +54,8 @@ public class DynamicPortProviderTests
         node.Height = 50;
         var provider = new DynamicPortProvider(node);
 
-        var port1 = provider.ResolvePort(new Point(110, 0));
-        var port2 = provider.ResolvePort(new Point(110, 50));
+        var port1 = provider.ResolvePort(new Point(110, 0), preview: true);
+        var port2 = provider.ResolvePort(new Point(110, 50), preview: true);
 
         Assert.NotSame(port1, port2);
         Assert.Equal(2, provider.Ports.Count);
@@ -69,7 +69,7 @@ public class DynamicPortProviderTests
         node.Height = 50;
         var provider = new DynamicPortProvider(node);
 
-        var port = provider.ResolvePort(new Point(500, 500));
+        var port = provider.ResolvePort(new Point(500, 500), preview: true);
 
         Assert.Null(port);
     }
@@ -81,7 +81,7 @@ public class DynamicPortProviderTests
         // Width and Height default to 0 (unmeasured node)
         var provider = new DynamicPortProvider(node);
 
-        var port = provider.ResolvePort(new Point(0, 0));
+        var port = provider.ResolvePort(new Point(0, 0), preview: true);
 
         Assert.Null(port);
     }
