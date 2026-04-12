@@ -11,36 +11,31 @@ internal static class ConnectionRenderer
         Connection connection, IConnectionRouter router, ViewportTransform transform)
     {
         var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
-        var screenPoints = new List<Point>(routePoints.Count);
-        foreach (var pt in routePoints)
-            screenPoints.Add(transform.WorldToScreen(pt));
+        if (routePoints.Count < 2)
+            return new StreamGeometry();
 
-        if (screenPoints.Count < 2)
-            return new LineGeometry();
-
-        // Use bezier only when the router says so AND we have exactly 4 points
-        if (router.IsBezierRoute && screenPoints.Count == 4)
+        var geo = new StreamGeometry();
+        using (var ctx = geo.Open())
         {
-            var fig = new PathFigure { StartPoint = screenPoints[0], IsClosed = false };
-            fig.Segments!.Add(new BezierSegment
+            ctx.BeginFigure(transform.WorldToScreen(routePoints[0]), false);
+
+            if (router.IsBezierRoute && routePoints.Count == 4)
             {
-                Point1 = screenPoints[1],
-                Point2 = screenPoints[2],
-                Point3 = screenPoints[3]
-            });
-            var geo = new PathGeometry();
-            geo.Figures!.Add(fig);
-            return geo;
+                ctx.CubicBezierTo(
+                    transform.WorldToScreen(routePoints[1]),
+                    transform.WorldToScreen(routePoints[2]),
+                    transform.WorldToScreen(routePoints[3]));
+            }
+            else
+            {
+                for (var i = 1; i < routePoints.Count; i++)
+                    ctx.LineTo(transform.WorldToScreen(routePoints[i]));
+            }
+
+            ctx.EndFigure(false);
         }
 
-        // Polyline for straight/step/any other route
-        var figure = new PathFigure { StartPoint = screenPoints[0], IsClosed = false };
-        for (var i = 1; i < screenPoints.Count; i++)
-            figure.Segments!.Add(new LineSegment { Point = screenPoints[i] });
-
-        var pathGeo = new PathGeometry();
-        pathGeo.Figures!.Add(figure);
-        return pathGeo;
+        return geo;
     }
 
     public static void Render(DrawingContext context, Connection connection,
