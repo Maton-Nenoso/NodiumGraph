@@ -102,6 +102,27 @@ public class NodiumGraphCanvasMethodTests
     }
 
     [AvaloniaFact]
+    public void HitTestNode_returns_last_added_when_overlapping()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+
+        var first = new Node { X = 0, Y = 0 };
+        first.Width = 100;
+        first.Height = 100;
+        var second = new Node { X = 0, Y = 0 };
+        second.Width = 100;
+        second.Height = 100;
+
+        graph.AddNode(first);
+        graph.AddNode(second);
+        canvas.Graph = graph;
+
+        var hit = canvas.HitTestNode(new Point(50, 50));
+        Assert.Same(second, hit);
+    }
+
+    [AvaloniaFact]
     public void DeleteSelected_is_public()
     {
         var canvas = new NodiumGraphCanvas();

@@ -380,10 +380,13 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     internal Node? HitTestNode(Point screenPosition)
     {
+        if (Graph == null) return null;
         var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
         Node? result = null;
 
-        foreach (var (node, container) in _nodeContainers)
+        // Iterate Graph.Nodes (stable insertion order) instead of _nodeContainers (Dictionary).
+        // Last match wins = topmost in z-order.
+        foreach (var node in Graph.Nodes)
         {
             var nodeScreenPos = transform.WorldToScreen(new Point(node.X, node.Y));
             var nodeScreenSize = new Size(
@@ -392,7 +395,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
 
             if (nodeRect.Contains(screenPosition))
-                result = node; // keep last match (topmost)
+                result = node;
         }
 
         return result;
