@@ -33,18 +33,37 @@ internal static class MinimapRenderer
         };
     }
 
+    public static (double minX, double minY, double maxX, double maxY)? ComputeWorldBounds(Graph graph)
+    {
+        if (graph.Nodes.Count == 0) return null;
+
+        var minX = double.MaxValue;
+        var minY = double.MaxValue;
+        var maxX = double.MinValue;
+        var maxY = double.MinValue;
+
+        foreach (var node in graph.Nodes)
+        {
+            if (node.X < minX) minX = node.X;
+            if (node.Y < minY) minY = node.Y;
+            var right = node.X + node.Width;
+            var bottom = node.Y + node.Height;
+            if (right > maxX) maxX = right;
+            if (bottom > maxY) maxY = bottom;
+        }
+
+        return (minX, minY, maxX, maxY);
+    }
+
     public static void Render(DrawingContext context, Rect canvasBounds,
         Graph graph, ViewportTransform viewportTransform, MinimapPosition position,
         IBrush backgroundBrush, IBrush nodeBrush, IBrush selectedNodeBrush, IBrush viewportBrush)
     {
-        if (graph.Nodes.Count == 0) return;
+        var rawBounds = ComputeWorldBounds(graph);
+        if (rawBounds is null) return;
+        var (minX, minY, maxX, maxY) = rawBounds.Value;
 
         var minimapBounds = GetMinimapBounds(canvasBounds, position);
-
-        var minX = graph.Nodes.Min(n => n.X);
-        var minY = graph.Nodes.Min(n => n.Y);
-        var maxX = graph.Nodes.Max(n => n.X + n.Width);
-        var maxY = graph.Nodes.Max(n => n.Y + n.Height);
 
         var worldWidth = maxX - minX;
         var worldHeight = maxY - minY;
@@ -114,12 +133,10 @@ internal static class MinimapRenderer
     {
         var minimapBounds = GetMinimapBounds(canvasBounds, position);
         if (!minimapBounds.Contains(screenClick)) return null;
-        if (graph.Nodes.Count == 0) return null;
 
-        var minX = graph.Nodes.Min(n => n.X);
-        var minY = graph.Nodes.Min(n => n.Y);
-        var maxX = graph.Nodes.Max(n => n.X + n.Width);
-        var maxY = graph.Nodes.Max(n => n.Y + n.Height);
+        var rawBounds = ComputeWorldBounds(graph);
+        if (rawBounds is null) return null;
+        var (minX, minY, maxX, maxY) = rawBounds.Value;
 
         var worldWidth = (maxX - minX) * 1.2;
         var worldHeight = (maxY - minY) * 1.2;
