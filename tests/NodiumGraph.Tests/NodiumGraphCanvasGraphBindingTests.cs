@@ -228,6 +228,23 @@ public class NodiumGraphCanvasGraphBindingTests
     }
 
     [AvaloniaFact]
+    public void Dispose_clears_subscriptions_without_visual_tree()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        canvas.Graph = graph;
+
+        Assert.Equal(1, canvas.NodeContainerCount);
+
+        canvas.Dispose();
+
+        graph.AddNode(new Node());
+        Assert.Equal(0, canvas.NodeContainerCount);
+    }
+
+    [AvaloniaFact]
     public void Arrange_writes_measured_size_back_to_node()
     {
         var canvas = new NodiumGraphCanvas();

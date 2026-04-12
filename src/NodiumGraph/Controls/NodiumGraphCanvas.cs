@@ -14,7 +14,7 @@ namespace NodiumGraph.Controls;
 /// <summary>
 /// The primary graph editor canvas control.
 /// </summary>
-public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHitTest
+public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHitTest, IDisposable
 {
     static NodiumGraphCanvas()
     {
@@ -65,6 +65,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private readonly Dictionary<IPortProvider, Action<Port>> _providerRemovedHandlers = new();
     private readonly Dictionary<Node, IPortProvider> _nodeProviders = new();
     private readonly Dictionary<Port, PortStyle?> _portStyles = new();
+    private bool _disposed;
 
     // Extra space around each node container so box shadows aren't clipped
     private const double ShadowPadding = 20;
@@ -1140,6 +1141,17 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         base.OnDetachedFromVisualTree(e);
         if (Graph != null)
             OnGraphChanged(Graph, null);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        if (Graph != null)
+            OnGraphChanged(Graph, null);
+
+        GC.SuppressFinalize(this);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
