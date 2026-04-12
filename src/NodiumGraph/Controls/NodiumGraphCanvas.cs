@@ -1064,7 +1064,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     {
         var routePoints = ConnectionRouter.Route(connection.SourcePort, connection.TargetPort);
 
-        if (ConnectionRouter.IsBezierRoute && routePoints.Count == 4)
+        if (ConnectionRouter.RouteKind == RouteKind.Bezier && routePoints.Count == 4)
         {
             var p0 = transform.WorldToScreen(routePoints[0]);
             var p1 = transform.WorldToScreen(routePoints[1]);

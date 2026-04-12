@@ -11,7 +11,7 @@ public class BezierRouter : IConnectionRouter
 {
     private const double MinOffset = 30.0;
 
-    public bool IsBezierRoute => true;
+    public RouteKind RouteKind => RouteKind.Bezier;
 
     public IReadOnlyList<Point> Route(Port source, Port target)
     {

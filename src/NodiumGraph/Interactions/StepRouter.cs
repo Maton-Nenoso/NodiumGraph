@@ -8,7 +8,7 @@ namespace NodiumGraph.Interactions;
 /// </summary>
 public class StepRouter : IConnectionRouter
 {
-    public bool IsBezierRoute => false;
+    public RouteKind RouteKind => RouteKind.Polyline;
 
     public IReadOnlyList<Point> Route(Port source, Port target)
     {

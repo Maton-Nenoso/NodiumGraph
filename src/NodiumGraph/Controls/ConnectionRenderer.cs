@@ -19,7 +19,7 @@ internal static class ConnectionRenderer
         {
             ctx.BeginFigure(transform.WorldToScreen(routePoints[0]), false);
 
-            if (router.IsBezierRoute && routePoints.Count == 4)
+            if (router.RouteKind == RouteKind.Bezier && routePoints.Count == 4)
             {
                 ctx.CubicBezierTo(
                     transform.WorldToScreen(routePoints[1]),
