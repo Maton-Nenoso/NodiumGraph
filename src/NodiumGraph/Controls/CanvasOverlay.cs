@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -34,6 +35,13 @@ internal class CanvasOverlay : Control
     private const int LabelCacheMaxEntries = 256;
     private readonly Dictionary<(string label, double bucketedFontSize, IBrush brush), FormattedText> _labelCache = new();
 
+    // Identity-keyed pen cache for styled borders/ports. Mutating a brush
+    // instance in place will NOT invalidate the cached pen — same constraint
+    // Avalonia already imposes on directly-held brushes. Bounded to 32.
+    private const int StyledPenCacheMaxEntries = 32;
+    private readonly Dictionary<(IBrush brush, double thickness), Pen> _styledPenCache
+        = new(new BrushThicknessComparer());
+
     public CanvasOverlay(NodiumGraphCanvas canvas)
     {
         _canvas = canvas;
@@ -51,6 +59,30 @@ internal class CanvasOverlay : Control
         lastThickness = thickness;
         cached = new Pen(brush, thickness);
         return cached;
+    }
+
+    private Pen GetOrCreateStyledPen(IBrush brush, double thickness)
+    {
+        var key = (brush, thickness);
+        if (_styledPenCache.TryGetValue(key, out var pen))
+            return pen;
+
+        if (_styledPenCache.Count >= StyledPenCacheMaxEntries)
+            _styledPenCache.Clear();
+
+        pen = new Pen(brush, thickness);
+        _styledPenCache[key] = pen;
+        return pen;
+    }
+
+    private sealed class BrushThicknessComparer
+        : IEqualityComparer<(IBrush brush, double thickness)>
+    {
+        public bool Equals((IBrush brush, double thickness) x, (IBrush brush, double thickness) y)
+            => ReferenceEquals(x.brush, y.brush) && x.thickness == y.thickness;
+
+        public int GetHashCode((IBrush brush, double thickness) obj)
+            => HashCode.Combine(RuntimeHelpers.GetHashCode(obj.brush), obj.thickness);
     }
 
     public override void Render(DrawingContext context)
@@ -90,7 +122,8 @@ internal class CanvasOverlay : Control
             if (node.IsSelected)
             {
                 var pen = node.Style?.SelectionBorderBrush != null || node.Style?.SelectionBorderThickness != null
-                    ? new Pen(node.Style?.SelectionBorderBrush ?? defaultSelectedBrush,
+                    ? GetOrCreateStyledPen(
+                        node.Style?.SelectionBorderBrush ?? defaultSelectedBrush,
                         node.Style?.SelectionBorderThickness ?? defaultSelectedThickness)
                     : selectedBorderPen;
                 context.DrawRectangle(null, pen, nodeRect, 6, 6);
@@ -98,7 +131,8 @@ internal class CanvasOverlay : Control
             else if (node == _canvas.HoveredNode)
             {
                 var pen = node.Style?.HoverBorderBrush != null || node.Style?.HoverBorderThickness != null
-                    ? new Pen(node.Style?.HoverBorderBrush ?? defaultHoveredBrush,
+                    ? GetOrCreateStyledPen(
+                        node.Style?.HoverBorderBrush ?? defaultHoveredBrush,
                         node.Style?.HoverBorderThickness ?? defaultHoveredThickness)
                     : hoveredBorderPen;
                 context.DrawRectangle(null, pen, nodeRect, 6, 6);
@@ -143,7 +177,7 @@ internal class CanvasOverlay : Control
                     var scaledRadius = radius * zoom;
 
                     var pen = (style?.Stroke != null || style?.StrokeWidth != null)
-                        ? new Pen(style?.Stroke ?? defaultPortOutlineBrush, style?.StrokeWidth ?? 1.0)
+                        ? GetOrCreateStyledPen(style?.Stroke ?? defaultPortOutlineBrush, style?.StrokeWidth ?? 1.0)
                         : defaultPortPen;
 
                     switch (shape)
