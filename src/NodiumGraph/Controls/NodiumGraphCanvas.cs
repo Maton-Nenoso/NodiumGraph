@@ -14,7 +14,7 @@ namespace NodiumGraph.Controls;
 /// <summary>
 /// The primary graph editor canvas control.
 /// </summary>
-public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHitTest
+public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHitTest, IDisposable
 {
     static NodiumGraphCanvas()
     {
@@ -60,10 +60,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private Point _marqueeEnd;
     private static bool _fallbackTemplatesRegistered;
     private IPortProvider? _commitProvider;
+    private IPortProvider? _sourceProvider;
     private readonly Dictionary<IPortProvider, Action<Port>> _providerAddedHandlers = new();
     private readonly Dictionary<IPortProvider, Action<Port>> _providerRemovedHandlers = new();
     private readonly Dictionary<Node, IPortProvider> _nodeProviders = new();
     private readonly Dictionary<Port, PortStyle?> _portStyles = new();
+    private bool _disposed;
 
     // Extra space around each node container so box shadows aren't clipped
     private const double ShadowPadding = 20;
@@ -346,8 +348,11 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal Size SnapGhostSize => _snapGhostSize;
 
     internal Port? ResolvePort(Point screenPosition, bool preview)
+        => ResolvePortWithProvider(screenPosition, preview).port;
+
+    internal (Port? port, IPortProvider? provider) ResolvePortWithProvider(Point screenPosition, bool preview)
     {
-        if (Graph == null) return null;
+        if (Graph == null) return (null, null);
         var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
         var worldPosition = transform.ScreenToWorld(screenPosition);
 
@@ -356,17 +361,20 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             if (node.IsCollapsed) continue;
             if (node.PortProvider == null) continue;
             var port = node.PortProvider.ResolvePort(worldPosition, preview);
-            if (port != null) return port;
+            if (port != null) return (port, node.PortProvider);
         }
-        return null;
+        return (null, null);
     }
 
     internal Node? HitTestNode(Point screenPosition)
     {
+        if (Graph == null) return null;
         var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
         Node? result = null;
 
-        foreach (var (node, container) in _nodeContainers)
+        // Iterate Graph.Nodes (stable insertion order) instead of _nodeContainers (Dictionary).
+        // Last match wins = topmost in z-order.
+        foreach (var node in Graph.Nodes)
         {
             var nodeScreenPos = transform.WorldToScreen(new Point(node.X, node.Y));
             var nodeScreenSize = new Size(
@@ -375,7 +383,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
 
             if (nodeRect.Contains(screenPosition))
-                result = node; // keep last match (topmost)
+                result = node;
         }
 
         return result;
@@ -388,22 +396,13 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (!additive)
         {
             foreach (var n in Graph.SelectedNodes.ToList())
-            {
-                n.IsSelected = false;
                 Graph.Deselect(n);
-            }
         }
 
         if (node.IsSelected && additive)
-        {
-            node.IsSelected = false;
             Graph.Deselect(node);
-        }
         else
-        {
-            node.IsSelected = true;
             Graph.Select(node);
-        }
 
         SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
         InvalidateVisual();
@@ -412,9 +411,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal void ClearSelection()
     {
         if (Graph is null) return;
-
-        foreach (var node in Graph.SelectedNodes.ToList())
-            node.IsSelected = false;
 
         Graph.ClearSelection();
         SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
@@ -426,10 +422,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (Graph == null) return;
 
         foreach (var node in Graph.Nodes)
-        {
-            node.IsSelected = true;
             Graph.Select(node);
-        }
 
         SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
         InvalidateVisual();
@@ -579,11 +572,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (!props.IsLeftButtonPressed) return;
 
         // Check port hit first (ports are on top of nodes)
-        var hitPort = ResolvePort(position, preview: true);
+        var (hitPort, sourceProvider) = ResolvePortWithProvider(position, preview: false);
         if (hitPort != null)
         {
             _isDrawingConnection = true;
             _connectionSourcePort = hitPort;
+            _sourceProvider = sourceProvider;
             _connectionPreviewEnd = position;
             _connectionPreviewValid = false;
             e.Handled = true;
@@ -753,10 +747,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                     var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
 
                     if (marqueeRect.Intersects(nodeRect))
-                    {
-                        node.IsSelected = true;
                         Graph.Select(node);
-                    }
                 }
 
                 SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
@@ -828,11 +819,15 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 }
 
                 if (!connected)
+                {
                     _commitProvider?.CancelResolve();
+                    _sourceProvider?.CancelResolve();
+                }
             }
             finally
             {
                 _commitProvider = null;
+                _sourceProvider = null;
                 _isDrawingConnection = false;
                 _connectionSourcePort = null;
                 _connectionTargetPort = null;
@@ -1055,33 +1050,35 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         Point lineStart, Point lineEnd, Connection connection, ViewportTransform transform)
     {
         var routePoints = ConnectionRouter.Route(connection.SourcePort, connection.TargetPort);
-        var screenPoints = routePoints.Select(transform.WorldToScreen).ToList();
+        if (routePoints.Count < 2) return false;
 
-        // For bezier (4 points), sample the curve at intervals for approximate intersection
-        if (ConnectionRouter.IsBezierRoute && screenPoints.Count == 4)
+        if (ConnectionRouter.RouteKind == RouteKind.Bezier && routePoints.Count == 4)
         {
-            var samples = new List<Point>();
-            for (var t = 0.0; t <= 1.0; t += 0.05)
-            {
-                samples.Add(BezierPoint(screenPoints[0], screenPoints[1], screenPoints[2], screenPoints[3], t));
-            }
+            var p0 = transform.WorldToScreen(routePoints[0]);
+            var p1 = transform.WorldToScreen(routePoints[1]);
+            var p2 = transform.WorldToScreen(routePoints[2]);
+            var p3 = transform.WorldToScreen(routePoints[3]);
 
-            for (var i = 0; i < samples.Count - 1; i++)
+            var prev = p0;
+            for (var t = 0.05; t <= 1.0; t += 0.05)
             {
-                if (LinesIntersect(lineStart, lineEnd, samples[i], samples[i + 1]))
+                var current = BezierPoint(p0, p1, p2, p3, t);
+                if (LinesIntersect(lineStart, lineEnd, prev, current))
                     return true;
+                prev = current;
             }
-
             return false;
         }
 
-        // For polyline, check each segment
-        for (var i = 0; i < screenPoints.Count - 1; i++)
+        // Polyline — iterate route points directly, no list allocation
+        var prevScreen = transform.WorldToScreen(routePoints[0]);
+        for (var i = 1; i < routePoints.Count; i++)
         {
-            if (LinesIntersect(lineStart, lineEnd, screenPoints[i], screenPoints[i + 1]))
+            var currentScreen = transform.WorldToScreen(routePoints[i]);
+            if (LinesIntersect(lineStart, lineEnd, prevScreen, currentScreen))
                 return true;
+            prevScreen = currentScreen;
         }
-
         return false;
     }
 
@@ -1131,8 +1128,20 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
+        if (_disposed) return;
         if (Graph != null)
             OnGraphChanged(Graph, null);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        if (Graph != null)
+            OnGraphChanged(Graph, null);
+
+        GC.SuppressFinalize(this);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

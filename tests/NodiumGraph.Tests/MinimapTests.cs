@@ -52,6 +52,35 @@ public class MinimapTests
         Assert.Null(result);
     }
 
+    [Fact]
+    public void ComputeWorldBounds_returns_correct_bounds()
+    {
+        var graph = new Graph();
+        var a = new Node { X = 10, Y = 20 };
+        a.Width = 50;
+        a.Height = 30;
+        var b = new Node { X = 100, Y = 80 };
+        b.Width = 60;
+        b.Height = 40;
+        graph.AddNode(a);
+        graph.AddNode(b);
+
+        var bounds = MinimapRenderer.ComputeWorldBounds(graph);
+
+        Assert.NotNull(bounds);
+        Assert.Equal(10, bounds.Value.minX);
+        Assert.Equal(20, bounds.Value.minY);
+        Assert.Equal(160, bounds.Value.maxX);
+        Assert.Equal(120, bounds.Value.maxY);
+    }
+
+    [Fact]
+    public void ComputeWorldBounds_returns_null_for_empty_graph()
+    {
+        var graph = new Graph();
+        Assert.Null(MinimapRenderer.ComputeWorldBounds(graph));
+    }
+
     [AvaloniaFact]
     public void Canvas_with_minimap_enabled_does_not_throw()
     {

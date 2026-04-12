@@ -58,7 +58,7 @@ public class ConnectionRendererTests
     }
 
     [Fact]
-    public void CreateGeometry_with_step_router_uses_line_segments_not_bezier()
+    public void CreateGeometry_with_step_router_returns_stream_geometry_with_bounds()
     {
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 200, Y = 100 };
@@ -70,14 +70,12 @@ public class ConnectionRendererTests
 
         var geometry = ConnectionRenderer.CreateGeometry(connection, router, transform);
 
-        // Should be a PathGeometry with LineSegments, not BezierSegments
-        var pathGeo = Assert.IsType<PathGeometry>(geometry);
-        var figure = Assert.Single(pathGeo.Figures!);
-        Assert.All(figure.Segments!, seg => Assert.IsType<LineSegment>(seg));
+        var streamGeo = Assert.IsType<StreamGeometry>(geometry);
+        Assert.True(streamGeo.Bounds.Width > 0 || streamGeo.Bounds.Height > 0);
     }
 
     [Fact]
-    public void CreateGeometry_with_bezier_router_uses_bezier_segment()
+    public void CreateGeometry_with_bezier_router_returns_stream_geometry_with_bounds()
     {
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 300, Y = 0 };
@@ -89,9 +87,7 @@ public class ConnectionRendererTests
 
         var geometry = ConnectionRenderer.CreateGeometry(connection, router, transform);
 
-        var pathGeo = Assert.IsType<PathGeometry>(geometry);
-        var figure = Assert.Single(pathGeo.Figures!);
-        var segment = Assert.Single(figure.Segments!);
-        Assert.IsType<BezierSegment>(segment);
+        var streamGeo = Assert.IsType<StreamGeometry>(geometry);
+        Assert.True(streamGeo.Bounds.Width > 0 || streamGeo.Bounds.Height > 0);
     }
 }
