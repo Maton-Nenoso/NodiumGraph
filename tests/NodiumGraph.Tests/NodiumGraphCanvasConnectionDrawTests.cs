@@ -116,6 +116,70 @@ public class NodiumGraphCanvasConnectionDrawTests
         Assert.False(result.IsSuccess);
     }
 
+    [AvaloniaFact]
+    public void Connection_cancel_removes_dynamic_source_port()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var sourceNode = new Node { X = 0, Y = 0 };
+        sourceNode.Width = 100;
+        sourceNode.Height = 100;
+        var dynamicProvider = new DynamicPortProvider(sourceNode);
+        sourceNode.PortProvider = dynamicProvider;
+
+        var targetNode = new Node { X = 300, Y = 0 };
+        targetNode.Width = 100;
+        targetNode.Height = 100;
+        graph.AddNode(sourceNode);
+        graph.AddNode(targetNode);
+        canvas.Graph = graph;
+
+        Assert.Empty(dynamicProvider.Ports);
+
+        var sourcePort = sourceNode.PortProvider.ResolvePort(new Point(100, 50), preview: false);
+        Assert.NotNull(sourcePort);
+        Assert.Single(dynamicProvider.Ports);
+
+        dynamicProvider.CancelResolve();
+        Assert.Empty(dynamicProvider.Ports);
+    }
+
+    [AvaloniaFact]
+    public void ResolvePortWithProvider_returns_matching_provider()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var node = new Node { X = 0, Y = 0 };
+        node.Width = 100;
+        node.Height = 100;
+        var provider = new DynamicPortProvider(node);
+        node.PortProvider = provider;
+        graph.AddNode(node);
+        canvas.Graph = graph;
+
+        // preview: false so DynamicPortProvider creates the port
+        var (port, resolvedProvider) = canvas.ResolvePortWithProvider(new Point(100, 50), preview: false);
+        Assert.NotNull(port);
+        Assert.Same(provider, resolvedProvider);
+    }
+
+    [AvaloniaFact]
+    public void ResolvePortWithProvider_returns_null_when_no_hit()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var node = new Node { X = 0, Y = 0 };
+        node.Width = 100;
+        node.Height = 100;
+        node.PortProvider = new FixedPortProvider(new[] { new Port(node, "Out", PortFlow.Output, new Point(100, 50)) });
+        graph.AddNode(node);
+        canvas.Graph = graph;
+
+        var (port, resolvedProvider) = canvas.ResolvePortWithProvider(new Point(500, 500), preview: true);
+        Assert.Null(port);
+        Assert.Null(resolvedProvider);
+    }
+
     private class TestRejectingHandler : IConnectionHandler
     {
         public Result<Connection> OnConnectionRequested(Port source, Port target)

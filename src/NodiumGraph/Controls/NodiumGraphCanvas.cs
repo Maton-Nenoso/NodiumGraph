@@ -60,6 +60,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private Point _marqueeEnd;
     private static bool _fallbackTemplatesRegistered;
     private IPortProvider? _commitProvider;
+    private IPortProvider? _sourceProvider;
     private readonly Dictionary<IPortProvider, Action<Port>> _providerAddedHandlers = new();
     private readonly Dictionary<IPortProvider, Action<Port>> _providerRemovedHandlers = new();
     private readonly Dictionary<Node, IPortProvider> _nodeProviders = new();
@@ -361,6 +362,22 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         return null;
     }
 
+    internal (Port? port, IPortProvider? provider) ResolvePortWithProvider(Point screenPosition, bool preview)
+    {
+        if (Graph == null) return (null, null);
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+        var worldPosition = transform.ScreenToWorld(screenPosition);
+
+        foreach (var node in Graph.Nodes)
+        {
+            if (node.IsCollapsed) continue;
+            if (node.PortProvider == null) continue;
+            var port = node.PortProvider.ResolvePort(worldPosition, preview);
+            if (port != null) return (port, node.PortProvider);
+        }
+        return (null, null);
+    }
+
     internal Node? HitTestNode(Point screenPosition)
     {
         var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
@@ -564,11 +581,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (!props.IsLeftButtonPressed) return;
 
         // Check port hit first (ports are on top of nodes)
-        var hitPort = ResolvePort(position, preview: true);
+        var (hitPort, sourceProvider) = ResolvePortWithProvider(position, preview: false);
         if (hitPort != null)
         {
             _isDrawingConnection = true;
             _connectionSourcePort = hitPort;
+            _sourceProvider = sourceProvider;
             _connectionPreviewEnd = position;
             _connectionPreviewValid = false;
             e.Handled = true;
@@ -810,11 +828,15 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 }
 
                 if (!connected)
+                {
                     _commitProvider?.CancelResolve();
+                    _sourceProvider?.CancelResolve();
+                }
             }
             finally
             {
                 _commitProvider = null;
+                _sourceProvider = null;
                 _isDrawingConnection = false;
                 _connectionSourcePort = null;
                 _connectionTargetPort = null;
