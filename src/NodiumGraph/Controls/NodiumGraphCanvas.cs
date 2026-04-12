@@ -75,6 +75,10 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private double _lastConnectionThickness;
     private IDashStyle? _lastConnectionDashPattern;
 
+    // Mirrors BezierRouter.MinOffset for viewport-culling bounds inflation.
+    // Keep in sync if BezierRouter's control-point offset formula changes.
+    private const double BezierControlOffsetMin = 30.0;
+
     // Extra space around each node container so box shadows aren't clipped
     private const double ShadowPadding = 20;
 
@@ -1054,14 +1058,66 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 _lastConnectionDashPattern = style.DashPattern;
             }
             var connectionPen = _cachedConnectionPen;
+
+            // Viewport-cull connections whose loose world-space AABB does not
+            // intersect the visible region. Avoids running Route() and building
+            // a geometry for off-screen connections.
+            var topLeftWorld = transform.ScreenToWorld(new Point(0, 0));
+            var bottomRightWorld = transform.ScreenToWorld(new Point(Bounds.Width, Bounds.Height));
+            var viewportWorld = new Rect(
+                topLeftWorld.X,
+                topLeftWorld.Y,
+                bottomRightWorld.X - topLeftWorld.X,
+                bottomRightWorld.Y - topLeftWorld.Y);
+            // Inflate by stroke bleed (in world units) so connections near the
+            // edge aren't clipped.
+            var strokeBleed = connectionPen.Thickness / ViewportZoom;
+            viewportWorld = viewportWorld.Inflate(strokeBleed);
+
+            var isBezier = router.RouteKind == RouteKind.Bezier;
+
             foreach (var connection in Graph.Connections)
             {
+                var connectionRect = ComputeConnectionBounds(
+                    connection.SourcePort.AbsolutePosition,
+                    connection.TargetPort.AbsolutePosition,
+                    isBezier,
+                    connectionPen.Thickness);
+
+                if (!viewportWorld.Intersects(connectionRect))
+                    continue;
+
                 ConnectionRenderer.Render(context, connection, router, connectionPen, transform);
             }
         }
 
         // Ports, connection preview, cutting line, marquee, minimap
         // are drawn by _overlay (renders on top of node containers)
+    }
+
+    // Loose world-space bounds for a connection given its two endpoint positions.
+    // For bezier routing, inflates horizontally by the exact BezierRouter control
+    // offset (Math.Max(|dx|*0.4, BezierControlOffsetMin)) so bezier excursion is
+    // covered. For step/straight routing the endpoint AABB is already exact.
+    // strokeBleed is added on all sides to cover stroked-edge overflow.
+    private static Rect ComputeConnectionBounds(
+        Point source, Point target, bool isBezier, double strokeBleed)
+    {
+        var minX = Math.Min(source.X, target.X);
+        var maxX = Math.Max(source.X, target.X);
+        var minY = Math.Min(source.Y, target.Y);
+        var maxY = Math.Max(source.Y, target.Y);
+
+        var rect = new Rect(minX, minY, maxX - minX, maxY - minY);
+
+        if (isBezier)
+        {
+            var dx = target.X - source.X;
+            var bezierOffset = Math.Max(Math.Abs(dx) * 0.4, BezierControlOffsetMin);
+            rect = rect.Inflate(new Thickness(bezierOffset, 0, bezierOffset, 0));
+        }
+
+        return rect.Inflate(strokeBleed);
     }
 
     internal bool CuttingLineIntersectsGeometry(
