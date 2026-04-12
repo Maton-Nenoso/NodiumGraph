@@ -12,6 +12,7 @@ public class Graph
     private readonly ObservableCollection<Node> _nodes = new();
     private readonly ObservableCollection<Connection> _connections = new();
     private readonly List<Node> _selectedNodes = new();
+    private readonly HashSet<Node> _selectedSet = new();
     private readonly ReadOnlyCollection<Node> _selectedNodesReadOnly;
 
     public ReadOnlyObservableCollection<Node> Nodes { get; }
@@ -41,7 +42,6 @@ public class Graph
     {
         ArgumentNullException.ThrowIfNull(node);
 
-        // TODO: Add RemoveNodes(IEnumerable<Node>) batch overload for scale — current O(n) per node.
         var toRemove = _connections
             .Where(c => c.SourcePort.Owner == node || c.TargetPort.Owner == node)
             .ToList();
@@ -50,8 +50,34 @@ public class Graph
             _connections.Remove(conn);
 
         node.IsSelected = false;
+        _selectedSet.Remove(node);
         _selectedNodes.Remove(node);
         _nodes.Remove(node);
+    }
+
+    /// <summary>
+    /// Removes multiple nodes and all connections referencing their ports in a single pass.
+    /// </summary>
+    public void RemoveNodes(IEnumerable<Node> nodes)
+    {
+        ArgumentNullException.ThrowIfNull(nodes);
+        var nodeSet = new HashSet<Node>(nodes);
+        if (nodeSet.Count == 0) return;
+
+        var connectionsToRemove = _connections
+            .Where(c => nodeSet.Contains(c.SourcePort.Owner) || nodeSet.Contains(c.TargetPort.Owner))
+            .ToList();
+
+        foreach (var conn in connectionsToRemove)
+            _connections.Remove(conn);
+
+        foreach (var node in nodeSet)
+        {
+            node.IsSelected = false;
+            _selectedSet.Remove(node);
+            _selectedNodes.Remove(node);
+            _nodes.Remove(node);
+        }
     }
 
     public void AddConnection(Connection connection)
@@ -80,7 +106,7 @@ public class Graph
         ArgumentNullException.ThrowIfNull(node);
         if (!_nodes.Contains(node))
             throw new InvalidOperationException("Node is not part of this graph.");
-        if (!_selectedNodes.Contains(node))
+        if (_selectedSet.Add(node))
         {
             _selectedNodes.Add(node);
             node.IsSelected = true;
@@ -92,8 +118,11 @@ public class Graph
     /// </summary>
     public void Deselect(Node node)
     {
-        node.IsSelected = false;
-        _selectedNodes.Remove(node);
+        if (_selectedSet.Remove(node))
+        {
+            node.IsSelected = false;
+            _selectedNodes.Remove(node);
+        }
     }
 
     public void ClearSelection()
@@ -101,5 +130,6 @@ public class Graph
         foreach (var node in _selectedNodes)
             node.IsSelected = false;
         _selectedNodes.Clear();
+        _selectedSet.Clear();
     }
 }

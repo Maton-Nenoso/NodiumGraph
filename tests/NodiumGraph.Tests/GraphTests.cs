@@ -290,4 +290,62 @@ public class GraphTests
         Assert.False(a.IsSelected);
         Assert.False(b.IsSelected);
     }
+
+    [Fact]
+    public void Select_same_node_twice_is_idempotent()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+
+        graph.Select(node);
+        graph.Select(node);
+
+        Assert.Single(graph.SelectedNodes);
+    }
+
+    [Fact]
+    public void RemoveNodes_batch_removes_all_with_connections()
+    {
+        var graph = new Graph();
+        var a = new Node { X = 0, Y = 0 };
+        var b = new Node { X = 100, Y = 0 };
+        var c = new Node { X = 200, Y = 0 };
+        a.PortProvider = new FixedPortProvider(new[] { new Port(a, new Point(50, 50)) });
+        b.PortProvider = new FixedPortProvider(new[] { new Port(b, new Point(0, 50)) });
+        c.PortProvider = new FixedPortProvider(new[] { new Port(c, new Point(0, 50)) });
+
+        graph.AddNode(a);
+        graph.AddNode(b);
+        graph.AddNode(c);
+
+        var conn1 = new Connection(a.PortProvider.Ports[0], b.PortProvider.Ports[0]);
+        var conn2 = new Connection(a.PortProvider.Ports[0], c.PortProvider.Ports[0]);
+        graph.AddConnection(conn1);
+        graph.AddConnection(conn2);
+
+        graph.RemoveNodes(new[] { a, b });
+
+        Assert.Single(graph.Nodes);
+        Assert.Same(c, graph.Nodes[0]);
+        Assert.Empty(graph.Connections);
+    }
+
+    [Fact]
+    public void RemoveNodes_batch_clears_IsSelected()
+    {
+        var graph = new Graph();
+        var a = new Node();
+        var b = new Node();
+        graph.AddNode(a);
+        graph.AddNode(b);
+        graph.Select(a);
+        graph.Select(b);
+
+        graph.RemoveNodes(new[] { a, b });
+
+        Assert.False(a.IsSelected);
+        Assert.False(b.IsSelected);
+        Assert.Empty(graph.SelectedNodes);
+    }
 }
