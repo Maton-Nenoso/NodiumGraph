@@ -16,10 +16,45 @@ internal class CanvasOverlay : Control
 
     private readonly NodiumGraphCanvas _canvas;
 
+    // Cached pens — dirty-tracked by brush/thickness
+    private Pen? _cachedSelectedBorderPen;
+    private IBrush? _lastSelectedBrush;
+    private double _lastSelectedThickness;
+
+    private Pen? _cachedHoveredBorderPen;
+    private IBrush? _lastHoveredBrush;
+    private double _lastHoveredThickness;
+
+    private Pen? _cachedPortOutlinePen;
+    private IBrush? _lastPortOutlineBrush;
+    private double _lastPortOutlineThickness;
+
+    // Cached FormattedText for port labels — keyed by (label, effective font size)
+    private readonly Dictionary<(string label, double fontSize), FormattedText> _labelCache = new();
+
     public CanvasOverlay(NodiumGraphCanvas canvas)
     {
         _canvas = canvas;
         IsHitTestVisible = false; // Let events pass through to the canvas
+    }
+
+    /// <summary>
+    /// Clears the cached FormattedText objects. Call when zoom changes significantly
+    /// or when port labels are expected to have changed.
+    /// </summary>
+    internal void InvalidateLabelCache() => _labelCache.Clear();
+
+    private static Pen GetOrCreatePen(ref Pen? cached, ref IBrush? lastBrush,
+        ref double lastThickness, IBrush brush, double thickness)
+    {
+        if (cached != null && ReferenceEquals(lastBrush, brush)
+            && Math.Abs(lastThickness - thickness) < 0.001)
+            return cached;
+
+        lastBrush = brush;
+        lastThickness = thickness;
+        cached = new Pen(brush, thickness);
+        return cached;
     }
 
     public override void Render(DrawingContext context)
@@ -42,8 +77,10 @@ internal class CanvasOverlay : Control
         var defaultHoveredThickness = ResolveResource<double>(
             NodiumGraphResources.NodeHoveredBorderThicknessKey, 1.5);
 
-        var selectedBorderPen = new Pen(defaultSelectedBrush, defaultSelectedThickness);
-        var hoveredBorderPen = new Pen(defaultHoveredBrush, defaultHoveredThickness);
+        var selectedBorderPen = GetOrCreatePen(ref _cachedSelectedBorderPen, ref _lastSelectedBrush,
+            ref _lastSelectedThickness, defaultSelectedBrush, defaultSelectedThickness);
+        var hoveredBorderPen = GetOrCreatePen(ref _cachedHoveredBorderPen, ref _lastHoveredBrush,
+            ref _lastHoveredThickness, defaultHoveredBrush, defaultHoveredThickness);
 
         // Node state borders (hovered + selected)
         foreach (var node in graph.Nodes)
@@ -92,7 +129,8 @@ internal class CanvasOverlay : Control
                 NodiumGraphResources.PortOutlineBrushKey,
                 NodiumGraphCanvas.DefaultPortOutlineBrush);
 
-            var defaultPortPen = new Pen(defaultPortOutlineBrush, 1.0);
+            var defaultPortPen = GetOrCreatePen(ref _cachedPortOutlinePen, ref _lastPortOutlineBrush,
+                ref _lastPortOutlineThickness, defaultPortOutlineBrush, 1.0);
 
             foreach (var node in graph.Nodes)
             {
@@ -184,13 +222,18 @@ internal class CanvasOverlay : Control
                     var portLabelOffset = port.Style?.LabelOffset ?? defaultLabelOffset;
                     var scaledOffset = portLabelOffset * zoom;
 
-                    var text = new FormattedText(
-                        port.Label,
-                        CultureInfo.InvariantCulture,
-                        FlowDirection.LeftToRight,
-                        Typeface.Default,
-                        portLabelFontSize * zoom,
-                        portLabelBrush);
+                    var cacheKey = (port.Label, portLabelFontSize * zoom);
+                    if (!_labelCache.TryGetValue(cacheKey, out var text))
+                    {
+                        text = new FormattedText(
+                            port.Label,
+                            CultureInfo.InvariantCulture,
+                            FlowDirection.LeftToRight,
+                            Typeface.Default,
+                            portLabelFontSize * zoom,
+                            portLabelBrush);
+                        _labelCache[cacheKey] = text;
+                    }
 
                     var textWidth = text.Width;
                     var textHeight = text.Height;
