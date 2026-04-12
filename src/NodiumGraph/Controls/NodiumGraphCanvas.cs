@@ -67,6 +67,14 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private readonly Dictionary<Port, PortStyle?> _portStyles = new();
     private bool _disposed;
 
+    // Connection pen cache. Sentinel fields track the three IConnectionStyle
+    // getter values so in-place mutation of a mutable IConnectionStyle
+    // implementation still rebuilds the pen, matching pre-cache behavior.
+    private Pen? _cachedConnectionPen;
+    private IBrush? _lastConnectionStroke;
+    private double _lastConnectionThickness;
+    private IDashStyle? _lastConnectionDashPattern;
+
     // Extra space around each node container so box shadows aren't clipped
     private const double ShadowPadding = 20;
 
@@ -1035,7 +1043,17 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             var router = ConnectionRouter;
             var style = DefaultConnectionStyle;
-            var connectionPen = new Pen(style.Stroke, style.Thickness, style.DashPattern);
+            if (_cachedConnectionPen is null
+                || !ReferenceEquals(_lastConnectionStroke, style.Stroke)
+                || _lastConnectionThickness != style.Thickness
+                || !ReferenceEquals(_lastConnectionDashPattern, style.DashPattern))
+            {
+                _cachedConnectionPen = new Pen(style.Stroke, style.Thickness, style.DashPattern);
+                _lastConnectionStroke = style.Stroke;
+                _lastConnectionThickness = style.Thickness;
+                _lastConnectionDashPattern = style.DashPattern;
+            }
+            var connectionPen = _cachedConnectionPen;
             foreach (var connection in Graph.Connections)
             {
                 ConnectionRenderer.Render(context, connection, router, connectionPen, transform);
