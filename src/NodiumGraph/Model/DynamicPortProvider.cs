@@ -53,10 +53,7 @@ public class DynamicPortProvider : IPortProvider
         // Check for existing port to reuse
         foreach (var existing in _ports)
         {
-            var abs = existing.AbsolutePosition;
-            var dx = abs.X - boundary.Value.X;
-            var dy = abs.Y - boundary.Value.Y;
-            if (dx * dx + dy * dy < _reuseThresholdSq)
+            if (GeometryHelpers.DistanceSquared(existing.AbsolutePosition, boundary.Value) < _reuseThresholdSq)
             {
                 if (!preview) _lastCreated = null; // Reusing — clear last-created tracking
                 return existing;
@@ -154,9 +151,7 @@ public class DynamicPortProvider : IPortProvider
         var boundaryCenter = shape.GetNearestBoundaryPoint(centerRel, _owner.Width, _owner.Height);
         var worldBoundary = new Point(boundaryCenter.X + centerX, boundaryCenter.Y + centerY);
 
-        var dx = position.X - worldBoundary.X;
-        var dy = position.Y - worldBoundary.Y;
-        if (dx * dx + dy * dy > _maxDistanceSq)
+        if (GeometryHelpers.DistanceSquared(position, worldBoundary) > _maxDistanceSq)
             return null;
 
         return worldBoundary;

@@ -67,10 +67,7 @@ public class FixedPortProvider : ILayoutAwarePortProvider
 
         foreach (var port in _ports)
         {
-            var abs = port.AbsolutePosition;
-            var dx = abs.X - position.X;
-            var dy = abs.Y - position.Y;
-            var distSq = dx * dx + dy * dy;
+            var distSq = GeometryHelpers.DistanceSquared(port.AbsolutePosition, position);
 
             if (distSq < _hitRadiusSq && distSq < closestDistSq)
             {
