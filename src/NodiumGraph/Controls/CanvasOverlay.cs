@@ -29,8 +29,9 @@ internal class CanvasOverlay : Control
     private IBrush? _lastPortOutlineBrush;
     private double _lastPortOutlineThickness;
 
-    // Cached FormattedText for port labels — keyed by (label, effective font size)
-    private readonly Dictionary<(string label, double fontSize), FormattedText> _labelCache = new();
+    // Cached FormattedText for port labels — keyed by (label, effective font size, brush)
+    private readonly Dictionary<(string label, double fontSize, IBrush brush), FormattedText> _labelCache = new();
+    private double _lastZoom;
 
     public CanvasOverlay(NodiumGraphCanvas canvas)
     {
@@ -64,6 +65,13 @@ internal class CanvasOverlay : Control
 
         var transform = new ViewportTransform(_canvas.ViewportZoom, _canvas.ViewportOffset);
         var zoom = _canvas.ViewportZoom;
+
+        // Invalidate label cache on zoom change to prevent unbounded growth.
+        if (Math.Abs(zoom - _lastZoom) > 0.0001)
+        {
+            _labelCache.Clear();
+            _lastZoom = zoom;
+        }
 
         // Resolve default brushes and thicknesses from theme resources
         var defaultSelectedBrush = _canvas.ResolveBrush(
@@ -222,7 +230,7 @@ internal class CanvasOverlay : Control
                     var portLabelOffset = port.Style?.LabelOffset ?? defaultLabelOffset;
                     var scaledOffset = portLabelOffset * zoom;
 
-                    var cacheKey = (port.Label, portLabelFontSize * zoom);
+                    var cacheKey = (port.Label, portLabelFontSize * zoom, portLabelBrush);
                     if (!_labelCache.TryGetValue(cacheKey, out var text))
                     {
                         text = new FormattedText(

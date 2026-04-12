@@ -348,20 +348,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal Size SnapGhostSize => _snapGhostSize;
 
     internal Port? ResolvePort(Point screenPosition, bool preview)
-    {
-        if (Graph == null) return null;
-        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
-        var worldPosition = transform.ScreenToWorld(screenPosition);
-
-        foreach (var node in Graph.Nodes)
-        {
-            if (node.IsCollapsed) continue;
-            if (node.PortProvider == null) continue;
-            var port = node.PortProvider.ResolvePort(worldPosition, preview);
-            if (port != null) return port;
-        }
-        return null;
-    }
+        => ResolvePortWithProvider(screenPosition, preview).port;
 
     internal (Port? port, IPortProvider? provider) ResolvePortWithProvider(Point screenPosition, bool preview)
     {
@@ -1063,6 +1050,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         Point lineStart, Point lineEnd, Connection connection, ViewportTransform transform)
     {
         var routePoints = ConnectionRouter.Route(connection.SourcePort, connection.TargetPort);
+        if (routePoints.Count < 2) return false;
 
         if (ConnectionRouter.RouteKind == RouteKind.Bezier && routePoints.Count == 4)
         {
@@ -1140,6 +1128,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
+        if (_disposed) return;
         if (Graph != null)
             OnGraphChanged(Graph, null);
     }

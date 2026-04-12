@@ -57,6 +57,7 @@ public class Graph
 
     /// <summary>
     /// Removes multiple nodes and all connections referencing their ports in a single pass.
+    /// Nodes in the input sequence that are not part of this graph are silently skipped.
     /// </summary>
     public void RemoveNodes(IEnumerable<Node> nodes)
     {
