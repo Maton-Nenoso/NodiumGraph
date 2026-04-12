@@ -29,21 +29,16 @@ internal class CanvasOverlay : Control
     private IBrush? _lastPortOutlineBrush;
     private double _lastPortOutlineThickness;
 
-    // Cached FormattedText for port labels — keyed by (label, effective font size, brush)
-    private readonly Dictionary<(string label, double fontSize, IBrush brush), FormattedText> _labelCache = new();
-    private double _lastZoom;
+    // Cached FormattedText for port labels. Key uses a 0.5-px-bucketed font size
+    // so continuous zoom reuses entries; bounded to avoid unbounded growth.
+    private const int LabelCacheMaxEntries = 256;
+    private readonly Dictionary<(string label, double bucketedFontSize, IBrush brush), FormattedText> _labelCache = new();
 
     public CanvasOverlay(NodiumGraphCanvas canvas)
     {
         _canvas = canvas;
         IsHitTestVisible = false; // Let events pass through to the canvas
     }
-
-    /// <summary>
-    /// Clears the cached FormattedText objects. Call when zoom changes significantly
-    /// or when port labels are expected to have changed.
-    /// </summary>
-    internal void InvalidateLabelCache() => _labelCache.Clear();
 
     private static Pen GetOrCreatePen(ref Pen? cached, ref IBrush? lastBrush,
         ref double lastThickness, IBrush brush, double thickness)
@@ -65,13 +60,6 @@ internal class CanvasOverlay : Control
 
         var transform = new ViewportTransform(_canvas.ViewportZoom, _canvas.ViewportOffset);
         var zoom = _canvas.ViewportZoom;
-
-        // Invalidate label cache on zoom change to prevent unbounded growth.
-        if (Math.Abs(zoom - _lastZoom) > 0.0001)
-        {
-            _labelCache.Clear();
-            _lastZoom = zoom;
-        }
 
         // Resolve default brushes and thicknesses from theme resources
         var defaultSelectedBrush = _canvas.ResolveBrush(
@@ -230,15 +218,19 @@ internal class CanvasOverlay : Control
                     var portLabelOffset = port.Style?.LabelOffset ?? defaultLabelOffset;
                     var scaledOffset = portLabelOffset * zoom;
 
-                    var cacheKey = (port.Label, portLabelFontSize * zoom, portLabelBrush);
+                    var bucketedFontSize = Math.Round(portLabelFontSize * zoom * 2) / 2;
+                    var cacheKey = (port.Label, bucketedFontSize, portLabelBrush);
                     if (!_labelCache.TryGetValue(cacheKey, out var text))
                     {
+                        if (_labelCache.Count >= LabelCacheMaxEntries)
+                            _labelCache.Clear();
+
                         text = new FormattedText(
                             port.Label,
                             CultureInfo.InvariantCulture,
                             FlowDirection.LeftToRight,
                             Typeface.Default,
-                            portLabelFontSize * zoom,
+                            bucketedFontSize,
                             portLabelBrush);
                         _labelCache[cacheKey] = text;
                     }
