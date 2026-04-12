@@ -42,6 +42,12 @@ internal class CanvasOverlay : Control
     private readonly Dictionary<(IBrush brush, double thickness), Pen> _styledPenCache
         = new(new BrushThicknessComparer());
 
+    // Origin-centered port geometries, keyed on (shape, bucketed scaled radius).
+    // Reused across ports of the same shape/size; translated into place at draw
+    // time via PushTransform. Bucketing is 0.5 px so incremental zoom reuses entries.
+    private const int PortGeometryCacheMaxEntries = 64;
+    private readonly Dictionary<(PortShape shape, double bucketedRadius), Geometry> _portGeometryCache = new();
+
     public CanvasOverlay(NodiumGraphCanvas canvas)
     {
         _canvas = canvas;
@@ -73,6 +79,41 @@ internal class CanvasOverlay : Control
         pen = new Pen(brush, thickness);
         _styledPenCache[key] = pen;
         return pen;
+    }
+
+    private Geometry GetOrCreatePortGeometry(PortShape shape, double bucketedRadius)
+    {
+        var key = (shape, bucketedRadius);
+        if (_portGeometryCache.TryGetValue(key, out var cached))
+            return cached;
+
+        if (_portGeometryCache.Count >= PortGeometryCacheMaxEntries)
+            _portGeometryCache.Clear();
+
+        var geo = new StreamGeometry();
+        using (var ctx = geo.Open())
+        {
+            switch (shape)
+            {
+                case PortShape.Diamond:
+                    ctx.BeginFigure(new Point(0, -bucketedRadius), true);
+                    ctx.LineTo(new Point(bucketedRadius, 0));
+                    ctx.LineTo(new Point(0, bucketedRadius));
+                    ctx.LineTo(new Point(-bucketedRadius, 0));
+                    ctx.EndFigure(true);
+                    break;
+
+                case PortShape.Triangle:
+                    ctx.BeginFigure(new Point(0, -bucketedRadius), true);
+                    ctx.LineTo(new Point(bucketedRadius, bucketedRadius));
+                    ctx.LineTo(new Point(-bucketedRadius, bucketedRadius));
+                    ctx.EndFigure(true);
+                    break;
+            }
+        }
+
+        _portGeometryCache[key] = geo;
+        return geo;
     }
 
     private sealed class BrushThicknessComparer
@@ -197,31 +238,14 @@ internal class CanvasOverlay : Control
                             break;
 
                         case PortShape.Diamond:
-                        {
-                            var geo = new StreamGeometry();
-                            using (var ctx = geo.Open())
-                            {
-                                ctx.BeginFigure(new Point(screenPos.X, screenPos.Y - scaledRadius), true);
-                                ctx.LineTo(new Point(screenPos.X + scaledRadius, screenPos.Y));
-                                ctx.LineTo(new Point(screenPos.X, screenPos.Y + scaledRadius));
-                                ctx.LineTo(new Point(screenPos.X - scaledRadius, screenPos.Y));
-                                ctx.EndFigure(true);
-                            }
-                            context.DrawGeometry(fill, pen, geo);
-                            break;
-                        }
-
                         case PortShape.Triangle:
                         {
-                            var geo = new StreamGeometry();
-                            using (var ctx = geo.Open())
+                            var bucketedRadius = Math.Round(scaledRadius * 2) / 2;
+                            var geo = GetOrCreatePortGeometry(shape, bucketedRadius);
+                            using (context.PushTransform(Matrix.CreateTranslation(screenPos.X, screenPos.Y)))
                             {
-                                ctx.BeginFigure(new Point(screenPos.X, screenPos.Y - scaledRadius), true);
-                                ctx.LineTo(new Point(screenPos.X + scaledRadius, screenPos.Y + scaledRadius));
-                                ctx.LineTo(new Point(screenPos.X - scaledRadius, screenPos.Y + scaledRadius));
-                                ctx.EndFigure(true);
+                                context.DrawGeometry(fill, pen, geo);
                             }
-                            context.DrawGeometry(fill, pen, geo);
                             break;
                         }
                     }
