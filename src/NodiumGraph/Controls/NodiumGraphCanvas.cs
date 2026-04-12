@@ -1063,33 +1063,34 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         Point lineStart, Point lineEnd, Connection connection, ViewportTransform transform)
     {
         var routePoints = ConnectionRouter.Route(connection.SourcePort, connection.TargetPort);
-        var screenPoints = routePoints.Select(transform.WorldToScreen).ToList();
 
-        // For bezier (4 points), sample the curve at intervals for approximate intersection
-        if (ConnectionRouter.IsBezierRoute && screenPoints.Count == 4)
+        if (ConnectionRouter.IsBezierRoute && routePoints.Count == 4)
         {
-            var samples = new List<Point>();
-            for (var t = 0.0; t <= 1.0; t += 0.05)
-            {
-                samples.Add(BezierPoint(screenPoints[0], screenPoints[1], screenPoints[2], screenPoints[3], t));
-            }
+            var p0 = transform.WorldToScreen(routePoints[0]);
+            var p1 = transform.WorldToScreen(routePoints[1]);
+            var p2 = transform.WorldToScreen(routePoints[2]);
+            var p3 = transform.WorldToScreen(routePoints[3]);
 
-            for (var i = 0; i < samples.Count - 1; i++)
+            var prev = p0;
+            for (var t = 0.05; t <= 1.0; t += 0.05)
             {
-                if (LinesIntersect(lineStart, lineEnd, samples[i], samples[i + 1]))
+                var current = BezierPoint(p0, p1, p2, p3, t);
+                if (LinesIntersect(lineStart, lineEnd, prev, current))
                     return true;
+                prev = current;
             }
-
             return false;
         }
 
-        // For polyline, check each segment
-        for (var i = 0; i < screenPoints.Count - 1; i++)
+        // Polyline — iterate route points directly, no list allocation
+        var prevScreen = transform.WorldToScreen(routePoints[0]);
+        for (var i = 1; i < routePoints.Count; i++)
         {
-            if (LinesIntersect(lineStart, lineEnd, screenPoints[i], screenPoints[i + 1]))
+            var currentScreen = transform.WorldToScreen(routePoints[i]);
+            if (LinesIntersect(lineStart, lineEnd, prevScreen, currentScreen))
                 return true;
+            prevScreen = currentScreen;
         }
-
         return false;
     }
 
