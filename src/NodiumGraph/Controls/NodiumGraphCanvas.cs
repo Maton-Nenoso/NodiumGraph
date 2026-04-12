@@ -388,22 +388,13 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (!additive)
         {
             foreach (var n in Graph.SelectedNodes.ToList())
-            {
-                n.IsSelected = false;
                 Graph.Deselect(n);
-            }
         }
 
         if (node.IsSelected && additive)
-        {
-            node.IsSelected = false;
             Graph.Deselect(node);
-        }
         else
-        {
-            node.IsSelected = true;
             Graph.Select(node);
-        }
 
         SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
         InvalidateVisual();
@@ -412,9 +403,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal void ClearSelection()
     {
         if (Graph is null) return;
-
-        foreach (var node in Graph.SelectedNodes.ToList())
-            node.IsSelected = false;
 
         Graph.ClearSelection();
         SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
@@ -426,10 +414,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (Graph == null) return;
 
         foreach (var node in Graph.Nodes)
-        {
-            node.IsSelected = true;
             Graph.Select(node);
-        }
 
         SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
         InvalidateVisual();
@@ -753,10 +738,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                     var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
 
                     if (marqueeRect.Intersects(nodeRect))
-                    {
-                        node.IsSelected = true;
                         Graph.Select(node);
-                    }
                 }
 
                 SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);

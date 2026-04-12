@@ -81,7 +81,10 @@ public class Graph
         if (!_nodes.Contains(node))
             throw new InvalidOperationException("Node is not part of this graph.");
         if (!_selectedNodes.Contains(node))
+        {
             _selectedNodes.Add(node);
+            node.IsSelected = true;
+        }
     }
 
     /// <summary>
@@ -89,11 +92,14 @@ public class Graph
     /// </summary>
     public void Deselect(Node node)
     {
+        node.IsSelected = false;
         _selectedNodes.Remove(node);
     }
 
     public void ClearSelection()
     {
+        foreach (var node in _selectedNodes)
+            node.IsSelected = false;
         _selectedNodes.Clear();
     }
 }

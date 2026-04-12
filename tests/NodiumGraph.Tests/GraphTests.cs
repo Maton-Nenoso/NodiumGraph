@@ -248,4 +248,46 @@ public class GraphTests
 
         Assert.False(node.IsSelected);
     }
+
+    [Fact]
+    public void Select_sets_IsSelected_true()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+
+        graph.Select(node);
+
+        Assert.True(node.IsSelected);
+    }
+
+    [Fact]
+    public void Deselect_sets_IsSelected_false()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        graph.Select(node);
+
+        graph.Deselect(node);
+
+        Assert.False(node.IsSelected);
+    }
+
+    [Fact]
+    public void ClearSelection_resets_all_IsSelected()
+    {
+        var graph = new Graph();
+        var a = new Node();
+        var b = new Node();
+        graph.AddNode(a);
+        graph.AddNode(b);
+        graph.Select(a);
+        graph.Select(b);
+
+        graph.ClearSelection();
+
+        Assert.False(a.IsSelected);
+        Assert.False(b.IsSelected);
+    }
 }
