@@ -1,8 +1,22 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="GettingStarted.App"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Light">
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://NodiumGraph/Themes/Generic.axaml" />
   </Application.Styles>
+
+  <Application.Resources>
+    <!-- Node chrome — white card, indigo header -->
+    <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FF6366F1" />
+    <SolidColorBrush x:Key="NodiumGraphNodeHeaderForegroundBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="NodiumGraphNodeBodyBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="NodiumGraphNodeBorderBrush" Color="#FFE2E8F0" />
+
+    <!-- Ports — dark on light body -->
+    <SolidColorBrush x:Key="NodiumGraphPortBrush" Color="#FF94A3B8" />
+    <SolidColorBrush x:Key="NodiumGraphPortOutlineBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="NodiumGraphPortLabelBrush" Color="#FF334155" />
+  </Application.Resources>
 </Application>

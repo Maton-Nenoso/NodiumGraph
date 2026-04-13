@@ -18,7 +18,50 @@ You will end up with a single Avalonia window that hosts a `NodiumGraphCanvas`. 
 
 The finished code for this tutorial lives in `samples/GettingStarted/`. You can follow along from scratch or open that project directly and read through it.
 
-## 1. Host NodiumGraphCanvas in a window
+## 1. Register the NodiumGraph control theme
+
+Before you touch any window, merge NodiumGraph's control theme into your application styles. Without it, `NodePresenter` has no template — nodes render as bare content with no header, no border, and no title text.
+
+`Generic.axaml` ships with **dark-mode defaults** (dark node body, light port glyphs) so the canvas looks correct on a dark window out of the box. The tutorial uses a light palette, so alongside the `StyleInclude` you will also pin `RequestedThemeVariant="Light"` and override the `NodiumGraph*` brush resources.
+
+Open `App.axaml` and replace its contents with:
+
+```xml
+<!-- from: samples/GettingStarted/App.axaml -->
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="GettingStarted.App"
+             RequestedThemeVariant="Light">
+  <Application.Styles>
+    <FluentTheme />
+    <StyleInclude Source="avares://NodiumGraph/Themes/Generic.axaml" />
+  </Application.Styles>
+
+  <Application.Resources>
+    <!-- Node chrome — white card, indigo header -->
+    <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FF6366F1" />
+    <SolidColorBrush x:Key="NodiumGraphNodeHeaderForegroundBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="NodiumGraphNodeBodyBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="NodiumGraphNodeBorderBrush" Color="#FFE2E8F0" />
+
+    <!-- Ports — dark on light body -->
+    <SolidColorBrush x:Key="NodiumGraphPortBrush" Color="#FF94A3B8" />
+    <SolidColorBrush x:Key="NodiumGraphPortOutlineBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="NodiumGraphPortLabelBrush" Color="#FF334155" />
+  </Application.Resources>
+</Application>
+```
+
+A few things to notice:
+
+- The `StyleInclude` merges the `NodePresenter` `ControlTheme` (header bar, body border, collapse toggle) plus the full set of `NodiumGraph*` brush resources (grid, node surface, ports, marquee, minimap).
+- Every canvas brush is a `DynamicResource` lookup by key, so you re-skin the whole canvas by overriding keys in `Application.Resources` — no need to fork the theme.
+- The seven keys above are the ones that show up in this tutorial. The [theme-canvas how-to](../2-how-to/theme-canvas.md) lists the complete key vocabulary (selection, hover, marquee, preview, minimap) when you are ready to build a full palette.
+- `RequestedThemeVariant="Light"` pins FluentTheme's light variant so the window and any standard Avalonia controls you add later match the light canvas.
+
+> **Gotcha:** Skip the brush overrides and the tutorial screenshot will not match what you see on screen. The node body will be near-black and the description text — hardcoded to `#475569` in step 5 — will be unreadable against it.
+
+## 2. Host NodiumGraphCanvas in a window
 
 Every NodiumGraph app starts with a `NodiumGraphCanvas` somewhere in its layout. It is a `TemplatedControl` in the `NodiumGraph.Controls` namespace, and it renders the nodes, connections, grid, and overlays for you.
 
@@ -61,9 +104,9 @@ A few things to notice:
 - `ShowGrid="True"` enables the default dot grid.
 - Pan (middle-mouse drag or `Space`+left-drag), zoom (scroll wheel), and selection (click, Ctrl-click, marquee) all work out of the box — no wiring required.
 
-The `Window.DataTemplates` block is how the canvas learns to render your node type. Step 4 explains what `NodePresenter` gives you.
+The `Window.DataTemplates` block is how the canvas learns to render your node type. Step 5 explains what `NodePresenter` gives you.
 
-## 2. Create a node class
+## 3. Create a node class
 
 `Node` is a concrete, unsealed base class in `NodiumGraph.Model`. You subclass it to attach domain data — not because the model is incomplete, but because the DataTemplate system resolves templates by `DataType="local:MathNode"`. Without a subclass there is nothing to key the template off of.
 
@@ -83,7 +126,7 @@ public class MathNode : Node
 
 `Title`, `X`, `Y`, and `PortProvider` are already on `Node` — do not redeclare them. `Width` and `Height` are set internally by the canvas during measure, so leave those alone as well.
 
-## 3. Give the node ports
+## 4. Give the node ports
 
 Connections attach to ports, not to nodes. Each port has a flow direction (`PortFlow.Input` or `PortFlow.Output`) and an optional `DataType` token that the default validator compares by equality.
 
@@ -126,7 +169,7 @@ Notes:
 
 > **Gotcha:** `Port.Position` is **node-local**, not world-space. Use `Port.AbsolutePosition` when you need world coordinates — it is computed on demand from the owning node.
 
-## 4. Write the node DataTemplate
+## 5. Write the node DataTemplate
 
 When the canvas materializes a node, it looks up a `DataTemplate` keyed by the node's concrete type and instantiates it inside a node host. Rooting your template with `<ng:NodePresenter>` gives you the standard node chrome: a header bar, body area, corner radius, and the hover/selection visuals. You only need to supply the body content.
 
@@ -153,7 +196,7 @@ Ports are rendered automatically by the canvas from `node.PortProvider.Ports`. D
 
 See [how to define a custom node DataTemplate](../2-how-to/custom-node-template.md) for more on `NodePresenter` and template patterns.
 
-## 5. Build the graph
+## 6. Build the graph
 
 A `Graph` is just a container for nodes and connections. Add the builder:
 
@@ -183,7 +226,7 @@ Finally, `graph.AddConnection(new Connection(sourceOut, sinkIn))` pre-wires one 
 
 > **Gotcha:** `Graph.Nodes` and `Graph.Connections` are exposed as `ReadOnlyObservableCollection<T>`. Always go through `AddNode` / `RemoveNode` / `AddConnection` / `RemoveConnection` — never mutate those collections directly.
 
-## 6. Wire the connection handler
+## 7. Wire the connection handler
 
 NodiumGraph follows a "report, don't decide" rule. When the user completes a connection drag, the canvas calls `IConnectionHandler.OnConnectionRequested(source, target)` and expects **your code** to decide whether to accept the connection and to mutate the graph itself. The canvas will not add the connection for you.
 
@@ -221,7 +264,7 @@ The full `MainWindow.axaml.cs` builds the graph, assigns it, and installs the ha
 
 See [handler interfaces reference](../3-reference/handlers.md) for the complete handler contracts and [Result pattern](../3-reference/result-pattern.md) for `Result<T>` and `Error`.
 
-## 7. Run it and experiment
+## 8. Run it and experiment
 
 From the repo root, launch the sample:
 

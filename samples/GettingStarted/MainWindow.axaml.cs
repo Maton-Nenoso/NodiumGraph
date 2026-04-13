@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 using NodiumGraph;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
@@ -11,7 +10,7 @@ public partial class MainWindow : Window
 {
     public MainWindow()
     {
-        AvaloniaXamlLoader.Load(this);
+        InitializeComponent();
 
         var graph = BuildGraph();
         Canvas.Graph = graph;
