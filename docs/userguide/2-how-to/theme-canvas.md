@@ -19,7 +19,7 @@ The library never hardcodes its visible brushes. Every chrome element looks up a
 2. Avalonia walks outward from the canvas — parent control → window → application — until it finds a match.
 3. If no match is found, the canvas falls back to a built-in default brush.
 
-The library ships a default set of brushes through its `ControlTheme` in `src/NodiumGraph/Themes/Generic.axaml`. Overriding a key in any enclosing resource dictionary replaces that default for every canvas in that scope.
+The library ships both `Light` and `Dark` brush palettes through `ResourceDictionary.ThemeDictionaries` in `src/NodiumGraph/Themes/Generic.axaml`. The canvas picks the variant matching your `Application.RequestedThemeVariant`, so a stock app looks correct on day one whether you choose Light, Dark, or follow the OS. Overriding a key in any enclosing resource dictionary replaces that default for every canvas in that scope.
 
 ### 2. The resource keys
 
@@ -27,6 +27,7 @@ All keys are constants on the static `NodiumGraph.NodiumGraphResources` class (n
 
 | Key constant | String value | Used by |
 |---|---|---|
+| `CanvasBackgroundBrushKey` | `NodiumGraphCanvasBackgroundBrush` | Canvas backdrop behind the grid |
 | `GridBrushKey` | `NodiumGraphGridBrush` | Minor grid dots or lines |
 | `MajorGridBrushKey` | `NodiumGraphMajorGridBrush` | Every Nth cell (`MajorGridInterval`) |
 | `OriginXAxisBrushKey` | `NodiumGraphOriginXAxisBrush` | Horizontal axis through world `(0, 0)` |
@@ -98,12 +99,18 @@ Place the same resources in a `Window.Resources` block instead to limit the over
 </Window>
 ```
 
-### 5. Set the canvas background separately
+### 5. Set the canvas background
 
-The background behind the grid is *not* themed through a resource key — it's just the standard Avalonia `Background` property of the canvas, set however you normally set a `Control.Background`. This is intentional: backgrounds are usually unique per screen, whereas the grid and chrome are consistent across your app.
+The default canvas background is themed through `NodiumGraphCanvasBackgroundBrush`, so the stock `Light` and `Dark` variants each ship a backdrop that matches the rest of the chrome. Override the key in `Application.Resources` (or a `ThemeDictionaries` entry) to change the default app-wide:
 
 ```xml
-<ng:NodiumGraphCanvas Background="#F1F5F9" ShowGrid="True" />
+<SolidColorBrush x:Key="NodiumGraphCanvasBackgroundBrush" Color="#FFF1F5F9" />
+```
+
+For per-screen backgrounds — different hue in a preview pane, a gradient on a splash page — set `Background` directly on the `NodiumGraphCanvas` instance. That overrides the themed default without touching the resource:
+
+```xml
+<ng:NodiumGraphCanvas Background="#0F172A" ShowGrid="True" />
 ```
 
 Or bind it, style it, or gradient-fill it like any other `Control`.
@@ -170,7 +177,7 @@ var marqueeKey = NodiumGraphResources.MarqueeFillBrushKey;  // "NodiumGraphMarqu
 
 - **Use `SolidColorBrush x:Key="..."`, not `DynamicResource`, in your dictionary.** Resources *are* the values; the canvas uses `DynamicResource` internally to look them up. You only need to declare the resource once.
 - **Key strings are case-sensitive** and must match exactly — use the constants on `NodiumGraphResources` to avoid typos. Avalonia silently falls back to the default when a key misses, so a typo looks like "the theme didn't apply".
-- **The canvas `Background` is a plain `Control.Background`, not a themed key.** If you want the background to participate in theme variants, use `DynamicResource` for its value in AXAML the normal way.
+- **Setting `Background` directly on a `NodiumGraphCanvas` wins over the themed default.** The theme drives `NodiumGraphCanvasBackgroundBrush` through a default style; any local `Background` attribute or binding on the canvas instance trumps it. Useful for per-screen overrides, but watch for stale attributes left over from older code that assumed the background was un-themed.
 - **Avalonia resources do not inherit across windows opened outside the main application scope.** Resources set on a `Window` only apply to that window's visual tree. Put global overrides in `Application.Resources`.
 - **Changing resources at runtime triggers a redraw.** You do not need to call `InvalidateVisual`; Avalonia raises the appropriate dirty notification when a `DynamicResource` target changes.
 - **`ConnectionStyle` and `PortStyle` overrides apply *on top* of these brushes.** A per-port `Port.Style.Fill` wins over `NodiumGraphPortBrush`. If something isn't taking effect, check whether a more specific style is winning.

@@ -8,130 +8,188 @@
     </Design.PreviewWith>
 
     <Styles.Resources>
-        <!-- Grid -->
-        <SolidColorBrush x:Key="NodiumGraphGridBrush" Color="#28808080" />
-        <SolidColorBrush x:Key="NodiumGraphMajorGridBrush" Color="#50808080" />
-        <SolidColorBrush x:Key="NodiumGraphOriginXAxisBrush" Color="#60E05050" />
-        <SolidColorBrush x:Key="NodiumGraphOriginYAxisBrush" Color="#6050B050" />
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
 
-        <!-- Ports -->
-        <SolidColorBrush x:Key="NodiumGraphPortBrush" Color="#FFA0A0AA" />
-        <SolidColorBrush x:Key="NodiumGraphPortOutlineBrush" Color="#FFFFFFFF" />
+                <!-- =========================== LIGHT =========================== -->
+                <ResourceDictionary x:Key="Light">
+                    <!-- Canvas -->
+                    <SolidColorBrush x:Key="NodiumGraphCanvasBackgroundBrush" Color="#FFF1F5F9" />
 
-        <!-- Node states -->
-        <SolidColorBrush x:Key="NodiumGraphNodeSelectedBorderBrush" Color="#FF50A0FF" />
-        <SolidColorBrush x:Key="NodiumGraphNodeHoveredBorderBrush" Color="#7896BEFF" />
+                    <!-- Grid -->
+                    <SolidColorBrush x:Key="NodiumGraphGridBrush" Color="#1894A3B8" />
+                    <SolidColorBrush x:Key="NodiumGraphMajorGridBrush" Color="#3094A3B8" />
+                    <SolidColorBrush x:Key="NodiumGraphOriginXAxisBrush" Color="#40EF4444" />
+                    <SolidColorBrush x:Key="NodiumGraphOriginYAxisBrush" Color="#4022C55E" />
 
-        <!-- Marquee -->
-        <SolidColorBrush x:Key="NodiumGraphMarqueeFillBrush" Color="#1E6496FF" />
-        <SolidColorBrush x:Key="NodiumGraphMarqueeBorderBrush" Color="#966496FF" />
+                    <!-- Ports -->
+                    <SolidColorBrush x:Key="NodiumGraphPortBrush" Color="#FF94A3B8" />
+                    <SolidColorBrush x:Key="NodiumGraphPortOutlineBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="NodiumGraphPortLabelBrush" Color="#FF334155" />
 
-        <!-- Connection preview -->
-        <SolidColorBrush x:Key="NodiumGraphConnectionPreviewValidBrush" Color="#FF00FF00" />
-        <SolidColorBrush x:Key="NodiumGraphConnectionPreviewInvalidBrush" Color="#FF808080" />
+                    <!-- Node states -->
+                    <SolidColorBrush x:Key="NodiumGraphNodeSelectedBorderBrush" Color="#FF3B82F6" />
+                    <SolidColorBrush x:Key="NodiumGraphNodeHoveredBorderBrush" Color="#5093C5FD" />
 
-        <!-- Cutting line -->
-        <SolidColorBrush x:Key="NodiumGraphCuttingLineBrush" Color="#FFFF0000" />
+                    <!-- Marquee -->
+                    <SolidColorBrush x:Key="NodiumGraphMarqueeFillBrush" Color="#103B82F6" />
+                    <SolidColorBrush x:Key="NodiumGraphMarqueeBorderBrush" Color="#603B82F6" />
 
-        <!-- Default node template -->
-        <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FF46649E" />
-        <SolidColorBrush x:Key="NodiumGraphNodeBodyBrush" Color="#FF2D2D3A" />
-        <SolidColorBrush x:Key="NodiumGraphNodeBorderBrush" Color="#FF808080" />
+                    <!-- Connection preview -->
+                    <SolidColorBrush x:Key="NodiumGraphConnectionPreviewValidBrush" Color="#FF22C55E" />
+                    <SolidColorBrush x:Key="NodiumGraphConnectionPreviewInvalidBrush" Color="#FF94A3B8" />
 
-        <!-- Minimap -->
-        <SolidColorBrush x:Key="NodiumGraphMinimapBackgroundBrush" Color="#C81E1E1E" />
-        <SolidColorBrush x:Key="NodiumGraphMinimapNodeBrush" Color="#B46496C8" />
-        <SolidColorBrush x:Key="NodiumGraphMinimapSelectedNodeBrush" Color="#DC50B4FF" />
-        <SolidColorBrush x:Key="NodiumGraphMinimapViewportBrush" Color="#96FFFFFF" />
+                    <!-- Cutting line -->
+                    <SolidColorBrush x:Key="NodiumGraphCuttingLineBrush" Color="#FFEF4444" />
 
-        <!-- NodePresenter control theme -->
-        <ControlTheme x:Key="{x:Type ng:NodePresenter}" TargetType="ng:NodePresenter">
-            <Setter Property="ClipToBounds" Value="False" />
-            <!-- Outer border -->
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="MinWidth" Value="150" />
-            <Setter Property="BorderBrush" Value="{DynamicResource NodiumGraphNodeBorderBrush}" />
-            <Setter Property="Background" Value="{DynamicResource NodiumGraphNodeBodyBrush}" />
-            <Setter Property="BoxShadow" Value="0 1 3 0 #1A000000, 0 1 2 -1 #1A000000" />
-            <!-- Header -->
-            <Setter Property="HeaderBackground" Value="{DynamicResource NodiumGraphNodeHeaderBrush}" />
-            <Setter Property="HeaderForeground" Value="{DynamicResource NodiumGraphNodeHeaderForegroundBrush}" />
-            <Setter Property="HeaderFontSize" Value="12" />
-            <Setter Property="HeaderFontWeight" Value="SemiBold" />
-            <Setter Property="HeaderPadding" Value="10,6" />
-            <!-- Body -->
-            <Setter Property="Padding" Value="10,8" />
-            <!-- Collapse toggle -->
-            <Setter Property="CollapseToggleForeground" Value="#94A3B8" />
-            <Setter Property="CollapseToggleFontSize" Value="8" />
-            <Setter Property="CollapseExpandedGlyph" Value="&#x25B2;" />
-            <Setter Property="CollapseCollapsedGlyph" Value="&#x25BC;" />
-            <Setter Property="Template">
-                <ControlTemplate TargetType="ng:NodePresenter" x:DataType="m:Node">
-                    <!-- Shadow wrapper: margin gives room for the shadow to render -->
-                    <Border Margin="20"
-                            CornerRadius="{TemplateBinding CornerRadius}"
-                            BoxShadow="{TemplateBinding BoxShadow}">
-                        <!-- Inner border clips header to rounded corners -->
-                        <Border CornerRadius="{TemplateBinding CornerRadius}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                Background="{TemplateBinding Background}"
-                                ClipToBounds="True">
-                        <StackPanel>
-                            <!-- Header -->
-                            <Border Name="PART_Header"
-                                    Background="{TemplateBinding HeaderBackground}"
-                                    Padding="{TemplateBinding HeaderPadding}"
-                                    IsVisible="{Binding ShowHeader}">
-                                <TextBlock Text="{Binding Title}"
-                                           Foreground="{TemplateBinding HeaderForeground}"
-                                           FontWeight="{TemplateBinding HeaderFontWeight}"
-                                           FontSize="{TemplateBinding HeaderFontSize}"
-                                           FontFamily="{TemplateBinding HeaderFontFamily}" />
-                            </Border>
-                            <!-- Body (user content) -->
-                            <ContentPresenter Name="PART_ContentPresenter"
-                                              Content="{TemplateBinding Content}"
-                                              ContentTemplate="{TemplateBinding ContentTemplate}"
-                                              Padding="{TemplateBinding Padding}"
-                                              IsVisible="{Binding !IsCollapsed}" />
-                            <!-- Collapse toggle -->
-                            <ToggleButton Name="PART_CollapseToggle"
-                                          IsChecked="{Binding IsCollapsed, Mode=TwoWay}"
-                                          IsVisible="{Binding IsCollapsible}"
-                                          Background="Transparent"
-                                          BorderThickness="0"
-                                          Padding="0,1"
-                                          HorizontalAlignment="Stretch"
-                                          HorizontalContentAlignment="Center"
-                                          Cursor="Hand"
-                                          MinHeight="14">
-                                <Panel>
-                                    <TextBlock Text="{TemplateBinding CollapseExpandedGlyph}"
-                                               IsVisible="{Binding !IsCollapsed}"
-                                               HorizontalAlignment="Center"
-                                               FontSize="{TemplateBinding CollapseToggleFontSize}"
-                                               Foreground="{TemplateBinding CollapseToggleForeground}" />
-                                    <TextBlock Text="{TemplateBinding CollapseCollapsedGlyph}"
-                                               IsVisible="{Binding IsCollapsed}"
-                                               HorizontalAlignment="Center"
-                                               FontSize="{TemplateBinding CollapseToggleFontSize}"
-                                               Foreground="{TemplateBinding CollapseToggleForeground}" />
-                                </Panel>
-                            </ToggleButton>
-                        </StackPanel>
-                    </Border>
-                    </Border>
-                </ControlTemplate>
-            </Setter>
-        </ControlTheme>
+                    <!-- Default node template -->
+                    <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FF6366F1" />
+                    <SolidColorBrush x:Key="NodiumGraphNodeHeaderForegroundBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="NodiumGraphNodeBodyBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="NodiumGraphNodeBorderBrush" Color="#FFE2E8F0" />
+
+                    <!-- Minimap -->
+                    <SolidColorBrush x:Key="NodiumGraphMinimapBackgroundBrush" Color="#E6F8FAFC" />
+                    <SolidColorBrush x:Key="NodiumGraphMinimapNodeBrush" Color="#B46366F1" />
+                    <SolidColorBrush x:Key="NodiumGraphMinimapSelectedNodeBrush" Color="#DC3B82F6" />
+                    <SolidColorBrush x:Key="NodiumGraphMinimapViewportBrush" Color="#6064748B" />
+                </ResourceDictionary>
+
+                <!-- =========================== DARK ============================ -->
+                <ResourceDictionary x:Key="Dark">
+                    <!-- Canvas -->
+                    <SolidColorBrush x:Key="NodiumGraphCanvasBackgroundBrush" Color="#FF1E1E2E" />
+
+                    <!-- Grid -->
+                    <SolidColorBrush x:Key="NodiumGraphGridBrush" Color="#28808080" />
+                    <SolidColorBrush x:Key="NodiumGraphMajorGridBrush" Color="#50808080" />
+                    <SolidColorBrush x:Key="NodiumGraphOriginXAxisBrush" Color="#60E05050" />
+                    <SolidColorBrush x:Key="NodiumGraphOriginYAxisBrush" Color="#6050B050" />
+
+                    <!-- Ports -->
+                    <SolidColorBrush x:Key="NodiumGraphPortBrush" Color="#FFA0A0AA" />
+                    <SolidColorBrush x:Key="NodiumGraphPortOutlineBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="NodiumGraphPortLabelBrush" Color="#FFE2E8F0" />
+
+                    <!-- Node states -->
+                    <SolidColorBrush x:Key="NodiumGraphNodeSelectedBorderBrush" Color="#FF50A0FF" />
+                    <SolidColorBrush x:Key="NodiumGraphNodeHoveredBorderBrush" Color="#7896BEFF" />
+
+                    <!-- Marquee -->
+                    <SolidColorBrush x:Key="NodiumGraphMarqueeFillBrush" Color="#1E6496FF" />
+                    <SolidColorBrush x:Key="NodiumGraphMarqueeBorderBrush" Color="#966496FF" />
+
+                    <!-- Connection preview -->
+                    <SolidColorBrush x:Key="NodiumGraphConnectionPreviewValidBrush" Color="#FF22C55E" />
+                    <SolidColorBrush x:Key="NodiumGraphConnectionPreviewInvalidBrush" Color="#FF808080" />
+
+                    <!-- Cutting line -->
+                    <SolidColorBrush x:Key="NodiumGraphCuttingLineBrush" Color="#FFFF0000" />
+
+                    <!-- Default node template -->
+                    <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FF46649E" />
+                    <SolidColorBrush x:Key="NodiumGraphNodeHeaderForegroundBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="NodiumGraphNodeBodyBrush" Color="#FF2D2D3A" />
+                    <SolidColorBrush x:Key="NodiumGraphNodeBorderBrush" Color="#FF808080" />
+
+                    <!-- Minimap -->
+                    <SolidColorBrush x:Key="NodiumGraphMinimapBackgroundBrush" Color="#C81E1E1E" />
+                    <SolidColorBrush x:Key="NodiumGraphMinimapNodeBrush" Color="#B46496C8" />
+                    <SolidColorBrush x:Key="NodiumGraphMinimapSelectedNodeBrush" Color="#DC50B4FF" />
+                    <SolidColorBrush x:Key="NodiumGraphMinimapViewportBrush" Color="#96FFFFFF" />
+                </ResourceDictionary>
+
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- NodePresenter control theme (not theme-scoped — pulls brushes via DynamicResource) -->
+            <ControlTheme x:Key="{x:Type ng:NodePresenter}" TargetType="ng:NodePresenter">
+                <Setter Property="ClipToBounds" Value="False" />
+                <!-- Outer border -->
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="MinWidth" Value="150" />
+                <Setter Property="BorderBrush" Value="{DynamicResource NodiumGraphNodeBorderBrush}" />
+                <Setter Property="Background" Value="{DynamicResource NodiumGraphNodeBodyBrush}" />
+                <Setter Property="BoxShadow" Value="0 1 3 0 #1A000000, 0 1 2 -1 #1A000000" />
+                <!-- Header -->
+                <Setter Property="HeaderBackground" Value="{DynamicResource NodiumGraphNodeHeaderBrush}" />
+                <Setter Property="HeaderForeground" Value="{DynamicResource NodiumGraphNodeHeaderForegroundBrush}" />
+                <Setter Property="HeaderFontSize" Value="12" />
+                <Setter Property="HeaderFontWeight" Value="SemiBold" />
+                <Setter Property="HeaderPadding" Value="10,6" />
+                <!-- Body -->
+                <Setter Property="Padding" Value="10,8" />
+                <!-- Collapse toggle -->
+                <Setter Property="CollapseToggleForeground" Value="#94A3B8" />
+                <Setter Property="CollapseToggleFontSize" Value="8" />
+                <Setter Property="CollapseExpandedGlyph" Value="&#x25B2;" />
+                <Setter Property="CollapseCollapsedGlyph" Value="&#x25BC;" />
+                <Setter Property="Template">
+                    <ControlTemplate TargetType="ng:NodePresenter" x:DataType="m:Node">
+                        <!-- Shadow wrapper: margin gives room for the shadow to render -->
+                        <Border Margin="20"
+                                CornerRadius="{TemplateBinding CornerRadius}"
+                                BoxShadow="{TemplateBinding BoxShadow}">
+                            <!-- Inner border clips header to rounded corners -->
+                            <Border CornerRadius="{TemplateBinding CornerRadius}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    Background="{TemplateBinding Background}"
+                                    ClipToBounds="True">
+                            <StackPanel>
+                                <!-- Header -->
+                                <Border Name="PART_Header"
+                                        Background="{TemplateBinding HeaderBackground}"
+                                        Padding="{TemplateBinding HeaderPadding}"
+                                        IsVisible="{Binding ShowHeader}">
+                                    <TextBlock Text="{Binding Title}"
+                                               Foreground="{TemplateBinding HeaderForeground}"
+                                               FontWeight="{TemplateBinding HeaderFontWeight}"
+                                               FontSize="{TemplateBinding HeaderFontSize}"
+                                               FontFamily="{TemplateBinding HeaderFontFamily}" />
+                                </Border>
+                                <!-- Body (user content) -->
+                                <ContentPresenter Name="PART_ContentPresenter"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                  Padding="{TemplateBinding Padding}"
+                                                  IsVisible="{Binding !IsCollapsed}" />
+                                <!-- Collapse toggle -->
+                                <ToggleButton Name="PART_CollapseToggle"
+                                              IsChecked="{Binding IsCollapsed, Mode=TwoWay}"
+                                              IsVisible="{Binding IsCollapsible}"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              Padding="0,1"
+                                              HorizontalAlignment="Stretch"
+                                              HorizontalContentAlignment="Center"
+                                              Cursor="Hand"
+                                              MinHeight="14">
+                                    <Panel>
+                                        <TextBlock Text="{TemplateBinding CollapseExpandedGlyph}"
+                                                   IsVisible="{Binding !IsCollapsed}"
+                                                   HorizontalAlignment="Center"
+                                                   FontSize="{TemplateBinding CollapseToggleFontSize}"
+                                                   Foreground="{TemplateBinding CollapseToggleForeground}" />
+                                        <TextBlock Text="{TemplateBinding CollapseCollapsedGlyph}"
+                                                   IsVisible="{Binding IsCollapsed}"
+                                                   HorizontalAlignment="Center"
+                                                   FontSize="{TemplateBinding CollapseToggleFontSize}"
+                                                   Foreground="{TemplateBinding CollapseToggleForeground}" />
+                                    </Panel>
+                                </ToggleButton>
+                            </StackPanel>
+                        </Border>
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+        </ResourceDictionary>
     </Styles.Resources>
 
-    <!-- Default NodiumGraphCanvas style -->
+    <!-- Default NodiumGraphCanvas style — theme-aware background -->
     <Style Selector="ng|NodiumGraphCanvas">
-        <Setter Property="Background" Value="#FF1E1E2E" />
+        <Setter Property="Background" Value="{DynamicResource NodiumGraphCanvasBackgroundBrush}" />
         <Setter Property="ClipToBounds" Value="True" />
     </Style>
 

@@ -22,9 +22,7 @@ The finished code for this tutorial lives in `samples/GettingStarted/`. You can 
 
 Before you touch any window, merge NodiumGraph's control theme into your application styles. Without it, `NodePresenter` has no template — nodes render as bare content with no header, no border, and no title text.
 
-`Generic.axaml` ships with **dark-mode defaults** (dark node body, light port glyphs) so the canvas looks correct on a dark window out of the box. The tutorial uses a light palette, so alongside the `StyleInclude` you will also pin `RequestedThemeVariant="Light"` and override the `NodiumGraph*` brush resources.
-
-Open `App.axaml` and replace its contents with:
+Open `App.axaml` and add the `StyleInclude`:
 
 ```xml
 <!-- from: samples/GettingStarted/App.axaml -->
@@ -36,30 +34,10 @@ Open `App.axaml` and replace its contents with:
     <FluentTheme />
     <StyleInclude Source="avares://NodiumGraph/Themes/Generic.axaml" />
   </Application.Styles>
-
-  <Application.Resources>
-    <!-- Node chrome — white card, indigo header -->
-    <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FF6366F1" />
-    <SolidColorBrush x:Key="NodiumGraphNodeHeaderForegroundBrush" Color="#FFFFFFFF" />
-    <SolidColorBrush x:Key="NodiumGraphNodeBodyBrush" Color="#FFFFFFFF" />
-    <SolidColorBrush x:Key="NodiumGraphNodeBorderBrush" Color="#FFE2E8F0" />
-
-    <!-- Ports — dark on light body -->
-    <SolidColorBrush x:Key="NodiumGraphPortBrush" Color="#FF94A3B8" />
-    <SolidColorBrush x:Key="NodiumGraphPortOutlineBrush" Color="#FFFFFFFF" />
-    <SolidColorBrush x:Key="NodiumGraphPortLabelBrush" Color="#FF334155" />
-  </Application.Resources>
 </Application>
 ```
 
-A few things to notice:
-
-- The `StyleInclude` merges the `NodePresenter` `ControlTheme` (header bar, body border, collapse toggle) plus the full set of `NodiumGraph*` brush resources (grid, node surface, ports, marquee, minimap).
-- Every canvas brush is a `DynamicResource` lookup by key, so you re-skin the whole canvas by overriding keys in `Application.Resources` — no need to fork the theme.
-- The seven keys above are the ones that show up in this tutorial. The [theme-canvas how-to](../2-how-to/theme-canvas.md) lists the complete key vocabulary (selection, hover, marquee, preview, minimap) when you are ready to build a full palette.
-- `RequestedThemeVariant="Light"` pins FluentTheme's light variant so the window and any standard Avalonia controls you add later match the light canvas.
-
-> **Gotcha:** Skip the brush overrides and the tutorial screenshot will not match what you see on screen. The node body will be near-black and the description text — hardcoded to `#475569` in step 5 — will be unreadable against it.
+`Generic.axaml` ships both `Light` and `Dark` brush palettes through `ResourceDictionary.ThemeDictionaries`, so the canvas picks up the variant set on your application automatically — this tutorial uses `RequestedThemeVariant="Light"`. The include also brings in the `NodePresenter` `ControlTheme` (header bar, body border, collapse toggle). To re-skin the canvas later, override any `NodiumGraph*Brush` key in `Application.Resources`; the [theme-canvas how-to](../2-how-to/theme-canvas.md) lists the complete vocabulary.
 
 ## 2. Host NodiumGraphCanvas in a window
 
@@ -92,7 +70,6 @@ Open `MainWindow.axaml` and replace its contents with:
   </Window.DataTemplates>
 
   <ng:NodiumGraphCanvas x:Name="Canvas"
-                        Background="#F1F5F9"
                         ShowGrid="True" />
 </Window>
 ```

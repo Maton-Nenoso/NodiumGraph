@@ -21,6 +21,5 @@
   </Window.DataTemplates>
 
   <ng:NodiumGraphCanvas x:Name="Canvas"
-                        Background="#F1F5F9"
                         ShowGrid="True" />
 </Window>

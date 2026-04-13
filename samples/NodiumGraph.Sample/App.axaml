@@ -7,41 +7,4 @@
         <StyleInclude Source="avares://NodiumGraph/Themes/Generic.axaml" />
     </Application.Styles>
 
-    <Application.Resources>
-        <!-- Canvas grid — very subtle so nodes stand out -->
-        <SolidColorBrush x:Key="NodiumGraphGridBrush" Color="#1894A3B8" />
-        <SolidColorBrush x:Key="NodiumGraphMajorGridBrush" Color="#3094A3B8" />
-        <SolidColorBrush x:Key="NodiumGraphOriginXAxisBrush" Color="#40EF4444" />
-        <SolidColorBrush x:Key="NodiumGraphOriginYAxisBrush" Color="#4022C55E" />
-
-        <!-- Node defaults — white card with soft border -->
-        <SolidColorBrush x:Key="NodiumGraphNodeHeaderBrush" Color="#FF6366F1" />
-        <SolidColorBrush x:Key="NodiumGraphNodeBodyBrush" Color="#FFFFFFFF" />
-        <SolidColorBrush x:Key="NodiumGraphNodeBorderBrush" Color="#FFE2E8F0" />
-        <SolidColorBrush x:Key="NodiumGraphNodeHeaderForegroundBrush" Color="#FFFFFFFF" />
-
-        <!-- Selection / hover -->
-        <SolidColorBrush x:Key="NodiumGraphNodeSelectedBorderBrush" Color="#FF3B82F6" />
-        <SolidColorBrush x:Key="NodiumGraphNodeHoveredBorderBrush" Color="#5093C5FD" />
-
-        <!-- Marquee -->
-        <SolidColorBrush x:Key="NodiumGraphMarqueeFillBrush" Color="#103B82F6" />
-        <SolidColorBrush x:Key="NodiumGraphMarqueeBorderBrush" Color="#603B82F6" />
-
-        <!-- Connection preview -->
-        <SolidColorBrush x:Key="NodiumGraphConnectionPreviewValidBrush" Color="#FF22C55E" />
-        <SolidColorBrush x:Key="NodiumGraphConnectionPreviewInvalidBrush" Color="#FF94A3B8" />
-
-        <!-- Ports -->
-        <SolidColorBrush x:Key="NodiumGraphPortBrush" Color="#FF94A3B8" />
-        <SolidColorBrush x:Key="NodiumGraphPortOutlineBrush" Color="#FFFFFFFF" />
-        <SolidColorBrush x:Key="NodiumGraphPortLabelBrush" Color="#FF000000" />
-
-        <!-- Minimap -->
-        <SolidColorBrush x:Key="NodiumGraphMinimapBackgroundBrush" Color="#E6F8FAFC" />
-        <SolidColorBrush x:Key="NodiumGraphMinimapNodeBrush" Color="#B46366F1" />
-        <SolidColorBrush x:Key="NodiumGraphMinimapSelectedNodeBrush" Color="#DC3B82F6" />
-        <SolidColorBrush x:Key="NodiumGraphMinimapViewportBrush" Color="#6064748B" />
-    </Application.Resources>
-
 </Application>

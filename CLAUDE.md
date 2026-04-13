@@ -9,6 +9,7 @@ NodiumGraph is an open-source graph editor library for **Avalonia** (.NET). It p
 - **Owner:** Maton-Nenoso (Stefan Maton)
 - **License:** MIT
 - **Target:** Avalonia 12, .NET 10, AOT-compatible, zero third-party deps beyond Avalonia
+- **Release status:** pre-1.0, no public users. Breaking changes are free — do not add backwards-compatibility shims, deprecation wrappers, or migration notes. Pick the right design now. This policy flips the moment we ship 1.0.
 
 ## Build & Test Commands
 

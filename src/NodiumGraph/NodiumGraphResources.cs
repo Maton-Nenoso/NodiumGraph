@@ -6,6 +6,9 @@ namespace NodiumGraph;
 /// </summary>
 public static class NodiumGraphResources
 {
+    // Canvas
+    public const string CanvasBackgroundBrushKey = "NodiumGraphCanvasBackgroundBrush";
+
     // Grid
     public const string GridBrushKey = "NodiumGraphGridBrush";
     public const string MajorGridBrushKey = "NodiumGraphMajorGridBrush";

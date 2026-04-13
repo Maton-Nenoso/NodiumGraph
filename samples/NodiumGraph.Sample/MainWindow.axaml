@@ -196,7 +196,6 @@
         <!-- Canvas -->
         <ng:NodiumGraphCanvas x:Name="Canvas"
                               Grid.Column="1"
-                              Background="#FFF1F5F9"
                               ShowGrid="True"
                               SnapToGrid="False"
                               ShowMinimap="True" />
