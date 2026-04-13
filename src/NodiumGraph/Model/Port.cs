@@ -83,8 +83,10 @@ public class Port : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Opaque type token consumed by IConnectionValidator.
-    /// The library never inspects this value beyond equality comparison in the default validator.
+    /// Opaque type token consumed by IConnectionValidator. The library never inspects this value
+    /// beyond equality comparison in the default validator. Prefer reference-typed tokens
+    /// (e.g. <see cref="string"/>, <see cref="System.Type"/>, class-based records) to avoid
+    /// boxing on every validator call during connection drags.
     /// </summary>
     public object? DataType
     {

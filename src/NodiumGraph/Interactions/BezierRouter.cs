@@ -9,13 +9,26 @@ namespace NodiumGraph.Interactions;
 /// </summary>
 public class BezierRouter : IConnectionRouter
 {
-    internal const double MinOffset = 30.0;
-    internal const double ControlOffsetFactor = 0.4;
+    public const double MinOffset = 30.0;
+    public const double ControlOffsetFactor = 0.4;
 
-    internal static double ComputeControlOffset(double dx)
+    public static double ComputeControlOffset(double dx)
         => Math.Max(Math.Abs(dx) * ControlOffsetFactor, MinOffset);
 
     public RouteKind RouteKind => RouteKind.Bezier;
+
+    public Rect GetLooseBounds(Port source, Port target)
+    {
+        var a = source.AbsolutePosition;
+        var b = target.AbsolutePosition;
+        // Control points preserve start.Y / end.Y and push only on X, so Y is the endpoint AABB.
+        var offset = ComputeControlOffset(b.X - a.X);
+        var minX = Math.Min(a.X, b.X) - offset;
+        var maxX = Math.Max(a.X, b.X) + offset;
+        var minY = Math.Min(a.Y, b.Y);
+        var maxY = Math.Max(a.Y, b.Y);
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
+    }
 
     public IReadOnlyList<Point> Route(Port source, Port target)
     {

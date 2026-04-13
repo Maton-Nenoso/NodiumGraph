@@ -30,6 +30,8 @@ internal class CanvasOverlay : Control
     private IBrush? _lastPortOutlineBrush;
     private double _lastPortOutlineThickness;
 
+    // All three caches below are UI-thread only — Avalonia render runs on the UI thread,
+    // and no synchronization is applied. Do not touch them from background work.
     // Font size is bucketed to 0.5 px so continuous zoom reuses cache entries.
     // IBrush is compared by reference — in-place brush mutation leaves stale text.
     private const int LabelCacheMaxEntries = 256;
@@ -117,6 +119,8 @@ internal class CanvasOverlay : Control
     {
         public static readonly BrushThicknessComparer Instance = new();
 
+        // double.Equals (not ==) avoids an analyzer warning on float equality.
+        // Thickness is never NaN here, so NaN-self-equal semantics don't matter.
         public bool Equals((IBrush brush, double thickness) x, (IBrush brush, double thickness) y)
             => ReferenceEquals(x.brush, y.brush) && x.thickness.Equals(y.thickness);
 

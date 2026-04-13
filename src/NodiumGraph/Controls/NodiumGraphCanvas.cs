@@ -312,6 +312,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         set => SetValue(CanvasHandlerProperty, value);
     }
 
+    /// <summary>
+    /// Validator consulted during a connection drag to accept/reject drop targets.
+    /// Defaults to <see cref="DefaultConnectionValidator.Instance"/>, which rejects self-loops,
+    /// same-owner pairs, same-flow pairs, and mismatched <see cref="Port.DataType"/> values.
+    /// Set to <c>null</c> to disable all built-in checks.
+    /// </summary>
     public IConnectionValidator? ConnectionValidator
     {
         get => GetValue(ConnectionValidatorProperty);
@@ -1066,15 +1072,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 bottomRightWorld.X - topLeftWorld.X,
                 bottomRightWorld.Y - topLeftWorld.Y).Inflate(strokeBleed);
 
-            var isBezier = router.RouteKind == RouteKind.Bezier;
-
             foreach (var connection in Graph.Connections)
             {
-                var connectionRect = ComputeConnectionBounds(
-                    connection.SourcePort.AbsolutePosition,
-                    connection.TargetPort.AbsolutePosition,
-                    isBezier);
-
+                var connectionRect = router.GetLooseBounds(connection.SourcePort, connection.TargetPort);
                 if (!viewportWorld.Intersects(connectionRect))
                     continue;
 
@@ -1084,26 +1084,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
         // Ports, connection preview, cutting line, marquee, minimap
         // are drawn by _overlay (renders on top of node containers)
-    }
-
-    // Stroke bleed is covered once on the viewport rect, not per connection.
-    // Bezier control points push horizontally only (start.Y / end.Y are preserved),
-    // so only X is inflated.
-    private static Rect ComputeConnectionBounds(Point source, Point target, bool isBezier)
-    {
-        var minX = Math.Min(source.X, target.X);
-        var maxX = Math.Max(source.X, target.X);
-        var minY = Math.Min(source.Y, target.Y);
-        var maxY = Math.Max(source.Y, target.Y);
-
-        if (isBezier)
-        {
-            var bezierOffset = BezierRouter.ComputeControlOffset(target.X - source.X);
-            minX -= bezierOffset;
-            maxX += bezierOffset;
-        }
-
-        return new Rect(minX, minY, maxX - minX, maxY - minY);
     }
 
     internal bool CuttingLineIntersectsGeometry(
