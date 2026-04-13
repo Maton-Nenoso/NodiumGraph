@@ -87,7 +87,13 @@ public class NodiumGraphCanvasPropertyTests
         Assert.Null(canvas.ConnectionHandler);
         Assert.Null(canvas.SelectionHandler);
         Assert.Null(canvas.CanvasHandler);
-        Assert.Null(canvas.ConnectionValidator);
+    }
+
+    [AvaloniaFact]
+    public void ConnectionValidator_defaults_to_DefaultConnectionValidator()
+    {
+        var canvas = new NodiumGraphCanvas();
+        Assert.Same(DefaultConnectionValidator.Instance, canvas.ConnectionValidator);
     }
 
     [AvaloniaFact]

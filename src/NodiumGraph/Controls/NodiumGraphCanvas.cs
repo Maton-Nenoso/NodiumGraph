@@ -183,7 +183,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         AvaloniaProperty.Register<NodiumGraphCanvas, ICanvasInteractionHandler?>(nameof(CanvasHandler));
 
     public static readonly StyledProperty<IConnectionValidator?> ConnectionValidatorProperty =
-        AvaloniaProperty.Register<NodiumGraphCanvas, IConnectionValidator?>(nameof(ConnectionValidator));
+        AvaloniaProperty.Register<NodiumGraphCanvas, IConnectionValidator?>(
+            nameof(ConnectionValidator),
+            defaultValue: DefaultConnectionValidator.Instance);
 
     public static readonly StyledProperty<bool> ShowSnapGhostProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, bool>(nameof(ShowSnapGhost));
