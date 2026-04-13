@@ -1,8 +1,26 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ng="clr-namespace:NodiumGraph.Controls;assembly=NodiumGraph"
+        xmlns:local="clr-namespace:GettingStarted"
         x:Class="GettingStarted.MainWindow"
         Title="NodiumGraph — Getting Started"
         Width="1024" Height="720">
-  <ng:NodiumGraphCanvas />
+
+  <Window.DataTemplates>
+    <DataTemplate DataType="local:MathNode">
+      <ng:NodePresenter HeaderBackground="#6366F1"
+                        HeaderForeground="White"
+                        HeaderPadding="12,8"
+                        CornerRadius="8">
+        <TextBlock Text="{Binding Description}"
+                   Margin="12,8"
+                   Foreground="#475569"
+                   FontSize="12" />
+      </ng:NodePresenter>
+    </DataTemplate>
+  </Window.DataTemplates>
+
+  <ng:NodiumGraphCanvas x:Name="Canvas"
+                        Background="#F1F5F9"
+                        ShowGrid="True" />
 </Window>
