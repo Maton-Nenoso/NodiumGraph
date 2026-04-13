@@ -96,7 +96,7 @@ public Result<Connection> OnConnectionRequested(Port source, Port target)
 
 ## Library behavior
 
-`NodiumGraphCanvas` inspects only `Result.IsSuccess` when processing a returned `Result<Connection>` from `IConnectionHandler.OnConnectionRequested`. It never reads `Value` and never adds the returned connection to the graph on your behalf — accepting the result means "the handler took care of it". See the [handlers reference](handlers.md#onconnectionrequestedsource-port-target-port--resultconnection).
+`NodiumGraphCanvas` inspects only `Result.IsSuccess` when processing a returned `Result<Connection>` from `IConnectionHandler.OnConnectionRequested`. It never reads `Value` and never adds the returned connection to the graph on your behalf — accepting the result means "the handler took care of it". See the [handlers reference](handlers.md#onconnectionrequestedport-source-port-target--resultconnection).
 
 ## Anti-patterns
 
