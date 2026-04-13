@@ -23,7 +23,7 @@ public partial class MainWindow : Window
             Y = 200,
         };
         var inputProvider = new FixedPortProvider(layoutAware: true);
-        var inputOut = new Port(inputNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out" };
+        var inputOut = new Port(inputNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out", DataType = "number" };
         inputProvider.AddPort(inputOut);
         inputNode.PortProvider = inputProvider;
 
@@ -40,9 +40,9 @@ public partial class MainWindow : Window
         };
         var diamondStyle = new PortStyle { Shape = PortShape.Diamond };
         var transformProvider = new FixedPortProvider(layoutAware: true);
-        var transformIn = new Port(transformNode, "in", PortFlow.Input, new Point(0, 30)) { Label = "in" };
-        var transformOut1 = new Port(transformNode, "out1", PortFlow.Output, new Point(120, 15)) { Label = "out1", Style = diamondStyle };
-        var transformOut2 = new Port(transformNode, "out2", PortFlow.Output, new Point(120, 45)) { Label = "out2", Style = diamondStyle };
+        var transformIn = new Port(transformNode, "in", PortFlow.Input, new Point(0, 30)) { Label = "in", DataType = "number" };
+        var transformOut1 = new Port(transformNode, "out1", PortFlow.Output, new Point(120, 15)) { Label = "out1", Style = diamondStyle, DataType = "number" };
+        var transformOut2 = new Port(transformNode, "out2", PortFlow.Output, new Point(120, 45)) { Label = "out2", Style = diamondStyle, DataType = "number" };
         transformProvider.AddPort(transformIn);
         transformProvider.AddPort(transformOut1);
         transformProvider.AddPort(transformOut2);
@@ -59,8 +59,9 @@ public partial class MainWindow : Window
             Shape = new EllipseShape(),
         };
         var filterProvider = new FixedPortProvider(layoutAware: true);
-        var filterIn = new Port(filterNode, "in", PortFlow.Input, new Point(0, 30)) { Label = "in" };
-        var filterOut = new Port(filterNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out" };
+        // DataType intentionally differs from upstream — default validator will reject the drag
+        var filterIn = new Port(filterNode, "in", PortFlow.Input, new Point(0, 30)) { Label = "in", DataType = "string" };
+        var filterOut = new Port(filterNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out", DataType = "string" };
         filterProvider.AddPort(filterIn);
         filterProvider.AddPort(filterOut);
         filterNode.PortProvider = filterProvider;
@@ -76,9 +77,9 @@ public partial class MainWindow : Window
             ShowHeader = false,
         };
         var mergeProvider = new FixedPortProvider(layoutAware: true);
-        var mergeIn1 = new Port(mergeNode, "input1", PortFlow.Input, new Point(0, 15)) { Label = "input1" };
-        var mergeIn2 = new Port(mergeNode, "input2", PortFlow.Input, new Point(0, 45)) { Label = "input2" };
-        var mergeOut = new Port(mergeNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out" };
+        var mergeIn1 = new Port(mergeNode, "input1", PortFlow.Input, new Point(0, 15)) { Label = "input1", DataType = "number" };
+        var mergeIn2 = new Port(mergeNode, "input2", PortFlow.Input, new Point(0, 45)) { Label = "input2", DataType = "number" };
+        var mergeOut = new Port(mergeNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out", DataType = "number" };
         mergeProvider.AddPort(mergeIn1);
         mergeProvider.AddPort(mergeIn2);
         mergeProvider.AddPort(mergeOut);
@@ -93,7 +94,7 @@ public partial class MainWindow : Window
             Y = 250,
             IsCollapsible = true,
         };
-        var outputIn = new Port(outputNode, "in", PortFlow.Input, new Point(0, 15)) { Label = "in" };
+        var outputIn = new Port(outputNode, "in", PortFlow.Input, new Point(0, 15)) { Label = "in", DataType = "number" };
         outputNode.PortProvider = new FixedPortProvider(new[] { outputIn });
 
         // -- 6. Comment --
@@ -111,21 +112,22 @@ public partial class MainWindow : Window
         // -- Connections --
         // Input -> Transform (out -> in)
         graph.AddConnection(new Connection(inputOut, transformIn));
-        // Transform -> Filter (out1 -> in)
-        graph.AddConnection(new Connection(transformOut1, filterIn));
-        // Transform -> Merge (out2 -> input1)
-        graph.AddConnection(new Connection(transformOut2, mergeIn1));
-        // Filter -> Merge (out -> input2)
-        graph.AddConnection(new Connection(filterOut, mergeIn2));
+        // Transform -> Merge (out1 -> input1)
+        graph.AddConnection(new Connection(transformOut1, mergeIn1));
+        // Transform -> Merge (out2 -> input2)
+        graph.AddConnection(new Connection(transformOut2, mergeIn2));
         // Merge -> Output (out -> in)
         graph.AddConnection(new Connection(mergeOut, outputIn));
+        // Filter is intentionally left unconnected — its "string" DataType
+        // demonstrates the default validator rejecting type-mismatched drags
+        // from the "number" transform outputs.
 
         // Don't set Canvas.NodeTemplate — let DataTemplate resolution from Window work
         Canvas.Graph = graph;
 
-        // Wire a simple connection handler
+        // Wire a simple connection handler. The canvas uses DefaultConnectionValidator
+        // out of the box, which enforces self/same-owner/Flow/DataType rules.
         Canvas.ConnectionHandler = new SampleConnectionHandler(graph);
-        Canvas.ConnectionValidator = new SampleConnectionValidator();
 
         // Wire grid style combo to canvas property
         GridStyleCombo.SelectionChanged += (_, _) =>
@@ -159,15 +161,5 @@ file class SampleConnectionHandler(Graph graph) : IConnectionHandler
     public void OnConnectionDeleteRequested(Connection connection)
     {
         graph.RemoveConnection(connection);
-    }
-}
-
-file class SampleConnectionValidator : IConnectionValidator
-{
-    public bool CanConnect(Port source, Port target)
-    {
-        if (source.Flow == target.Flow) return false;
-        if (source.Owner == target.Owner) return false;
-        return true;
     }
 }
