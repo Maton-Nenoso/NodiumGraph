@@ -168,7 +168,7 @@ public sealed record NodeBlueprint(string Kind, string Title);
 
 ## See also
 
-- [Handler interfaces reference](../reference/handlers.md)
-- [NodiumGraphCanvas control reference](../reference/canvas-control.md)
+- [Handler interfaces reference](../3-reference/handlers.md)
+- [NodiumGraphCanvas control reference](../3-reference/canvas-control.md)
 - [Host the Canvas](host-canvas.md)
-- [Report, don't decide](../explanation/report-dont-decide.md)
+- [Report, don't decide](../4-explanation/report-dont-decide.md)

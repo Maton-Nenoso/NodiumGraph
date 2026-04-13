@@ -7,7 +7,7 @@ Capture the before and after positions of every user-initiated node drag so you 
 ## Prerequisites
 
 - You already host `NodiumGraphCanvas` and have a `Graph` assigned. If not, see [Host the Canvas](host-canvas.md).
-- You understand why NodiumGraph [reports, doesn't decide](../explanation/report-dont-decide.md) — the canvas never mutates `Node.X` / `Node.Y` behind your back.
+- You understand why NodiumGraph [reports, doesn't decide](../4-explanation/report-dont-decide.md) — the canvas never mutates `Node.X` / `Node.Y` behind your back.
 
 ## Steps
 
@@ -154,8 +154,8 @@ public sealed class MoveNodesOp(IReadOnlyList<NodeMoveInfo> moves) : IUndoOp
 
 ## See also
 
-- [Handler interfaces reference](../reference/handlers.md)
-- [Model reference](../reference/model.md)
-- [Report, don't decide](../explanation/report-dont-decide.md)
+- [Handler interfaces reference](../3-reference/handlers.md)
+- [Model reference](../3-reference/model.md)
+- [Report, don't decide](../4-explanation/report-dont-decide.md)
 - [Snap to grid](snap-to-grid.md)
-- [Getting Started tutorial](../tutorial/getting-started.md)
+- [Getting Started tutorial](../1-tutorial/getting-started.md)

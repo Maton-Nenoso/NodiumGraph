@@ -165,4 +165,4 @@ A snapshot of a node's position before and after a drag. Passed to `INodeInterac
 - [Handler interfaces reference](handlers.md) — where `Graph.SelectedNodes` is reported and `NodeMoveInfo` is consumed
 - [Strategy interfaces reference](strategies.md) — port providers live here
 - [Canvas control reference](canvas-control.md)
-- [Report, don't decide](../explanation/report-dont-decide.md)
+- [Report, don't decide](../4-explanation/report-dont-decide.md)

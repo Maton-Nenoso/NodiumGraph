@@ -136,6 +136,6 @@ public sealed class MainViewModel : ObservableObject
 ## See also
 
 - [Handle node moves for undo/redo](handle-node-moves-undo.md)
-- [NodiumGraphCanvas control reference](../reference/canvas-control.md)
+- [NodiumGraphCanvas control reference](../3-reference/canvas-control.md)
 - [Configure pan and zoom gestures](configure-pan-zoom.md)
 - [Theme the canvas](theme-canvas.md)

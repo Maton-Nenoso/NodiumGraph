@@ -7,7 +7,7 @@ Decide — per-drag, in real time — which source/target port pairs are legal c
 ## Prerequisites
 
 - You already host `NodiumGraphCanvas` and have `Node`s with ports. See [Host the Canvas](host-canvas.md).
-- You've read how [DefaultConnectionValidator](../reference/strategies.md#built-in-defaultconnectionvalidator) already handles the structural cases (self, same-owner, same-flow, mismatched `DataType`). Most custom validators should **layer on top of it**, not replace it.
+- You've read how [DefaultConnectionValidator](../3-reference/strategies.md#built-in-defaultconnectionvalidator) already handles the structural cases (self, same-owner, same-flow, mismatched `DataType`). Most custom validators should **layer on top of it**, not replace it.
 
 ## Steps
 
@@ -185,14 +185,14 @@ public sealed class AppConnectionValidator(Graph graph) : IConnectionValidator
 - **`CanConnect` is called on the UI thread, many times per second.** Avoid LINQ in hot loops, avoid allocating closures, and never hit the disk or network. Cache anything non-trivial and invalidate it when `graph.Connections` changes.
 - **Rejecting here does not delete anything.** Validation only affects the *live drag preview* and the decision to call `IConnectionHandler.OnConnectionRequested`. An already-existing connection that would now fail validation is untouched — if you change the rules at runtime, walk the graph separately and clean up.
 - **`Port.DataType` is `object?`, not `string`.** Equality is whatever `Equals` says for your chosen types. If you put strings on one side and enums on the other, they will never match. Pick one and stick with it.
-- **`null` is not a wildcard.** A port with no `DataType` only connects to other ports with no `DataType`. This is documented as deliberate in the [strategies reference](../reference/strategies.md#built-in-defaultconnectionvalidator) — if you want permissive behaviour, special-case `null` in your own validator.
+- **`null` is not a wildcard.** A port with no `DataType` only connects to other ports with no `DataType`. This is documented as deliberate in the [strategies reference](../3-reference/strategies.md#built-in-defaultconnectionvalidator) — if you want permissive behaviour, special-case `null` in your own validator.
 - **Setting `ConnectionValidator = null` disables all feedback.** The drag preview always shows as "valid" and every release fires `OnConnectionRequested`. Your handler still gets a final veto via `Result<Connection>`, but the user experience is worse — they only discover the rejection at release time, not during hover.
 - **Validators run against an in-progress graph.** If your handler adds nodes or connections during a drag (it shouldn't, but it can), the validator sees the mutated state. Keep the handler and the validator consistent.
 
 ## See also
 
-- [Strategy interfaces reference](../reference/strategies.md#iconnectionvalidator)
-- [Handler interfaces reference](../reference/handlers.md)
-- [Result pattern reference](../reference/result-pattern.md)
-- [Model reference](../reference/model.md)
-- [Report, don't decide](../explanation/report-dont-decide.md)
+- [Strategy interfaces reference](../3-reference/strategies.md#iconnectionvalidator)
+- [Handler interfaces reference](../3-reference/handlers.md)
+- [Result pattern reference](../3-reference/result-pattern.md)
+- [Model reference](../3-reference/model.md)
+- [Report, don't decide](../4-explanation/report-dont-decide.md)

@@ -150,6 +150,6 @@ private void Reset(object? s, RoutedEventArgs e)
 ## See also
 
 - [Bind ViewportZoom, ViewportOffset, and Selection](bind-viewport.md)
-- [NodiumGraphCanvas control reference](../reference/canvas-control.md)
+- [NodiumGraphCanvas control reference](../3-reference/canvas-control.md)
 - [Keyboard shortcuts](keyboard-shortcuts.md)
 - [Snap to grid](snap-to-grid.md)

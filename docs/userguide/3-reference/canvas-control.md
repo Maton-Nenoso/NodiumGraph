@@ -137,5 +137,5 @@ Standard Avalonia property-change notifications (`PropertyChanged`) still fire f
 - [Strategy interfaces reference](strategies.md)
 - [Model reference](model.md)
 - [Rendering pipeline reference](rendering-pipeline.md)
-- [Getting Started tutorial](../tutorial/getting-started.md)
-- [Report, don't decide](../explanation/report-dont-decide.md)
+- [Getting Started tutorial](../1-tutorial/getting-started.md)
+- [Report, don't decide](../4-explanation/report-dont-decide.md)

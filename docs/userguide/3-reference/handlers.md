@@ -1,6 +1,6 @@
 # Handler Interfaces Reference
 
-Handlers let your application respond to user interactions on the canvas. Per the [report, don't decide](../explanation/report-dont-decide.md) philosophy, the canvas calls your handler methods describing what happened — your code decides what to do, including whether to mutate the `Graph`. Every handler property on `NodiumGraphCanvas` is nullable; leaving a handler unset means the corresponding interaction is observed but never acted on.
+Handlers let your application respond to user interactions on the canvas. Per the [report, don't decide](../4-explanation/report-dont-decide.md) philosophy, the canvas calls your handler methods describing what happened — your code decides what to do, including whether to mutate the `Graph`. Every handler property on `NodiumGraphCanvas` is nullable; leaving a handler unset means the corresponding interaction is observed but never acted on.
 
 All four handler interfaces live in `NodiumGraph.Interactions`. None of them are fire-and-forget async — all members are called on the Avalonia UI thread, synchronously, during pointer / keyboard event processing.
 
@@ -125,4 +125,4 @@ public interface ICanvasInteractionHandler
 - [Result pattern reference](result-pattern.md)
 - [Model reference](model.md)
 - [Canvas control reference](canvas-control.md)
-- [Report, don't decide](../explanation/report-dont-decide.md)
+- [Report, don't decide](../4-explanation/report-dont-decide.md)

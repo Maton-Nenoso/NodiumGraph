@@ -76,5 +76,5 @@ The biggest single perf lever is `IConnectionValidator`: it runs on every pointe
 
 - [NodiumGraphCanvas control reference](canvas-control.md)
 - [Strategy interfaces reference](strategies.md) — custom routers and styles
-- [Hybrid rendering](../explanation/hybrid-rendering.md) — design rationale for the layer split
+- [Hybrid rendering](../4-explanation/hybrid-rendering.md) — design rationale for the layer split
 - [Model reference](model.md)

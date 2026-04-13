@@ -177,6 +177,6 @@ static Port MakeTypedPort(Node owner, string id, string label, PortFlow flow, Po
 
 - [Theme the canvas](theme-canvas.md)
 - [Custom port provider](custom-port-provider.md)
-- [Strategy interfaces reference](../reference/strategies.md#iportprovider)
-- [Model reference](../reference/model.md)
+- [Strategy interfaces reference](../3-reference/strategies.md#iportprovider)
+- [Model reference](../3-reference/model.md)
 - [Define a custom node DataTemplate](custom-node-template.md)

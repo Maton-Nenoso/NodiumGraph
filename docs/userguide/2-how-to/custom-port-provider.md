@@ -7,7 +7,7 @@ Control how ports appear on a node — whether they are fixed, created dynamical
 ## Prerequisites
 
 - You already host `NodiumGraphCanvas` and have a `Node` subclass. See [Host the Canvas](host-canvas.md) and [Subclass the model](subclass-model.md).
-- You've read the port-provider section of the [strategies reference](../reference/strategies.md#iportprovider). The built-ins (`FixedPortProvider`, `DynamicPortProvider`) cover most real-world cases — write your own only when they don't.
+- You've read the port-provider section of the [strategies reference](../3-reference/strategies.md#iportprovider). The built-ins (`FixedPortProvider`, `DynamicPortProvider`) cover most real-world cases — write your own only when they don't.
 
 ## Steps
 
@@ -180,8 +180,8 @@ Every node has its own `PortProvider`. You can mix provider types freely on the 
 
 ## See also
 
-- [Strategy interfaces reference](../reference/strategies.md#iportprovider)
-- [Model reference](../reference/model.md)
+- [Strategy interfaces reference](../3-reference/strategies.md#iportprovider)
+- [Model reference](../3-reference/model.md)
 - [Subclass Node / Connection for domain data](subclass-model.md)
 - [Style ports](style-ports.md)
-- [Report, don't decide](../explanation/report-dont-decide.md)
+- [Report, don't decide](../4-explanation/report-dont-decide.md)

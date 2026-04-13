@@ -187,8 +187,8 @@ Application.Current.ActualThemeVariantChanged += (_, _) =>
 
 ## See also
 
-- [Strategy interfaces reference](../reference/strategies.md#iconnectionstyle)
+- [Strategy interfaces reference](../3-reference/strategies.md#iconnectionstyle)
 - [Custom router](custom-router.md)
 - [Theme the canvas](theme-canvas.md)
-- [Rendering pipeline reference](../reference/rendering-pipeline.md)
-- [NodiumGraphCanvas control reference](../reference/canvas-control.md)
+- [Rendering pipeline reference](../3-reference/rendering-pipeline.md)
+- [NodiumGraphCanvas control reference](../3-reference/canvas-control.md)

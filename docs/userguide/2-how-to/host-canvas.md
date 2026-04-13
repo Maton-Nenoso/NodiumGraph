@@ -64,7 +64,7 @@ public partial class MainWindow : Window
 }
 ```
 
-With `Canvas.Graph` set, pan (middle-mouse or `Space`+left-drag), zoom (scroll wheel / pinch), and selection (click, Ctrl+click, marquee) work immediately — no additional wiring needed. To let users *create* connections rather than just view them, assign a `ConnectionHandler`; see [Getting Started](../tutorial/getting-started.md#6-wire-the-connection-handler).
+With `Canvas.Graph` set, pan (middle-mouse or `Space`+left-drag), zoom (scroll wheel / pinch), and selection (click, Ctrl+click, marquee) work immediately — no additional wiring needed. To let users *create* connections rather than just view them, assign a `ConnectionHandler`; see [Getting Started](../1-tutorial/getting-started.md#6-wire-the-connection-handler).
 
 ## Full code
 
@@ -128,14 +128,14 @@ The setup is identical — swap `Window` for `UserControl`, put the template in 
 
 - **`Canvas.Graph` defaults to `null`.** Until you assign a `Graph`, the canvas renders its background and grid but nothing else, and every interaction becomes a no-op. This is intentional — it lets you bind the graph asynchronously without special-casing startup.
 - **Templates resolve by CLR type, not by `Id`.** If your `DataTemplate` targets the base `Node` type, Avalonia uses it for *every* node subclass. Target the concrete subclass (`DataType="local:MathNode"`) if you want per-type visuals.
-- **The canvas never mutates your `Graph`.** Nothing the user does — dragging, marqueeing, connecting, deleting — touches the model unless a handler you wrote explicitly calls `graph.AddNode` / `graph.AddConnection` / etc. See [Report, don't decide](../explanation/report-dont-decide.md).
+- **The canvas never mutates your `Graph`.** Nothing the user does — dragging, marqueeing, connecting, deleting — touches the model unless a handler you wrote explicitly calls `graph.AddNode` / `graph.AddConnection` / etc. See [Report, don't decide](../4-explanation/report-dont-decide.md).
 - **UI-thread only.** All canvas properties and handler callbacks are expected on the Avalonia UI thread. If you load a graph from a background task, marshal the `Canvas.Graph = ...` assignment through `Dispatcher.UIThread.Post`.
 - **The `ng:` prefix can clash with other libraries.** Pick a different alias (for example `nodium:`) if you already use `ng:` for Angular-style tooling or another Avalonia package.
 
 ## See also
 
-- [Getting Started tutorial](../tutorial/getting-started.md)
-- [NodiumGraphCanvas control reference](../reference/canvas-control.md)
+- [Getting Started tutorial](../1-tutorial/getting-started.md)
+- [NodiumGraphCanvas control reference](../3-reference/canvas-control.md)
 - [Define a custom node DataTemplate](custom-node-template.md)
 - [Bind ViewportZoom, ViewportOffset, SelectedNodes](bind-viewport.md)
-- [Handler interfaces reference](../reference/handlers.md)
+- [Handler interfaces reference](../3-reference/handlers.md)

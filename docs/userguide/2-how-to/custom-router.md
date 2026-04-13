@@ -7,7 +7,7 @@ Replace the default bezier routing with your own path algorithm — orthogonal "
 ## Prerequisites
 
 - You already host `NodiumGraphCanvas` and have connections rendering. See [Host the Canvas](host-canvas.md).
-- You understand that routing runs on every render frame that touches a connection. See the [strategies reference](../reference/strategies.md#iconnectionrouter) and the [rendering pipeline](../reference/rendering-pipeline.md).
+- You understand that routing runs on every render frame that touches a connection. See the [strategies reference](../3-reference/strategies.md#iconnectionrouter) and the [rendering pipeline](../3-reference/rendering-pipeline.md).
 
 ## Steps
 
@@ -92,7 +92,7 @@ public sealed class SteppedRouter(double stepOffset = 40.0) : IConnectionRouter
 
 ### 5. Example: tight bezier variant
 
-If you want the existing curve shape but with a different "tension", write your own bezier router. The default [`BezierRouter`](../reference/strategies.md#built-in-bezierrouter) uses `offset = max(|dx| * 0.4, 30.0)`; tightening the multiplier gives crisper, less floaty curves.
+If you want the existing curve shape but with a different "tension", write your own bezier router. The default [`BezierRouter`](../3-reference/strategies.md#built-in-bezierrouter) uses `offset = max(|dx| * 0.4, 30.0)`; tightening the multiplier gives crisper, less floaty curves.
 
 ```csharp
 public sealed class TightBezierRouter : IConnectionRouter
@@ -181,8 +181,8 @@ Canvas.ConnectionRouter = new OrthogonalRouter();
 
 ## See also
 
-- [Strategy interfaces reference](../reference/strategies.md#iconnectionrouter)
-- [Rendering pipeline reference](../reference/rendering-pipeline.md)
-- [NodiumGraphCanvas control reference](../reference/canvas-control.md)
-- [Hybrid rendering](../explanation/hybrid-rendering.md)
+- [Strategy interfaces reference](../3-reference/strategies.md#iconnectionrouter)
+- [Rendering pipeline reference](../3-reference/rendering-pipeline.md)
+- [NodiumGraphCanvas control reference](../3-reference/canvas-control.md)
+- [Hybrid rendering](../4-explanation/hybrid-rendering.md)
 - [Custom connection style](custom-style.md)

@@ -8,14 +8,14 @@ This is a **pointer recipe**. NodiumGraph deliberately does not ship a serialize
 
 ## Prerequisites
 
-- You already host `NodiumGraphCanvas` and know how to build a `Graph` in code. See [Host the Canvas](host-canvas.md) and [Getting Started](../tutorial/getting-started.md).
-- You understand the model types. See [Model reference](../reference/model.md).
+- You already host `NodiumGraphCanvas` and know how to build a `Graph` in code. See [Host the Canvas](host-canvas.md) and [Getting Started](../1-tutorial/getting-started.md).
+- You understand the model types. See [Model reference](../3-reference/model.md).
 
 ## Steps
 
 ### 1. Why the library doesn't do this for you
 
-Every app has its own opinion on serialization. Some want JSON, some MessagePack, some a SQL schema, some a round-trip format they already own. NodiumGraph refuses to pick one — see [Report, don't decide](../explanation/report-dont-decide.md) — so that your save format is whatever is best for *your* product, not what the library could agree on.
+Every app has its own opinion on serialization. Some want JSON, some MessagePack, some a SQL schema, some a round-trip format they already own. NodiumGraph refuses to pick one — see [Report, don't decide](../4-explanation/report-dont-decide.md) — so that your save format is whatever is best for *your* product, not what the library could agree on.
 
 The model is built to make this easy: `Node`, `Port`, and `Connection` are concrete classes with public properties and stable string `Id`s. There is no hidden state, no internal-only field that a serializer needs to reach. If you can round-trip the list of public properties, you can round-trip the graph.
 
@@ -171,9 +171,9 @@ Canvas.ViewportOffset = new Point(dto.Viewport.OffsetX, dto.Viewport.OffsetY);
 
 ## See also
 
-- [Model reference](../reference/model.md)
-- [Handler interfaces reference](../reference/handlers.md)
-- [Strategy interfaces reference](../reference/strategies.md)
+- [Model reference](../3-reference/model.md)
+- [Handler interfaces reference](../3-reference/handlers.md)
+- [Strategy interfaces reference](../3-reference/strategies.md)
 - [Subclass Node / Connection for domain data](subclass-model.md)
 - [Custom port provider](custom-port-provider.md)
-- [Report, don't decide](../explanation/report-dont-decide.md)
+- [Report, don't decide](../4-explanation/report-dont-decide.md)

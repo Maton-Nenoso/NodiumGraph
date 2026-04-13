@@ -7,7 +7,7 @@ Wire up keyboard shortcuts — Delete, Ctrl+A, Ctrl+F for fit-to-content, and wh
 ## Prerequisites
 
 - You already host `NodiumGraphCanvas` with a `Graph` and, for Delete, a `NodeHandler` that implements `INodeInteractionHandler.OnDeleteRequested`. See [Host the Canvas](host-canvas.md) and [Handle node moves for undo](handle-node-moves-undo.md).
-- You understand that **NodiumGraph has no built-in keyboard shortcuts**. This is a deliberate scope decision — see the [architecture explanation](../explanation/architecture.md) — and it means every shortcut you want is something *you* wire up.
+- You understand that **NodiumGraph has no built-in keyboard shortcuts**. This is a deliberate scope decision — see the [architecture explanation](../4-explanation/architecture.md) — and it means every shortcut you want is something *you* wire up.
 
 ## Steps
 
@@ -199,8 +199,8 @@ public sealed class MainViewModel(NodiumGraphCanvas canvas, UndoStack undo) : Ob
 
 ## See also
 
-- [Handler interfaces reference](../reference/handlers.md)
+- [Handler interfaces reference](../3-reference/handlers.md)
 - [Handle node moves for undo/redo](handle-node-moves-undo.md)
 - [Configure pan and zoom gestures](configure-pan-zoom.md)
 - [Bind ViewportZoom, ViewportOffset, and Selection](bind-viewport.md)
-- [Report, don't decide](../explanation/report-dont-decide.md)
+- [Report, don't decide](../4-explanation/report-dont-decide.md)

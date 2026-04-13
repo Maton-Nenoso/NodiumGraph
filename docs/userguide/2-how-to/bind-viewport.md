@@ -150,8 +150,8 @@ file sealed class SelectionTracker(MainViewModel vm) : ISelectionHandler
 
 ## See also
 
-- [Handler interfaces reference](../reference/handlers.md)
-- [NodiumGraphCanvas control reference](../reference/canvas-control.md)
-- [Model reference](../reference/model.md)
+- [Handler interfaces reference](../3-reference/handlers.md)
+- [NodiumGraphCanvas control reference](../3-reference/canvas-control.md)
+- [Model reference](../3-reference/model.md)
 - [Configure pan and zoom gestures](configure-pan-zoom.md)
-- [Getting Started tutorial](../tutorial/getting-started.md)
+- [Getting Started tutorial](../1-tutorial/getting-started.md)

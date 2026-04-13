@@ -7,7 +7,7 @@ Attach your own fields to nodes and connections — the formula of a computation
 ## Prerequisites
 
 - You already host `NodiumGraphCanvas` and have a `Graph`. See [Host the Canvas](host-canvas.md).
-- You understand that NodiumGraph's [architecture](../explanation/architecture.md) is "concrete base classes for the model, interfaces for the strategies". Subclassing is the intended extension path for `Node` / `Connection`; for routing, validation, styling, you implement an interface instead.
+- You understand that NodiumGraph's [architecture](../4-explanation/architecture.md) is "concrete base classes for the model, interfaces for the strategies". Subclassing is the intended extension path for `Node` / `Connection`; for routing, validation, styling, you implement an interface instead.
 
 ## Steps
 
@@ -179,8 +179,8 @@ graph.AddConnection(new WeightedConnection(add.PortProvider!.Ports[1], mul.PortP
 
 ## See also
 
-- [Model reference](../reference/model.md)
+- [Model reference](../3-reference/model.md)
 - [Define a custom node DataTemplate](custom-node-template.md)
 - [Custom port provider](custom-port-provider.md)
 - [Persist and restore graph state](persist-graph-state.md)
-- [Architecture](../explanation/architecture.md)
+- [Architecture](../4-explanation/architecture.md)

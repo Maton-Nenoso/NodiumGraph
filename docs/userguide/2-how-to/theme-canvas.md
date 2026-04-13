@@ -177,8 +177,8 @@ var marqueeKey = NodiumGraphResources.MarqueeFillBrushKey;  // "NodiumGraphMarqu
 
 ## See also
 
-- [NodiumGraphCanvas control reference](../reference/canvas-control.md)
+- [NodiumGraphCanvas control reference](../3-reference/canvas-control.md)
 - [Style ports](style-ports.md)
 - [Custom connection style](custom-style.md)
 - [Define a custom node DataTemplate](custom-node-template.md)
-- [Rendering pipeline reference](../reference/rendering-pipeline.md)
+- [Rendering pipeline reference](../3-reference/rendering-pipeline.md)

@@ -151,7 +151,7 @@ The template block from the AXAML file is:
 
 Ports are rendered automatically by the canvas from `node.PortProvider.Ports`. Do **not** place port visuals inside the DataTemplate — the template is only responsible for the node body.
 
-See [how to define a custom node DataTemplate](../how-to/custom-node-template.md) for more on `NodePresenter` and template patterns.
+See [how to define a custom node DataTemplate](../2-how-to/custom-node-template.md) for more on `NodePresenter` and template patterns.
 
 ## 5. Build the graph
 
@@ -219,7 +219,7 @@ Canvas.ConnectionHandler = new GraphConnectionHandler(graph);
 
 The full `MainWindow.axaml.cs` builds the graph, assigns it, and installs the handler in one shot.
 
-See [handler interfaces reference](../reference/handlers.md) for the complete handler contracts and [Result pattern](../reference/result-pattern.md) for `Result<T>` and `Error`.
+See [handler interfaces reference](../3-reference/handlers.md) for the complete handler contracts and [Result pattern](../3-reference/result-pattern.md) for `Result<T>` and `Error`.
 
 ## 7. Run it and experiment
 
@@ -252,11 +252,11 @@ To see the `DataType` rule in action, change `CreateMathNode` so the `sink` call
 
 ## Where next
 
-- [How to define a custom node DataTemplate](../how-to/custom-node-template.md) — deeper dive on `NodePresenter` and template composition
-- [How to handle node moves for undo/redo](../how-to/handle-node-moves-undo.md) — wire `INodeInteractionHandler` and capture old/new positions
-- [How to write a custom `IConnectionValidator`](../how-to/custom-validator.md) — rules beyond `DataType` equality
-- [How to style ports](../how-to/style-ports.md) — port shapes, labels, and hover states
-- [Handler interfaces reference](../reference/handlers.md) — full contracts for every handler
-- [Report, don't decide](../explanation/report-dont-decide.md) — the philosophy behind the handler pattern
+- [How to define a custom node DataTemplate](../2-how-to/custom-node-template.md) — deeper dive on `NodePresenter` and template composition
+- [How to handle node moves for undo/redo](../2-how-to/handle-node-moves-undo.md) — wire `INodeInteractionHandler` and capture old/new positions
+- [How to write a custom `IConnectionValidator`](../2-how-to/custom-validator.md) — rules beyond `DataType` equality
+- [How to style ports](../2-how-to/style-ports.md) — port shapes, labels, and hover states
+- [Handler interfaces reference](../3-reference/handlers.md) — full contracts for every handler
+- [Report, don't decide](../4-explanation/report-dont-decide.md) — the philosophy behind the handler pattern
 
 The finished code for this tutorial lives in `samples/GettingStarted/` — open it any time you want to compare against your own project.
