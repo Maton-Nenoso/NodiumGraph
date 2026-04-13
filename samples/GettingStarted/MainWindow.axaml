@@ -1,0 +1,8 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ng="clr-namespace:NodiumGraph.Controls;assembly=NodiumGraph"
+        x:Class="GettingStarted.MainWindow"
+        Title="NodiumGraph — Getting Started"
+        Width="1024" Height="720">
+  <ng:NodiumGraphCanvas />
+</Window>
