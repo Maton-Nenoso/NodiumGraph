@@ -1074,16 +1074,37 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
             foreach (var connection in Graph.Connections)
             {
-                var connectionRect = router.GetLooseBounds(connection.SourcePort, connection.TargetPort);
-                if (!viewportWorld.Intersects(connectionRect))
-                    continue;
+                // Route() is the single source of truth for geometry; bounds fall out of the
+                // returned points. Cubic beziers stay inside the convex hull of their control
+                // points, so the AABB of the route output is a valid conservative bound for
+                // bezier curves regardless of which direction control points push.
+                var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
+                if (routePoints.Count < 2) continue;
 
-                ConnectionRenderer.Render(context, connection, router, connectionPen, transform);
+                var bounds = ComputeRouteBounds(routePoints);
+                if (!viewportWorld.Intersects(bounds)) continue;
+
+                ConnectionRenderer.Render(context, routePoints, router.RouteKind, connectionPen, transform);
             }
         }
 
         // Ports, connection preview, cutting line, marquee, minimap
         // are drawn by _overlay (renders on top of node containers)
+    }
+
+    private static Rect ComputeRouteBounds(IReadOnlyList<Point> points)
+    {
+        var first = points[0];
+        double minX = first.X, minY = first.Y, maxX = first.X, maxY = first.Y;
+        for (var i = 1; i < points.Count; i++)
+        {
+            var p = points[i];
+            if (p.X < minX) minX = p.X;
+            else if (p.X > maxX) maxX = p.X;
+            if (p.Y < minY) minY = p.Y;
+            else if (p.Y > maxY) maxY = p.Y;
+        }
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
     }
 
     internal bool CuttingLineIntersectsGeometry(

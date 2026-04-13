@@ -8,9 +8,8 @@ namespace NodiumGraph.Controls;
 internal static class ConnectionRenderer
 {
     public static Geometry CreateGeometry(
-        Connection connection, IConnectionRouter router, ViewportTransform transform)
+        IReadOnlyList<Point> routePoints, RouteKind routeKind, ViewportTransform transform)
     {
-        var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
         if (routePoints.Count < 2)
             return new StreamGeometry();
 
@@ -19,7 +18,7 @@ internal static class ConnectionRenderer
         {
             ctx.BeginFigure(transform.WorldToScreen(routePoints[0]), false);
 
-            if (router.RouteKind == RouteKind.Bezier && routePoints.Count == 4)
+            if (routeKind == RouteKind.Bezier && routePoints.Count == 4)
             {
                 ctx.CubicBezierTo(
                     transform.WorldToScreen(routePoints[1]),
@@ -38,10 +37,21 @@ internal static class ConnectionRenderer
         return geo;
     }
 
-    public static void Render(DrawingContext context, Connection connection,
-        IConnectionRouter router, Pen pen, ViewportTransform transform)
+    public static Geometry CreateGeometry(
+        Connection connection, IConnectionRouter router, ViewportTransform transform)
     {
-        var geometry = CreateGeometry(connection, router, transform);
+        var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
+        return CreateGeometry(routePoints, router.RouteKind, transform);
+    }
+
+    public static void Render(
+        DrawingContext context,
+        IReadOnlyList<Point> routePoints,
+        RouteKind routeKind,
+        Pen pen,
+        ViewportTransform transform)
+    {
+        var geometry = CreateGeometry(routePoints, routeKind, transform);
         context.DrawGeometry(null, pen, geometry);
     }
 }
