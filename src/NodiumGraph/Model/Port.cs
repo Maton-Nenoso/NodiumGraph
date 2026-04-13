@@ -13,6 +13,7 @@ public class Port : INotifyPropertyChanged
     private PortStyle? _style;
     private string? _label;
     private uint? _maxConnections;
+    private object? _dataType;
     private Point _cachedAbsolutePosition;
     private bool _absolutePositionDirty = true;
     private bool _isDetached;
@@ -79,6 +80,16 @@ public class Port : INotifyPropertyChanged
     {
         get => _maxConnections;
         set => SetField(ref _maxConnections, value);
+    }
+
+    /// <summary>
+    /// Opaque type token consumed by IConnectionValidator.
+    /// The library never inspects this value beyond equality comparison in the default validator.
+    /// </summary>
+    public object? DataType
+    {
+        get => _dataType;
+        set => SetField(ref _dataType, value);
     }
 
     public Port(Node owner, string name, PortFlow flow, Point position)
