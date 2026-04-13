@@ -67,17 +67,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private readonly Dictionary<Port, PortStyle?> _portStyles = new();
     private bool _disposed;
 
-    // Connection pen cache. Sentinel fields track the three IConnectionStyle
-    // getter values so in-place mutation of a mutable IConnectionStyle
-    // implementation still rebuilds the pen, matching pre-cache behavior.
+    // Sentinel-cached connection pen. Comparing the three IConnectionStyle
+    // getter values (not the style instance) preserves in-place-mutation semantics.
     private Pen? _cachedConnectionPen;
     private IBrush? _lastConnectionStroke;
     private double _lastConnectionThickness;
     private IDashStyle? _lastConnectionDashPattern;
-
-    // Mirrors BezierRouter.MinOffset for viewport-culling bounds inflation.
-    // Keep in sync if BezierRouter's control-point offset formula changes.
-    private const double BezierControlOffsetMin = 30.0;
 
     // Extra space around each node container so box shadows aren't clipped
     private const double ShadowPadding = 20;
@@ -1059,20 +1054,15 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             }
             var connectionPen = _cachedConnectionPen;
 
-            // Viewport-cull connections whose loose world-space AABB does not
-            // intersect the visible region. Avoids running Route() and building
-            // a geometry for off-screen connections.
             var topLeftWorld = transform.ScreenToWorld(new Point(0, 0));
             var bottomRightWorld = transform.ScreenToWorld(new Point(Bounds.Width, Bounds.Height));
+            var zoom = ViewportZoom;
+            var strokeBleed = zoom > 0 ? connectionPen.Thickness / zoom : connectionPen.Thickness;
             var viewportWorld = new Rect(
                 topLeftWorld.X,
                 topLeftWorld.Y,
                 bottomRightWorld.X - topLeftWorld.X,
-                bottomRightWorld.Y - topLeftWorld.Y);
-            // Inflate by stroke bleed (in world units) so connections near the
-            // edge aren't clipped.
-            var strokeBleed = connectionPen.Thickness / ViewportZoom;
-            viewportWorld = viewportWorld.Inflate(strokeBleed);
+                bottomRightWorld.Y - topLeftWorld.Y).Inflate(strokeBleed);
 
             var isBezier = router.RouteKind == RouteKind.Bezier;
 
@@ -1081,8 +1071,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 var connectionRect = ComputeConnectionBounds(
                     connection.SourcePort.AbsolutePosition,
                     connection.TargetPort.AbsolutePosition,
-                    isBezier,
-                    connectionPen.Thickness);
+                    isBezier);
 
                 if (!viewportWorld.Intersects(connectionRect))
                     continue;
@@ -1095,29 +1084,24 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         // are drawn by _overlay (renders on top of node containers)
     }
 
-    // Loose world-space bounds for a connection given its two endpoint positions.
-    // For bezier routing, inflates horizontally by the exact BezierRouter control
-    // offset (Math.Max(|dx|*0.4, BezierControlOffsetMin)) so bezier excursion is
-    // covered. For step/straight routing the endpoint AABB is already exact.
-    // strokeBleed is added on all sides to cover stroked-edge overflow.
-    private static Rect ComputeConnectionBounds(
-        Point source, Point target, bool isBezier, double strokeBleed)
+    // Stroke bleed is covered once on the viewport rect, not per connection.
+    // Bezier control points push horizontally only (start.Y / end.Y are preserved),
+    // so only X is inflated.
+    private static Rect ComputeConnectionBounds(Point source, Point target, bool isBezier)
     {
         var minX = Math.Min(source.X, target.X);
         var maxX = Math.Max(source.X, target.X);
         var minY = Math.Min(source.Y, target.Y);
         var maxY = Math.Max(source.Y, target.Y);
 
-        var rect = new Rect(minX, minY, maxX - minX, maxY - minY);
-
         if (isBezier)
         {
-            var dx = target.X - source.X;
-            var bezierOffset = Math.Max(Math.Abs(dx) * 0.4, BezierControlOffsetMin);
-            rect = rect.Inflate(new Thickness(bezierOffset, 0, bezierOffset, 0));
+            var bezierOffset = BezierRouter.ComputeControlOffset(target.X - source.X);
+            minX -= bezierOffset;
+            maxX += bezierOffset;
         }
 
-        return rect.Inflate(strokeBleed);
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
     }
 
     internal bool CuttingLineIntersectsGeometry(

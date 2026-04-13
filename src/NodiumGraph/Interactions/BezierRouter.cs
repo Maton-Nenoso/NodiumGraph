@@ -9,7 +9,11 @@ namespace NodiumGraph.Interactions;
 /// </summary>
 public class BezierRouter : IConnectionRouter
 {
-    private const double MinOffset = 30.0;
+    internal const double MinOffset = 30.0;
+    internal const double ControlOffsetFactor = 0.4;
+
+    internal static double ComputeControlOffset(double dx)
+        => Math.Max(Math.Abs(dx) * ControlOffsetFactor, MinOffset);
 
     public RouteKind RouteKind => RouteKind.Bezier;
 
@@ -19,7 +23,7 @@ public class BezierRouter : IConnectionRouter
         var end = target.AbsolutePosition;
 
         var dx = end.X - start.X;
-        var offset = Math.Max(Math.Abs(dx) * 0.4, MinOffset);
+        var offset = ComputeControlOffset(dx);
 
         // Push control points in the direction of travel.
         // Left-to-right (dx >= 0): cp1 right, cp2 left (toward each other).

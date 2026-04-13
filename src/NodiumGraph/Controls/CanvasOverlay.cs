@@ -30,21 +30,17 @@ internal class CanvasOverlay : Control
     private IBrush? _lastPortOutlineBrush;
     private double _lastPortOutlineThickness;
 
-    // Cached FormattedText for port labels. Key uses a 0.5-px-bucketed font size
-    // so continuous zoom reuses entries; bounded to avoid unbounded growth.
+    // Font size is bucketed to 0.5 px so continuous zoom reuses cache entries.
+    // IBrush is compared by reference — in-place brush mutation leaves stale text.
     private const int LabelCacheMaxEntries = 256;
-    private readonly Dictionary<(string label, double bucketedFontSize, IBrush brush), FormattedText> _labelCache = new();
+    private readonly Dictionary<(string label, double bucketedFontSize, IBrush brush), FormattedText> _labelCache
+        = new(LabelCacheKeyComparer.Instance);
 
-    // Identity-keyed pen cache for styled borders/ports. Mutating a brush
-    // instance in place will NOT invalidate the cached pen — same constraint
-    // Avalonia already imposes on directly-held brushes. Bounded to 32.
+    // Pens held by reference-identity on brush; same stale-on-mutation caveat.
     private const int StyledPenCacheMaxEntries = 32;
     private readonly Dictionary<(IBrush brush, double thickness), Pen> _styledPenCache
-        = new(new BrushThicknessComparer());
+        = new(BrushThicknessComparer.Instance);
 
-    // Origin-centered port geometries, keyed on (shape, bucketed scaled radius).
-    // Reused across ports of the same shape/size; translated into place at draw
-    // time via PushTransform. Bucketing is 0.5 px so incremental zoom reuses entries.
     private const int PortGeometryCacheMaxEntries = 64;
     private readonly Dictionary<(PortShape shape, double bucketedRadius), Geometry> _portGeometryCache = new();
 
@@ -119,11 +115,32 @@ internal class CanvasOverlay : Control
     private sealed class BrushThicknessComparer
         : IEqualityComparer<(IBrush brush, double thickness)>
     {
+        public static readonly BrushThicknessComparer Instance = new();
+
         public bool Equals((IBrush brush, double thickness) x, (IBrush brush, double thickness) y)
-            => ReferenceEquals(x.brush, y.brush) && x.thickness == y.thickness;
+            => ReferenceEquals(x.brush, y.brush) && x.thickness.Equals(y.thickness);
 
         public int GetHashCode((IBrush brush, double thickness) obj)
             => HashCode.Combine(RuntimeHelpers.GetHashCode(obj.brush), obj.thickness);
+    }
+
+    private sealed class LabelCacheKeyComparer
+        : IEqualityComparer<(string label, double bucketedFontSize, IBrush brush)>
+    {
+        public static readonly LabelCacheKeyComparer Instance = new();
+
+        public bool Equals(
+            (string label, double bucketedFontSize, IBrush brush) x,
+            (string label, double bucketedFontSize, IBrush brush) y)
+            => ReferenceEquals(x.brush, y.brush)
+                && x.bucketedFontSize.Equals(y.bucketedFontSize)
+                && string.Equals(x.label, y.label, StringComparison.Ordinal);
+
+        public int GetHashCode((string label, double bucketedFontSize, IBrush brush) obj)
+            => HashCode.Combine(
+                obj.label,
+                obj.bucketedFontSize,
+                RuntimeHelpers.GetHashCode(obj.brush));
     }
 
     public override void Render(DrawingContext context)
