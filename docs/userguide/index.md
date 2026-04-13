@@ -16,7 +16,7 @@ Task-oriented recipes for specific problems. Each assumes you've read the tutori
 
 - [Host the canvas in a window or user control](how-to/host-canvas.md)
 - [Define a custom node DataTemplate](how-to/custom-node-template.md)
-- [Bind ViewportZoom, ViewportOffset, and SelectedNodes](how-to/bind-viewport.md)
+- [Bind ViewportZoom, ViewportOffset, and selection](how-to/bind-viewport.md)
 - [Handle node moves for undo/redo](how-to/handle-node-moves-undo.md)
 - [Handle external drag-drop onto the canvas](how-to/external-drag-drop.md)
 - [Persist and restore graph state](how-to/persist-graph-state.md)
@@ -69,5 +69,3 @@ These are intentionally **out of scope**. Your application is expected to own th
 - Keyboard shortcut defaults
 - Connection validation rules (the library calls your validator; you decide)
 - Node content and appearance (you provide the DataTemplate)
-
-> TODO: Replace this TODO line once all linked pages have real content. Currently each linked page is a skeleton.

@@ -64,7 +64,7 @@ public partial class MainWindow : Window
 }
 ```
 
-With `Canvas.Graph` set, pan (middle-mouse or `Space`+left-drag), zoom (scroll wheel / pinch), and selection (click, Ctrl+click, marquee) work immediately — no additional wiring needed. To let users *create* connections rather than just view them, assign a `ConnectionHandler`; see [Getting Started](../tutorial/getting-started.md#6-accept-new-connections-with-a-connection-handler).
+With `Canvas.Graph` set, pan (middle-mouse or `Space`+left-drag), zoom (scroll wheel / pinch), and selection (click, Ctrl+click, marquee) work immediately — no additional wiring needed. To let users *create* connections rather than just view them, assign a `ConnectionHandler`; see [Getting Started](../tutorial/getting-started.md#6-wire-the-connection-handler).
 
 ## Full code
 
