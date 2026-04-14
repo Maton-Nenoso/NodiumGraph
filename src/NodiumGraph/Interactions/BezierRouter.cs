@@ -26,6 +26,8 @@ public class BezierRouter : IConnectionRouter
         var dx = end.X - start.X;
         var dy = end.Y - start.Y;
 
+        // Abs so ports whose partner sits "behind" their emission direction still reach
+        // proportionally — produces wider S-curves instead of collapsing to MinOffset.
         var sourceReach = Math.Abs(dx * sourceDir.X + dy * sourceDir.Y);
         var targetReach = Math.Abs(dx * targetDir.X + dy * targetDir.Y);
 
@@ -51,9 +53,11 @@ public class BezierRouter : IConnectionRouter
         var topDist = py;
         var bottomDist = owner.Height - py;
 
-        // Smallest signed distance wins. Negative means the port is outside on that side —
-        // correctly picked. Ties between horizontal and vertical break toward horizontal to
-        // preserve today's behavior for corner / interior / zero-size ports.
+        // Pick the axis with the smallest edge distance, then the nearer side on that axis.
+        // Negative distances (port declared outside its owner) naturally win because they're
+        // the smallest — the emission vector then points toward the side the port is beyond.
+        // Ties break horizontal-first to preserve the pre-change default for corner / interior
+        // / zero-size ports.
         var minHorizontal = Math.Min(leftDist, rightDist);
         var minVertical = Math.Min(topDist, bottomDist);
 
