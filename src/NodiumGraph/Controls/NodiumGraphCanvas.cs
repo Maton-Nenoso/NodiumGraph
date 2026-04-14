@@ -74,6 +74,37 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private double _lastConnectionThickness;
     private IDashStyle? _lastConnectionDashPattern;
 
+    // Shared render caches — used by CanvasOverlay (validation feedback, previews)
+    // and by per-node NodeAdornmentLayer (selection border, ports, labels).
+    // All caches below are UI-thread only — Avalonia render runs on the UI thread,
+    // and no synchronization is applied. Do not touch them from background work.
+    // Font size is bucketed to 0.5 px so continuous zoom reuses cache entries.
+    // IBrush is compared by reference — in-place brush mutation leaves stale content.
+    private const int LabelCacheMaxEntries = 256;
+    private readonly Dictionary<(string label, double bucketedFontSize, IBrush brush), FormattedText> _labelCache
+        = new(LabelCacheKeyComparer.Instance);
+
+    // Pens held by reference-identity on brush; same stale-on-mutation caveat.
+    private const int StyledPenCacheMaxEntries = 32;
+    private readonly Dictionary<(IBrush brush, double thickness), Pen> _styledPenCache
+        = new(BrushThicknessComparer.Instance);
+
+    private const int PortGeometryCacheMaxEntries = 64;
+    private readonly Dictionary<(PortShape shape, double bucketedRadius), Geometry> _portGeometryCache = new();
+
+    // Single-slot cached pens — dirty-tracked by brush/thickness identity.
+    private Pen? _cachedSelectedBorderPen;
+    private IBrush? _lastSelectedBrush;
+    private double _lastSelectedThickness;
+
+    private Pen? _cachedHoveredBorderPen;
+    private IBrush? _lastHoveredBrush;
+    private double _lastHoveredThickness;
+
+    private Pen? _cachedPortOutlinePen;
+    private IBrush? _lastPortOutlineBrush;
+    private double _lastPortOutlineThickness;
+
     // Extra space around each node container so box shadows aren't clipped
     private const double ShadowPadding = 20;
 
@@ -1542,5 +1573,117 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         _overlay.Arrange(new Rect(finalSize));
 
         return finalSize;
+    }
+
+    // --- Shared render cache helpers ---
+    // Used by CanvasOverlay and NodeAdornmentLayer. All cache state lives on the canvas
+    // so multiple render layers share the same entries without duplicating work.
+
+    internal Pen GetOrCreateStyledPen(IBrush brush, double thickness)
+    {
+        var key = (brush, thickness);
+        if (_styledPenCache.TryGetValue(key, out var pen))
+            return pen;
+
+        if (_styledPenCache.Count >= StyledPenCacheMaxEntries)
+            _styledPenCache.Clear();
+
+        pen = new Pen(brush, thickness);
+        _styledPenCache[key] = pen;
+        return pen;
+    }
+
+    internal Geometry GetOrCreatePortGeometry(PortShape shape, double bucketedRadius)
+    {
+        var key = (shape, bucketedRadius);
+        if (_portGeometryCache.TryGetValue(key, out var cached))
+            return cached;
+
+        if (_portGeometryCache.Count >= PortGeometryCacheMaxEntries)
+            _portGeometryCache.Clear();
+
+        var geo = new StreamGeometry();
+        using (var ctx = geo.Open())
+        {
+            switch (shape)
+            {
+                case PortShape.Diamond:
+                    ctx.BeginFigure(new Point(0, -bucketedRadius), true);
+                    ctx.LineTo(new Point(bucketedRadius, 0));
+                    ctx.LineTo(new Point(0, bucketedRadius));
+                    ctx.LineTo(new Point(-bucketedRadius, 0));
+                    ctx.EndFigure(true);
+                    break;
+
+                case PortShape.Triangle:
+                    ctx.BeginFigure(new Point(0, -bucketedRadius), true);
+                    ctx.LineTo(new Point(bucketedRadius, bucketedRadius));
+                    ctx.LineTo(new Point(-bucketedRadius, bucketedRadius));
+                    ctx.EndFigure(true);
+                    break;
+            }
+        }
+
+        _portGeometryCache[key] = geo;
+        return geo;
+    }
+
+    internal FormattedText GetOrCreateLabel(string text, double bucketedFontSize, IBrush brush)
+    {
+        var key = (text, bucketedFontSize, brush);
+        if (!_labelCache.TryGetValue(key, out var ft))
+        {
+            if (_labelCache.Count >= LabelCacheMaxEntries)
+                _labelCache.Clear();
+
+            ft = new FormattedText(
+                text,
+                System.Globalization.CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                Typeface.Default,
+                bucketedFontSize,
+                brush);
+            _labelCache[key] = ft;
+        }
+        return ft;
+    }
+
+    internal Pen GetSelectedBorderPen(IBrush brush, double thickness)
+    {
+        if (_cachedSelectedBorderPen == null
+            || !ReferenceEquals(_lastSelectedBrush, brush)
+            || !_lastSelectedThickness.Equals(thickness))
+        {
+            _cachedSelectedBorderPen = new Pen(brush, thickness);
+            _lastSelectedBrush = brush;
+            _lastSelectedThickness = thickness;
+        }
+        return _cachedSelectedBorderPen!;
+    }
+
+    internal Pen GetHoveredBorderPen(IBrush brush, double thickness)
+    {
+        if (_cachedHoveredBorderPen == null
+            || !ReferenceEquals(_lastHoveredBrush, brush)
+            || !_lastHoveredThickness.Equals(thickness))
+        {
+            _cachedHoveredBorderPen = new Pen(brush, thickness);
+            _lastHoveredBrush = brush;
+            _lastHoveredThickness = thickness;
+        }
+        return _cachedHoveredBorderPen!;
+    }
+
+    internal Pen GetPortOutlinePen(IBrush brush, double thickness)
+    {
+        if (_cachedPortOutlinePen == null
+            || !ReferenceEquals(_lastPortOutlineBrush, brush)
+            || !_lastPortOutlineThickness.Equals(thickness))
+        {
+            _cachedPortOutlinePen = new Pen(brush, thickness);
+            _lastPortOutlineBrush = brush;
+            _lastPortOutlineThickness = thickness;
+        }
+        return _cachedPortOutlinePen!;
     }
 }

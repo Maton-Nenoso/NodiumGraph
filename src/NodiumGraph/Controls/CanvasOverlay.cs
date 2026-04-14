@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -17,134 +15,10 @@ internal class CanvasOverlay : Control
 
     private readonly NodiumGraphCanvas _canvas;
 
-    // Cached pens — dirty-tracked by brush/thickness
-    private Pen? _cachedSelectedBorderPen;
-    private IBrush? _lastSelectedBrush;
-    private double _lastSelectedThickness;
-
-    private Pen? _cachedHoveredBorderPen;
-    private IBrush? _lastHoveredBrush;
-    private double _lastHoveredThickness;
-
-    private Pen? _cachedPortOutlinePen;
-    private IBrush? _lastPortOutlineBrush;
-    private double _lastPortOutlineThickness;
-
-    // All three caches below are UI-thread only — Avalonia render runs on the UI thread,
-    // and no synchronization is applied. Do not touch them from background work.
-    // Font size is bucketed to 0.5 px so continuous zoom reuses cache entries.
-    // IBrush is compared by reference — in-place brush mutation leaves stale text.
-    private const int LabelCacheMaxEntries = 256;
-    private readonly Dictionary<(string label, double bucketedFontSize, IBrush brush), FormattedText> _labelCache
-        = new(LabelCacheKeyComparer.Instance);
-
-    // Pens held by reference-identity on brush; same stale-on-mutation caveat.
-    private const int StyledPenCacheMaxEntries = 32;
-    private readonly Dictionary<(IBrush brush, double thickness), Pen> _styledPenCache
-        = new(BrushThicknessComparer.Instance);
-
-    private const int PortGeometryCacheMaxEntries = 64;
-    private readonly Dictionary<(PortShape shape, double bucketedRadius), Geometry> _portGeometryCache = new();
-
     public CanvasOverlay(NodiumGraphCanvas canvas)
     {
         _canvas = canvas;
         IsHitTestVisible = false; // Let events pass through to the canvas
-    }
-
-    private static Pen GetOrCreatePen(ref Pen? cached, ref IBrush? lastBrush,
-        ref double lastThickness, IBrush brush, double thickness)
-    {
-        if (cached != null && ReferenceEquals(lastBrush, brush)
-            && Math.Abs(lastThickness - thickness) < 0.001)
-            return cached;
-
-        lastBrush = brush;
-        lastThickness = thickness;
-        cached = new Pen(brush, thickness);
-        return cached;
-    }
-
-    private Pen GetOrCreateStyledPen(IBrush brush, double thickness)
-    {
-        var key = (brush, thickness);
-        if (_styledPenCache.TryGetValue(key, out var pen))
-            return pen;
-
-        if (_styledPenCache.Count >= StyledPenCacheMaxEntries)
-            _styledPenCache.Clear();
-
-        pen = new Pen(brush, thickness);
-        _styledPenCache[key] = pen;
-        return pen;
-    }
-
-    private Geometry GetOrCreatePortGeometry(PortShape shape, double bucketedRadius)
-    {
-        var key = (shape, bucketedRadius);
-        if (_portGeometryCache.TryGetValue(key, out var cached))
-            return cached;
-
-        if (_portGeometryCache.Count >= PortGeometryCacheMaxEntries)
-            _portGeometryCache.Clear();
-
-        var geo = new StreamGeometry();
-        using (var ctx = geo.Open())
-        {
-            switch (shape)
-            {
-                case PortShape.Diamond:
-                    ctx.BeginFigure(new Point(0, -bucketedRadius), true);
-                    ctx.LineTo(new Point(bucketedRadius, 0));
-                    ctx.LineTo(new Point(0, bucketedRadius));
-                    ctx.LineTo(new Point(-bucketedRadius, 0));
-                    ctx.EndFigure(true);
-                    break;
-
-                case PortShape.Triangle:
-                    ctx.BeginFigure(new Point(0, -bucketedRadius), true);
-                    ctx.LineTo(new Point(bucketedRadius, bucketedRadius));
-                    ctx.LineTo(new Point(-bucketedRadius, bucketedRadius));
-                    ctx.EndFigure(true);
-                    break;
-            }
-        }
-
-        _portGeometryCache[key] = geo;
-        return geo;
-    }
-
-    private sealed class BrushThicknessComparer
-        : IEqualityComparer<(IBrush brush, double thickness)>
-    {
-        public static readonly BrushThicknessComparer Instance = new();
-
-        // double.Equals (not ==) avoids an analyzer warning on float equality.
-        // Thickness is never NaN here, so NaN-self-equal semantics don't matter.
-        public bool Equals((IBrush brush, double thickness) x, (IBrush brush, double thickness) y)
-            => ReferenceEquals(x.brush, y.brush) && x.thickness.Equals(y.thickness);
-
-        public int GetHashCode((IBrush brush, double thickness) obj)
-            => HashCode.Combine(RuntimeHelpers.GetHashCode(obj.brush), obj.thickness);
-    }
-
-    private sealed class LabelCacheKeyComparer
-        : IEqualityComparer<(string label, double bucketedFontSize, IBrush brush)>
-    {
-        public static readonly LabelCacheKeyComparer Instance = new();
-
-        public bool Equals(
-            (string label, double bucketedFontSize, IBrush brush) x,
-            (string label, double bucketedFontSize, IBrush brush) y)
-            => ReferenceEquals(x.brush, y.brush)
-                && x.bucketedFontSize.Equals(y.bucketedFontSize)
-                && string.Equals(x.label, y.label, StringComparison.Ordinal);
-
-        public int GetHashCode((string label, double bucketedFontSize, IBrush brush) obj)
-            => HashCode.Combine(
-                obj.label,
-                obj.bucketedFontSize,
-                RuntimeHelpers.GetHashCode(obj.brush));
     }
 
     public override void Render(DrawingContext context)
@@ -167,10 +41,8 @@ internal class CanvasOverlay : Control
         var defaultHoveredThickness = ResolveResource<double>(
             NodiumGraphResources.NodeHoveredBorderThicknessKey, 1.5);
 
-        var selectedBorderPen = GetOrCreatePen(ref _cachedSelectedBorderPen, ref _lastSelectedBrush,
-            ref _lastSelectedThickness, defaultSelectedBrush, defaultSelectedThickness);
-        var hoveredBorderPen = GetOrCreatePen(ref _cachedHoveredBorderPen, ref _lastHoveredBrush,
-            ref _lastHoveredThickness, defaultHoveredBrush, defaultHoveredThickness);
+        var selectedBorderPen = _canvas.GetSelectedBorderPen(defaultSelectedBrush, defaultSelectedThickness);
+        var hoveredBorderPen = _canvas.GetHoveredBorderPen(defaultHoveredBrush, defaultHoveredThickness);
 
         // Node state borders (hovered + selected)
         foreach (var node in graph.Nodes)
@@ -184,7 +56,7 @@ internal class CanvasOverlay : Control
             if (node.IsSelected)
             {
                 var pen = node.Style?.SelectionBorderBrush != null || node.Style?.SelectionBorderThickness != null
-                    ? GetOrCreateStyledPen(
+                    ? _canvas.GetOrCreateStyledPen(
                         node.Style?.SelectionBorderBrush ?? defaultSelectedBrush,
                         node.Style?.SelectionBorderThickness ?? defaultSelectedThickness)
                     : selectedBorderPen;
@@ -193,7 +65,7 @@ internal class CanvasOverlay : Control
             else if (node == _canvas.HoveredNode)
             {
                 var pen = node.Style?.HoverBorderBrush != null || node.Style?.HoverBorderThickness != null
-                    ? GetOrCreateStyledPen(
+                    ? _canvas.GetOrCreateStyledPen(
                         node.Style?.HoverBorderBrush ?? defaultHoveredBrush,
                         node.Style?.HoverBorderThickness ?? defaultHoveredThickness)
                     : hoveredBorderPen;
@@ -221,8 +93,7 @@ internal class CanvasOverlay : Control
                 NodiumGraphResources.PortOutlineBrushKey,
                 NodiumGraphCanvas.DefaultPortOutlineBrush);
 
-            var defaultPortPen = GetOrCreatePen(ref _cachedPortOutlinePen, ref _lastPortOutlineBrush,
-                ref _lastPortOutlineThickness, defaultPortOutlineBrush, 1.0);
+            var defaultPortPen = _canvas.GetPortOutlinePen(defaultPortOutlineBrush, 1.0);
 
             foreach (var node in graph.Nodes)
             {
@@ -239,7 +110,7 @@ internal class CanvasOverlay : Control
                     var scaledRadius = radius * zoom;
 
                     var pen = (style?.Stroke != null || style?.StrokeWidth != null)
-                        ? GetOrCreateStyledPen(style?.Stroke ?? defaultPortOutlineBrush, style?.StrokeWidth ?? 1.0)
+                        ? _canvas.GetOrCreateStyledPen(style?.Stroke ?? defaultPortOutlineBrush, style?.StrokeWidth ?? 1.0)
                         : defaultPortPen;
 
                     switch (shape)
@@ -262,7 +133,7 @@ internal class CanvasOverlay : Control
                         case PortShape.Triangle:
                         {
                             var bucketedRadius = Math.Round(scaledRadius * 2) / 2;
-                            var geo = GetOrCreatePortGeometry(shape, bucketedRadius);
+                            var geo = _canvas.GetOrCreatePortGeometry(shape, bucketedRadius);
                             using (context.PushTransform(Matrix.CreateTranslation(screenPos.X, screenPos.Y)))
                             {
                                 context.DrawGeometry(fill, pen, geo);
@@ -298,21 +169,7 @@ internal class CanvasOverlay : Control
                     var scaledOffset = portLabelOffset * zoom;
 
                     var bucketedFontSize = Math.Round(portLabelFontSize * zoom * 2) / 2;
-                    var cacheKey = (port.Label, bucketedFontSize, portLabelBrush);
-                    if (!_labelCache.TryGetValue(cacheKey, out var text))
-                    {
-                        if (_labelCache.Count >= LabelCacheMaxEntries)
-                            _labelCache.Clear();
-
-                        text = new FormattedText(
-                            port.Label,
-                            CultureInfo.InvariantCulture,
-                            FlowDirection.LeftToRight,
-                            Typeface.Default,
-                            bucketedFontSize,
-                            portLabelBrush);
-                        _labelCache[cacheKey] = text;
-                    }
+                    var text = _canvas.GetOrCreateLabel(port.Label, bucketedFontSize, portLabelBrush);
 
                     var textWidth = text.Width;
                     var textHeight = text.Height;
