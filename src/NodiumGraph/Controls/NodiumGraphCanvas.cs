@@ -1069,6 +1069,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             container.AdornmentLayer.InvalidateVisual();
     }
 
+    internal void InvalidateAllNodeAdornments()
+    {
+        foreach (var container in _nodeContainers.Values)
+            container.AdornmentLayer.InvalidateVisual();
+    }
+
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
@@ -1457,6 +1463,10 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     private void OnLayoutAwareProviderInvalidated()
     {
+        // No node context on the parameterless event — invalidate all adornment
+        // layers (for port shapes) and the overlay (for port labels, still in
+        // CanvasOverlay pending Task 5).
+        InvalidateAllNodeAdornments();
         InvalidateVisual();
     }
 
@@ -1465,8 +1475,18 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         foreach (var port in provider.Ports)
             SubscribeToPort(port);
 
-        Action<Port> onAdded = p => { SubscribeToPort(p); InvalidateVisual(); };
-        Action<Port> onRemoved = p => { UnsubscribeFromPort(p); InvalidateVisual(); };
+        Action<Port> onAdded = p =>
+        {
+            SubscribeToPort(p);
+            InvalidateNodeAdornments(node);
+            InvalidateVisual();
+        };
+        Action<Port> onRemoved = p =>
+        {
+            UnsubscribeFromPort(p);
+            InvalidateNodeAdornments(node);
+            InvalidateVisual();
+        };
         provider.PortAdded += onAdded;
         provider.PortRemoved += onRemoved;
         _providerAddedHandlers[provider] = onAdded;
@@ -1520,14 +1540,22 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 port.Style.PropertyChanged += OnPortStylePropertyChanged;
 
             _portStyles[port] = port.Style;
+            InvalidateNodeAdornments(port.Owner);
             InvalidateVisual();
         }
         else if (e.PropertyName is nameof(Port.AbsolutePosition) or nameof(Port.Label))
+        {
+            if (sender is Port p)
+                InvalidateNodeAdornments(p.Owner);
             InvalidateVisual();
+        }
     }
 
     private void OnPortStylePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // PortStyle doesn't know its owning port; invalidate all adornments.
+        // Style changes are rare so the broader invalidation is acceptable.
+        InvalidateAllNodeAdornments();
         InvalidateVisual();
     }
 

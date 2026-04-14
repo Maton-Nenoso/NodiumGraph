@@ -32,7 +32,6 @@ internal sealed class NodeAdornmentLayer : Control
 
         var isSelected = _node.IsSelected;
         var isHovered = !isSelected && ReferenceEquals(_canvas.HoveredNode, _node);
-        if (!isSelected && !isHovered) return;
 
         // Node body sits inside the container's symmetric shadow padding.
         // Compute padding from the adornment's Bounds (= container DesiredSize)
@@ -48,45 +47,107 @@ internal sealed class NodeAdornmentLayer : Control
         // zoom values is imperceptible.
         var bucketedZoom = Math.Round(zoom, 2);
 
-        // 2px visual inflate + 6px corner radius, divided by bucketedZoom so the
-        // values stay visually constant under the container's ScaleTransform(zoom).
-        var inflate = 2.0 / bucketedZoom;
-        var cornerRadius = 6.0 / bucketedZoom;
-        var rect = new Rect(padX, padY, _node.Width, _node.Height).Inflate(inflate);
-
-        var defaultSelectedBrush = _canvas.ResolveBrush(
-            NodiumGraphResources.NodeSelectedBorderBrushKey,
-            NodiumGraphCanvas.DefaultSelectedBorderBrush);
-        var defaultSelectedThickness = _canvas.ResolveResource<double>(
-            NodiumGraphResources.NodeSelectedBorderThicknessKey, 2);
-
-        var defaultHoveredBrush = _canvas.ResolveBrush(
-            NodiumGraphResources.NodeHoveredBorderBrushKey,
-            NodiumGraphCanvas.DefaultHoveredBorderBrush);
-        var defaultHoveredThickness = _canvas.ResolveResource<double>(
-            NodiumGraphResources.NodeHoveredBorderThicknessKey, 1.5);
-
-        if (isSelected)
+        // Selection/hover border.
+        if (isSelected || isHovered)
         {
-            var brush = _node.Style?.SelectionBorderBrush ?? defaultSelectedBrush;
-            var thickness = (_node.Style?.SelectionBorderThickness ?? defaultSelectedThickness) / bucketedZoom;
+            // 2px visual inflate + 6px corner radius, divided by bucketedZoom so the
+            // values stay visually constant under the container's ScaleTransform(zoom).
+            var inflate = 2.0 / bucketedZoom;
+            var cornerRadius = 6.0 / bucketedZoom;
+            var rect = new Rect(padX, padY, _node.Width, _node.Height).Inflate(inflate);
 
-            var pen = _node.Style?.SelectionBorderBrush != null || _node.Style?.SelectionBorderThickness != null
-                ? _canvas.GetOrCreateStyledPen(brush, thickness)
-                : _canvas.GetOrCreateSelectedBorderPen(brush, thickness);
+            if (isSelected)
+            {
+                var defaultSelectedBrush = _canvas.ResolveBrush(
+                    NodiumGraphResources.NodeSelectedBorderBrushKey,
+                    NodiumGraphCanvas.DefaultSelectedBorderBrush);
+                var defaultSelectedThickness = _canvas.ResolveResource<double>(
+                    NodiumGraphResources.NodeSelectedBorderThicknessKey, 2);
 
-            context.DrawRectangle(null, pen, rect, cornerRadius, cornerRadius);
+                var brush = _node.Style?.SelectionBorderBrush ?? defaultSelectedBrush;
+                var thickness = (_node.Style?.SelectionBorderThickness ?? defaultSelectedThickness) / bucketedZoom;
+
+                var pen = _node.Style?.SelectionBorderBrush != null || _node.Style?.SelectionBorderThickness != null
+                    ? _canvas.GetOrCreateStyledPen(brush, thickness)
+                    : _canvas.GetOrCreateSelectedBorderPen(brush, thickness);
+
+                context.DrawRectangle(null, pen, rect, cornerRadius, cornerRadius);
+            }
+            else
+            {
+                var defaultHoveredBrush = _canvas.ResolveBrush(
+                    NodiumGraphResources.NodeHoveredBorderBrushKey,
+                    NodiumGraphCanvas.DefaultHoveredBorderBrush);
+                var defaultHoveredThickness = _canvas.ResolveResource<double>(
+                    NodiumGraphResources.NodeHoveredBorderThicknessKey, 1.5);
+
+                var brush = _node.Style?.HoverBorderBrush ?? defaultHoveredBrush;
+                var thickness = (_node.Style?.HoverBorderThickness ?? defaultHoveredThickness) / bucketedZoom;
+
+                var pen = _node.Style?.HoverBorderBrush != null || _node.Style?.HoverBorderThickness != null
+                    ? _canvas.GetOrCreateStyledPen(brush, thickness)
+                    : _canvas.GetOrCreateHoveredBorderPen(brush, thickness);
+
+                context.DrawRectangle(null, pen, rect, cornerRadius, cornerRadius);
+            }
         }
-        else
+
+        // Port visuals (default rendering path — skipped when consumer supplies PortTemplate).
+        if (_canvas.PortTemplate != null) return;
+        if (_node.PortProvider == null) return;
+        if (_node.IsCollapsed) return;
+
+        const double defaultPortRadius = 4.0;
+        var defaultPortBrush = _canvas.ResolveBrush(
+            NodiumGraphResources.PortBrushKey,
+            NodiumGraphCanvas.DefaultPortBrush);
+        var defaultPortOutlineBrush = _canvas.ResolveBrush(
+            NodiumGraphResources.PortOutlineBrushKey,
+            NodiumGraphCanvas.DefaultPortOutlineBrush);
+
+        // 1px visual outline divided by bucketedZoom so it stays 1px under the
+        // container's ScaleTransform(zoom).
+        var defaultPortPen = _canvas.GetOrCreatePortOutlinePen(defaultPortOutlineBrush, 1.0 / bucketedZoom);
+
+        foreach (var port in _node.PortProvider.Ports)
         {
-            var brush = _node.Style?.HoverBorderBrush ?? defaultHoveredBrush;
-            var thickness = (_node.Style?.HoverBorderThickness ?? defaultHoveredThickness) / bucketedZoom;
+            var style = port.Style;
+            var fill = style?.Fill ?? defaultPortBrush;
+            var shape = style?.Shape ?? PortShape.Circle;
+            var radius = style?.Size ?? defaultPortRadius;
 
-            var pen = _node.Style?.HoverBorderBrush != null || _node.Style?.HoverBorderThickness != null
-                ? _canvas.GetOrCreateStyledPen(brush, thickness)
-                : _canvas.GetOrCreateHoveredBorderPen(brush, thickness);
+            var pen = (style?.Stroke != null || style?.StrokeWidth != null)
+                ? _canvas.GetOrCreateStyledPen(
+                    style?.Stroke ?? defaultPortOutlineBrush,
+                    (style?.StrokeWidth ?? 1.0) / bucketedZoom)
+                : defaultPortPen;
 
-            context.DrawRectangle(null, pen, rect, cornerRadius, cornerRadius);
+            // Port position is node-local; offset by padding so it sits inside the body.
+            var center = new Point(port.Position.X + padX, port.Position.Y + padY);
+
+            switch (shape)
+            {
+                case PortShape.Circle:
+                    context.DrawEllipse(fill, pen, center, radius, radius);
+                    break;
+
+                case PortShape.Square:
+                    context.DrawRectangle(fill, pen,
+                        new Rect(center.X - radius, center.Y - radius, radius * 2, radius * 2));
+                    break;
+
+                case PortShape.Diamond:
+                case PortShape.Triangle:
+                {
+                    var bucketedRadius = Math.Round(radius * 2) / 2;
+                    var geo = _canvas.GetOrCreatePortGeometry(shape, bucketedRadius);
+                    using (context.PushTransform(Matrix.CreateTranslation(center.X, center.Y)))
+                    {
+                        context.DrawGeometry(fill, pen, geo);
+                    }
+                    break;
+                }
+            }
         }
     }
 }

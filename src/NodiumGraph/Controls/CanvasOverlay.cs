@@ -41,69 +41,12 @@ internal class CanvasOverlay : Control
             context.DrawRectangle(SnapGhostBrush, null, ghostRect, 6, 6);
         }
 
-        // Port visuals (only default when no custom template)
+        // Note: port shape rendering lives in NodeAdornmentLayer so each node's
+        // ports draw with that node and respect z-order overlap.
+
+        // Port labels (rendered when PortTemplate is null and port has a label)
         if (_canvas.PortTemplate == null)
         {
-            const double defaultPortRadius = 4.0;
-            var defaultPortBrush = _canvas.ResolveBrush(
-                NodiumGraphResources.PortBrushKey,
-                NodiumGraphCanvas.DefaultPortBrush);
-            var defaultPortOutlineBrush = _canvas.ResolveBrush(
-                NodiumGraphResources.PortOutlineBrushKey,
-                NodiumGraphCanvas.DefaultPortOutlineBrush);
-
-            var defaultPortPen = _canvas.GetOrCreatePortOutlinePen(defaultPortOutlineBrush, 1.0);
-
-            foreach (var node in graph.Nodes)
-            {
-                if (node.PortProvider == null) continue;
-                if (node.IsCollapsed) continue;
-                foreach (var port in node.PortProvider.Ports)
-                {
-                    var screenPos = transform.WorldToScreen(port.AbsolutePosition);
-                    var style = port.Style;
-
-                    var fill = style?.Fill ?? defaultPortBrush;
-                    var shape = style?.Shape ?? PortShape.Circle;
-                    var radius = style?.Size ?? defaultPortRadius;
-                    var scaledRadius = radius * zoom;
-
-                    var pen = (style?.Stroke != null || style?.StrokeWidth != null)
-                        ? _canvas.GetOrCreateStyledPen(style?.Stroke ?? defaultPortOutlineBrush, style?.StrokeWidth ?? 1.0)
-                        : defaultPortPen;
-
-                    switch (shape)
-                    {
-                        case PortShape.Circle:
-                            context.DrawEllipse(fill, pen,
-                                screenPos, scaledRadius, scaledRadius);
-                            break;
-
-                        case PortShape.Square:
-                            context.DrawRectangle(fill, pen,
-                                new Rect(
-                                    screenPos.X - scaledRadius,
-                                    screenPos.Y - scaledRadius,
-                                    scaledRadius * 2,
-                                    scaledRadius * 2));
-                            break;
-
-                        case PortShape.Diamond:
-                        case PortShape.Triangle:
-                        {
-                            var bucketedRadius = Math.Round(scaledRadius * 2) / 2;
-                            var geo = _canvas.GetOrCreatePortGeometry(shape, bucketedRadius);
-                            using (context.PushTransform(Matrix.CreateTranslation(screenPos.X, screenPos.Y)))
-                            {
-                                context.DrawGeometry(fill, pen, geo);
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Port labels (rendered when PortTemplate is null and port has a label)
             var defaultLabelBrush = _canvas.ResolveBrush(
                 NodiumGraphResources.PortLabelBrushKey,
                 NodiumGraphCanvas.DefaultPortLabelBrush);
