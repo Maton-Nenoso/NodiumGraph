@@ -20,7 +20,7 @@ Every consumer-facing property on the canvas is registered as a standard Avaloni
 |---|---|---|---|
 | `Graph` | `Graph?` | `null` | The graph document rendered by this canvas. All other interactions are no-ops until this is set. |
 | `NodeTemplate` | `IDataTemplate?` | `null` | Optional global template used for every node. When `null`, the canvas falls back to whichever `DataTemplate` the parent control tree provides for the node type, or to a built-in default. `IDataTemplate` lives in `Avalonia.Controls.Templates`. |
-| `PortTemplate` | `IDataTemplate?` | `null` | Optional template for port visuals. When `null`, the canvas custom-draws ports directly in its overlay using `PortStyle`. |
+| `PortTemplate` | `IDataTemplate?` | `null` | Optional template for port visuals. When `null`, each node's adornment layer custom-draws that node's ports directly using `PortStyle`. |
 
 ### Viewport
 

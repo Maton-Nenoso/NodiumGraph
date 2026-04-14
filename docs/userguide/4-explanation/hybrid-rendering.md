@@ -1,6 +1,6 @@
 # Hybrid Rendering
 
-NodiumGraph renders a single canvas using two completely different strategies. Nodes are real Avalonia controls, rendered through the regular `DataTemplate` system — which gives you bindings, animations, focus, styling, and everything else Avalonia ships with. Connections, the grid, the selection marquee, the drag preview, and the port visuals are custom-drawn — the canvas owns a `DrawingContext` and paints them directly. This essay explains why a single control uses both, and what it means for you when you build against the library.
+NodiumGraph renders a single canvas using two completely different strategies. Nodes are real Avalonia controls, rendered through the regular `DataTemplate` system — which gives you bindings, animations, focus, styling, and everything else Avalonia ships with. Connections, the grid, the selection marquee, the drag preview, and the port visuals are custom-drawn with `DrawingContext`. This essay explains why a single control uses both, and what it means for you when you build against the library.
 
 ## Two very different jobs
 
@@ -13,7 +13,7 @@ So the library splits the problem down the middle:
 | Element | How it's rendered | Why |
 |---|---|---|
 | Nodes | Avalonia `DataTemplate` → `ContentControl` children | Need full Avalonia templating, bindings, focus, styling |
-| Ports | Custom-drawn in the canvas overlay | Tiny, numerous, pure shapes with no child content |
+| Ports | Custom-drawn per-node in a `NodeAdornmentLayer` | Tiny, numerous, pure shapes with no child content; need to z-order with their own node |
 | Connections | Custom-drawn `Geometry` + `Pen` per frame | Smooth curves, thousands per graph, read-only |
 | Grid | Custom-drawn dots or lines | Background, huge, no interaction |
 | Selection marquee | Custom-drawn rectangle | Transient, painted once per pointer-move |
@@ -22,17 +22,14 @@ So the library splits the problem down the middle:
 
 ## The rendering order
 
-Every render pass runs bottom-up through seven layers:
+Every render pass runs bottom-up:
 
 1. **Grid** — `GridRenderer` paints dots or lines behind everything else.
 2. **Connections** — `ConnectionRenderer` asks the active `IConnectionRouter` for each connection's path and draws it using the canvas's pen cache.
-3. **Drag preview** — the in-progress connection drag, rendered with the same router so the live preview matches the final connection exactly.
-4. **Node containers** — each `Node` has a `ContentControl` child managed by the canvas, rendered by Avalonia's regular layout pass.
-5. **Port visuals** — tiny filled shapes in the overlay, on top of the nodes so they stay visible through node backgrounds.
-6. **Selection marquee** — the rubber-band rectangle.
-7. **Validation feedback** — the "this port is a valid/invalid target" indicator during a connection drag.
+3. **Node containers**, one at a time, in insertion order. Each `Node` is hosted by a `NodiumNodeContainer`, an internal `Panel` with two visual children — the `ContentPresenter` that renders the user's `NodeTemplate`, and a `NodeAdornmentLayer` that custom-draws that node's selection / hover border, port shapes, and port labels. Avalonia traverses the two children in order, so a given node's decorations paint over **its own** body but under the next node's body. A node in front of another fully occludes the back node, including the back node's ports.
+4. **Canvas chrome overlay**, drawn on top of every node: the snap ghost during a drag, the connection drag preview line with port highlights, the cutting line, the marquee selection rectangle, the minimap.
 
-The ordering is deliberate: connections draw *behind* nodes so a node can visually occlude a wire routed behind it, but ports draw *above* nodes so they always stay grabbable. Selection and validation sit on top so they're never hidden by the content they describe.
+The split makes correct z-order fall out of the visual tree for free. Ports belong to a specific node, so they travel with that node's container — no "ports float on top of everything" sleight of hand, no ports bleeding across a foreground node. The canvas chrome above is genuinely global (the marquee is stretched between pointer-down and the current pointer; the minimap is tied to the viewport, not a node), so it legitimately wants to sit above every node.
 
 ## What this costs you
 
