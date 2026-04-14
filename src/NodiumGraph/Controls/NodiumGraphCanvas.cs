@@ -1464,10 +1464,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private void OnLayoutAwareProviderInvalidated()
     {
         // No node context on the parameterless event — invalidate all adornment
-        // layers (for port shapes) and the overlay (for port labels, still in
-        // CanvasOverlay pending Task 5).
+        // layers so port shapes and labels repaint at the new positions.
         InvalidateAllNodeAdornments();
-        InvalidateVisual();
     }
 
     private void AttachProvider(Node node, IPortProvider provider)
@@ -1479,13 +1477,11 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             SubscribeToPort(p);
             InvalidateNodeAdornments(node);
-            InvalidateVisual();
         };
         Action<Port> onRemoved = p =>
         {
             UnsubscribeFromPort(p);
             InvalidateNodeAdornments(node);
-            InvalidateVisual();
         };
         provider.PortAdded += onAdded;
         provider.PortRemoved += onRemoved;
@@ -1541,13 +1537,11 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
             _portStyles[port] = port.Style;
             InvalidateNodeAdornments(port.Owner);
-            InvalidateVisual();
         }
         else if (e.PropertyName is nameof(Port.AbsolutePosition) or nameof(Port.Label))
         {
             if (sender is Port p)
                 InvalidateNodeAdornments(p.Owner);
-            InvalidateVisual();
         }
     }
 
@@ -1556,7 +1550,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         // PortStyle doesn't know its owning port; invalidate all adornments.
         // Style changes are rare so the broader invalidation is acceptable.
         InvalidateAllNodeAdornments();
-        InvalidateVisual();
     }
 
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)

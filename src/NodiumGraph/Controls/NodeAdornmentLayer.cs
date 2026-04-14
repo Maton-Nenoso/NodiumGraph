@@ -149,5 +149,75 @@ internal sealed class NodeAdornmentLayer : Control
                 }
             }
         }
+
+        // Port labels.
+        var defaultLabelFontSize = _canvas.ResolveResource<double>(
+            NodiumGraphResources.PortLabelFontSizeKey, 11.0);
+        var defaultLabelBrush = _canvas.ResolveBrush(
+            NodiumGraphResources.PortLabelBrushKey,
+            NodiumGraphCanvas.DefaultPortLabelBrush);
+        var defaultLabelOffset = _canvas.ResolveResource<double>(
+            NodiumGraphResources.PortLabelOffsetKey, 8.0);
+
+        foreach (var port in _node.PortProvider.Ports)
+        {
+            if (string.IsNullOrEmpty(port.Label)) continue;
+
+            var labelFontSize = port.Style?.LabelFontSize ?? defaultLabelFontSize;
+            var labelBrush = port.Style?.LabelBrush ?? defaultLabelBrush;
+            var labelOffset = port.Style?.LabelOffset ?? defaultLabelOffset;
+            var placement = port.Style?.LabelPlacement ?? GetAutoPlacement(port, _node);
+
+            // FormattedText is built at the unscaled font size — the container's
+            // ScaleTransform(zoom) magnifies it visually. Bucket the font size to
+            // keep the label cache stable against fractional sizes.
+            var bucketedFontSize = Math.Round(labelFontSize * 2) / 2;
+            var text = _canvas.GetOrCreateLabel(port.Label!, bucketedFontSize, labelBrush);
+
+            var textWidth = text.Width;
+            var textHeight = text.Height;
+
+            // Port position is node-local; offset by padding so it sits inside the body.
+            var centerX = port.Position.X + padX;
+            var centerY = port.Position.Y + padY;
+
+            Point textOrigin;
+            switch (placement)
+            {
+                case PortLabelPlacement.Left:
+                    textOrigin = new Point(
+                        centerX - labelOffset - textWidth,
+                        centerY - textHeight / 2);
+                    break;
+                case PortLabelPlacement.Right:
+                    textOrigin = new Point(
+                        centerX + labelOffset,
+                        centerY - textHeight / 2);
+                    break;
+                case PortLabelPlacement.Above:
+                    textOrigin = new Point(
+                        centerX - textWidth / 2,
+                        centerY - labelOffset - textHeight);
+                    break;
+                case PortLabelPlacement.Below:
+                default:
+                    textOrigin = new Point(
+                        centerX - textWidth / 2,
+                        centerY + labelOffset);
+                    break;
+            }
+
+            context.DrawText(text, textOrigin);
+        }
+    }
+
+    /// <summary>
+    /// Determines label placement based on port position relative to the node center.
+    /// Ports on the right half get Right placement; ports on the left half get Left placement.
+    /// </summary>
+    private static PortLabelPlacement GetAutoPlacement(Port port, Node node)
+    {
+        var nodeCenter = node.Width / 2.0;
+        return port.Position.X >= nodeCenter ? PortLabelPlacement.Right : PortLabelPlacement.Left;
     }
 }
