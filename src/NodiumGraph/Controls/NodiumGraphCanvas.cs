@@ -35,7 +35,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private const double AutoPanMargin = 40.0;
     private const double AutoPanSpeed = 10.0;
 
-    private readonly Dictionary<Node, ContentControl> _nodeContainers = new();
+    private readonly Dictionary<Node, NodiumNodeContainer> _nodeContainers = new();
     private Node? _hoveredNode;
     private bool _isPanning;
     private bool _isSpaceHeld;
@@ -1319,18 +1319,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private void AddNodeContainer(Node node)
     {
         var template = DefaultTemplates.ResolveTemplate(node, NodeTemplate);
-        var container = new ContentControl
+        var container = new NodiumNodeContainer(this, node)
         {
-            DataContext = node,
-            Content = node,
-            ClipToBounds = false,
+            ContentTemplate = template,
         };
 
-        if (template != null)
-        {
-            container.ContentTemplate = template;
-        }
-        else
+        if (template == null)
         {
             // Custom subclass with no specific template — let DataTemplate resolution
             // walk the visual tree. Fallback templates are registered on the canvas
