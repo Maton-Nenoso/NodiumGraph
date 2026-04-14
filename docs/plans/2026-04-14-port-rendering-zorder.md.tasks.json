@@ -1,0 +1,15 @@
+{
+  "planPath": "docs/plans/2026-04-14-port-rendering-zorder.md",
+  "tasks": [
+    {"id": 10, "subject": "Task 0: Scaffold NodeAdornmentLayer + NodiumNodeContainer", "status": "pending"},
+    {"id": 11, "subject": "Task 1: Wire NodiumNodeContainer into NodiumGraphCanvas", "status": "pending", "blockedBy": [10]},
+    {"id": 12, "subject": "Task 2: Hoist shared render caches from CanvasOverlay to NodiumGraphCanvas", "status": "pending", "blockedBy": [11]},
+    {"id": 13, "subject": "Task 3: Move selection/hover border into NodeAdornmentLayer", "status": "pending", "blockedBy": [12]},
+    {"id": 14, "subject": "Task 4: Move port shape rendering into NodeAdornmentLayer", "status": "pending", "blockedBy": [13]},
+    {"id": 15, "subject": "Task 5: Move port labels into NodeAdornmentLayer", "status": "pending", "blockedBy": [14]},
+    {"id": 16, "subject": "Task 6: Add structural tests for adornment layer architecture", "status": "pending", "blockedBy": [15]},
+    {"id": 17, "subject": "Task 7: Manual verification against screenshot scenario", "status": "pending", "blockedBy": [16]},
+    {"id": 18, "subject": "Task 8: Final verification and push", "status": "pending", "blockedBy": [17]}
+  ],
+  "lastUpdated": "2026-04-14"
+}
