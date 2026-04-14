@@ -41,10 +41,17 @@ internal sealed class NodeAdornmentLayer : Control
         var padX = (Bounds.Width - _node.Width) / 2;
         var padY = (Bounds.Height - _node.Height) / 2;
 
-        // 2px visual inflate + 6px corner radius, divided by zoom so the values
-        // stay visually constant under the container's ScaleTransform(zoom).
-        var inflate = 2.0 / zoom;
-        var cornerRadius = 6.0 / zoom;
+        // Bucket zoom to 2 decimals before dividing. Pen thickness goes into
+        // single-slot and styled pen caches keyed by (brush, thickness); without
+        // bucketing, every frame of a continuous zoom gesture would miss the
+        // cache and allocate a new Pen. The 1% visual drift at intermediate
+        // zoom values is imperceptible.
+        var bucketedZoom = Math.Round(zoom, 2);
+
+        // 2px visual inflate + 6px corner radius, divided by bucketedZoom so the
+        // values stay visually constant under the container's ScaleTransform(zoom).
+        var inflate = 2.0 / bucketedZoom;
+        var cornerRadius = 6.0 / bucketedZoom;
         var rect = new Rect(padX, padY, _node.Width, _node.Height).Inflate(inflate);
 
         var defaultSelectedBrush = _canvas.ResolveBrush(
@@ -62,7 +69,7 @@ internal sealed class NodeAdornmentLayer : Control
         if (isSelected)
         {
             var brush = _node.Style?.SelectionBorderBrush ?? defaultSelectedBrush;
-            var thickness = (_node.Style?.SelectionBorderThickness ?? defaultSelectedThickness) / zoom;
+            var thickness = (_node.Style?.SelectionBorderThickness ?? defaultSelectedThickness) / bucketedZoom;
 
             var pen = _node.Style?.SelectionBorderBrush != null || _node.Style?.SelectionBorderThickness != null
                 ? _canvas.GetOrCreateStyledPen(brush, thickness)
@@ -73,7 +80,7 @@ internal sealed class NodeAdornmentLayer : Control
         else
         {
             var brush = _node.Style?.HoverBorderBrush ?? defaultHoveredBrush;
-            var thickness = (_node.Style?.HoverBorderThickness ?? defaultHoveredThickness) / zoom;
+            var thickness = (_node.Style?.HoverBorderThickness ?? defaultHoveredThickness) / bucketedZoom;
 
             var pen = _node.Style?.HoverBorderBrush != null || _node.Style?.HoverBorderThickness != null
                 ? _canvas.GetOrCreateStyledPen(brush, thickness)

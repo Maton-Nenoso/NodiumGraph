@@ -1282,6 +1282,18 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             InvalidateArrange();
             InvalidateVisual();
+
+            // Adornment layers bake zoom into pen thickness, inflate, and corner
+            // radius (they draw in node-local space under the container's
+            // ScaleTransform(zoom), so values are divided by zoom to stay visually
+            // constant). A zoom change invalidates those baked values and the
+            // adornments must re-render. The compositor's transform reapply is
+            // not enough on its own.
+            if (change.Property == ViewportZoomProperty)
+            {
+                foreach (var container in _nodeContainers.Values)
+                    container.AdornmentLayer.InvalidateVisual();
+            }
         }
         else if (change.Property == ShowGridProperty ||
                  change.Property == GridSizeProperty ||
