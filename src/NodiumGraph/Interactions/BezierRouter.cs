@@ -4,7 +4,8 @@ using NodiumGraph.Model;
 namespace NodiumGraph.Interactions;
 
 /// <summary>
-/// Routes a connection as a cubic bezier curve with horizontally-offset control points.
+/// Routes a connection as a cubic bezier curve. Control points are pushed along each port's
+/// outward emission direction, derived from which edge of the owner node the port sits on.
 /// Returns 4 points: start, control point 1, control point 2, end.
 /// </summary>
 public class BezierRouter : IConnectionRouter
@@ -19,16 +20,48 @@ public class BezierRouter : IConnectionRouter
         var start = source.AbsolutePosition;
         var end = target.AbsolutePosition;
 
-        var dx = end.X - start.X;
-        var offset = Math.Max(Math.Abs(dx) * ControlOffsetFactor, MinOffset);
+        var sourceDir = GetEmissionDirection(source);
+        var targetDir = GetEmissionDirection(target);
 
-        // Push control points in the direction of travel.
-        // Left-to-right (dx >= 0): cp1 right, cp2 left (toward each other).
-        // Right-to-left (dx < 0): cp1 left, cp2 right (toward each other).
-        var sign = dx >= 0 ? 1.0 : -1.0;
-        var cp1 = new Point(start.X + offset * sign, start.Y);
-        var cp2 = new Point(end.X - offset * sign, end.Y);
+        var dx = end.X - start.X;
+        var dy = end.Y - start.Y;
+
+        var sourceReach = Math.Abs(dx * sourceDir.X + dy * sourceDir.Y);
+        var targetReach = Math.Abs(dx * targetDir.X + dy * targetDir.Y);
+
+        var sourceOffset = Math.Max(sourceReach * ControlOffsetFactor, MinOffset);
+        var targetOffset = Math.Max(targetReach * ControlOffsetFactor, MinOffset);
+
+        var cp1 = new Point(start.X + sourceDir.X * sourceOffset,
+                            start.Y + sourceDir.Y * sourceOffset);
+        var cp2 = new Point(end.X + targetDir.X * targetOffset,
+                            end.Y + targetDir.Y * targetOffset);
 
         return [start, cp1, cp2, end];
+    }
+
+    private static Vector GetEmissionDirection(Port port)
+    {
+        var owner = port.Owner;
+        var px = port.Position.X;
+        var py = port.Position.Y;
+
+        var leftDist = px;
+        var rightDist = owner.Width - px;
+        var topDist = py;
+        var bottomDist = owner.Height - py;
+
+        // Smallest signed distance wins. Negative means the port is outside on that side —
+        // correctly picked. Ties between horizontal and vertical break toward horizontal to
+        // preserve today's behavior for corner / interior / zero-size ports.
+        var minHorizontal = Math.Min(leftDist, rightDist);
+        var minVertical = Math.Min(topDist, bottomDist);
+
+        if (minHorizontal <= minVertical)
+        {
+            return leftDist <= rightDist ? new Vector(-1, 0) : new Vector(1, 0);
+        }
+
+        return topDist <= bottomDist ? new Vector(0, -1) : new Vector(0, 1);
     }
 }
