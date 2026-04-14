@@ -81,4 +81,27 @@ public class BezierRouterTests
         Assert.True(cp2.X >= points[3].X,
             $"cp2.X ({cp2.X}) should be >= end.X ({points[3].X}) for right-to-left connection");
     }
+
+    [Fact]
+    public void Route_with_bottom_to_top_ports_pushes_control_points_vertically()
+    {
+        var router = new BezierRouter();
+        var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
+        var nodeB = new Node { X = 0, Y = 200, Width = 100, Height = 50 };
+        var source = new Port(nodeA, new Point(50, 50));   // bottom edge of nodeA
+        var target = new Port(nodeB, new Point(50, 0));    // top edge of nodeB
+
+        var points = router.Route(source, target);
+        var start = points[0];
+        var cp1 = points[1];
+        var cp2 = points[2];
+        var end = points[3];
+
+        Assert.Equal(start.X, cp1.X);
+        Assert.True(cp1.Y > start.Y,
+            $"cp1.Y ({cp1.Y}) should be > start.Y ({start.Y}) for a downward-emitting source");
+        Assert.Equal(end.X, cp2.X);
+        Assert.True(cp2.Y < end.Y,
+            $"cp2.Y ({cp2.Y}) should be < end.Y ({end.Y}) for an upward-emitting target");
+    }
 }
