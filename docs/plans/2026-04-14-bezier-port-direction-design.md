@@ -106,9 +106,17 @@ Dot product is computed inline — no dependency on `Avalonia.Vector` static hel
 
 ## Testing
 
-### Existing tests (regression safety net)
+### Existing tests — setup fixup required
 
-All 4 existing tests in `BezierRouterTests.cs` use ports on left/right edges. Classification will detect them as horizontal; the generalized formula collapses to identical output. **They must pass unchanged.**
+All 4 existing tests in `BezierRouterTests.cs` construct `Node` instances without setting `Width` / `Height`. In production these are driven by Avalonia's layout pass (internal setter); in tests they default to `0.0`. Under the new geometric classification this would make every port ambiguous, so the existing tests need their setup updated to assign `Width` / `Height` directly via `InternalsVisibleTo` (already configured for `NodiumGraph.Tests` in `src/NodiumGraph/NodiumGraph.csproj:8`).
+
+This is a **behavior-preserving refactor** — the current `Route()` implementation ignores node bounds entirely, so tests continue to pass against the current code with updated setup. Once `Route()` is rewritten, the same assertions still hold with the new formula.
+
+Specific fixups:
+
+- **Test 1 / Test 2** — give both nodes `Width = 100`, `Height = 50`. Source port `(100, 25)` becomes a right-edge port on nodeA; target port `(0, 25)` becomes a left-edge port on nodeB. Assertions unchanged.
+- **Test 3 (`Offset_scales_with_distance`)** — source becomes right-edge of a sized nodeA; targets become left-edge of sized nodeNear/nodeFar. Reposition nodeFar so delta grows (`X = 600` rather than `500`).
+- **Test 4 (`Route_right_to_left_does_not_cross`)** — source on **left** edge of nodeA (the right-hand node), target on **right** edge of nodeB (the left-hand node). The "facing each other under reversed layout" setup. `delta.X < 0`; both ports emit toward each other; existing assertions (`cp1.X <= start.X`, `cp2.X >= end.X`) still hold.
 
 ### New tests
 
