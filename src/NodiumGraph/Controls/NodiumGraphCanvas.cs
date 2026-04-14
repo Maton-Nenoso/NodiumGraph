@@ -139,6 +139,16 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     }
 
     /// <summary>
+    /// Resolves a non-brush resource from the Avalonia resource tree, falling back to a default.
+    /// </summary>
+    internal T ResolveResource<T>(string key, T fallback)
+    {
+        if (this.TryFindResource(key, out var value) && value is T typed)
+            return typed;
+        return fallback;
+    }
+
+    /// <summary>
     /// Resolves a pen by looking up its brush from the resource tree with a fallback.
     /// </summary>
     internal Pen ResolvePen(string brushKey, IBrush fallbackBrush, double thickness, IDashStyle? dashStyle = null)
@@ -442,7 +452,10 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (!additive)
         {
             foreach (var n in Graph.SelectedNodes.ToList())
+            {
                 Graph.Deselect(n);
+                InvalidateNodeAdornments(n);
+            }
         }
 
         if (node.IsSelected && additive)
@@ -450,17 +463,19 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         else
             Graph.Select(node);
 
+        InvalidateNodeAdornments(node);
         SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
-        InvalidateVisual();
     }
 
     internal void ClearSelection()
     {
         if (Graph is null) return;
 
+        var previouslySelected = Graph.SelectedNodes.ToList();
         Graph.ClearSelection();
+        foreach (var n in previouslySelected)
+            InvalidateNodeAdornments(n);
         SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
-        InvalidateVisual();
     }
 
     public void SelectAll()
@@ -468,10 +483,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (Graph == null) return;
 
         foreach (var node in Graph.Nodes)
+        {
             Graph.Select(node);
+            InvalidateNodeAdornments(node);
+        }
 
         SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
-        InvalidateVisual();
     }
 
     public void DeleteSelected()
@@ -762,8 +779,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         var newHovered = HitTestNode(hoverPos);
         if (newHovered != _hoveredNode)
         {
+            var previous = _hoveredNode;
             _hoveredNode = newHovered;
-            InvalidateVisual();
+            if (previous != null)
+                InvalidateNodeAdornments(previous);
+            if (newHovered != null)
+                InvalidateNodeAdornments(newHovered);
         }
     }
 
@@ -1038,13 +1059,24 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         _overlay.InvalidateVisual();
     }
 
+    /// <summary>
+    /// Invalidates only the per-node adornment layer (selection/hover border, port
+    /// shapes, port labels) for the given node, without re-rendering the whole canvas.
+    /// </summary>
+    internal void InvalidateNodeAdornments(Node node)
+    {
+        if (_nodeContainers.TryGetValue(node, out var container))
+            container.AdornmentLayer.InvalidateVisual();
+    }
+
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
         if (_hoveredNode != null)
         {
+            var previous = _hoveredNode;
             _hoveredNode = null;
-            InvalidateVisual();
+            InvalidateNodeAdornments(previous);
         }
     }
 
@@ -1492,7 +1524,10 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (e.PropertyName is nameof(Node.X) or nameof(Node.Y))
             InvalidateArrange();
         else if (e.PropertyName is nameof(Node.IsSelected))
-            InvalidateVisual();
+        {
+            if (sender is Node node)
+                InvalidateNodeAdornments(node);
+        }
         else if (e.PropertyName is nameof(Node.ShowHeader) or nameof(Node.IsCollapsed) or nameof(Node.IsCollapsible))
             InvalidateMeasure();
         else if (e.PropertyName == nameof(Node.PortProvider))

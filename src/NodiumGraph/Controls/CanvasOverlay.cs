@@ -29,49 +29,8 @@ internal class CanvasOverlay : Control
         var transform = new ViewportTransform(_canvas.ViewportZoom, _canvas.ViewportOffset);
         var zoom = _canvas.ViewportZoom;
 
-        // Resolve default brushes and thicknesses from theme resources
-        var defaultSelectedBrush = _canvas.ResolveBrush(
-            NodiumGraphResources.NodeSelectedBorderBrushKey,
-            NodiumGraphCanvas.DefaultSelectedBorderBrush);
-        var defaultSelectedThickness = ResolveResource<double>(
-            NodiumGraphResources.NodeSelectedBorderThicknessKey, 2);
-        var defaultHoveredBrush = _canvas.ResolveBrush(
-            NodiumGraphResources.NodeHoveredBorderBrushKey,
-            NodiumGraphCanvas.DefaultHoveredBorderBrush);
-        var defaultHoveredThickness = ResolveResource<double>(
-            NodiumGraphResources.NodeHoveredBorderThicknessKey, 1.5);
-
-        var selectedBorderPen = _canvas.GetOrCreateSelectedBorderPen(defaultSelectedBrush, defaultSelectedThickness);
-        var hoveredBorderPen = _canvas.GetOrCreateHoveredBorderPen(defaultHoveredBrush, defaultHoveredThickness);
-
-        // Node state borders (hovered + selected)
-        foreach (var node in graph.Nodes)
-        {
-            if (!node.IsSelected && node != _canvas.HoveredNode) continue;
-
-            var screenPos = transform.WorldToScreen(new Point(node.X, node.Y));
-            var scaledSize = new Size(node.Width * zoom, node.Height * zoom);
-            var nodeRect = new Rect(screenPos, scaledSize).Inflate(2);
-
-            if (node.IsSelected)
-            {
-                var pen = node.Style?.SelectionBorderBrush != null || node.Style?.SelectionBorderThickness != null
-                    ? _canvas.GetOrCreateStyledPen(
-                        node.Style?.SelectionBorderBrush ?? defaultSelectedBrush,
-                        node.Style?.SelectionBorderThickness ?? defaultSelectedThickness)
-                    : selectedBorderPen;
-                context.DrawRectangle(null, pen, nodeRect, 6, 6);
-            }
-            else if (node == _canvas.HoveredNode)
-            {
-                var pen = node.Style?.HoverBorderBrush != null || node.Style?.HoverBorderThickness != null
-                    ? _canvas.GetOrCreateStyledPen(
-                        node.Style?.HoverBorderBrush ?? defaultHoveredBrush,
-                        node.Style?.HoverBorderThickness ?? defaultHoveredThickness)
-                    : hoveredBorderPen;
-                context.DrawRectangle(null, pen, nodeRect, 6, 6);
-            }
-        }
+        // Note: node selection and hover borders are rendered per-node by
+        // NodeAdornmentLayer so they respect z-order with their container.
 
         // Snap ghost outline during drag
         if (_canvas.SnapGhostPosition is { } ghostPos)
