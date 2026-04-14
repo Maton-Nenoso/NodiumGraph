@@ -379,6 +379,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     internal int NodeContainerCount => _nodeContainers.Count;
 
+    internal NodiumNodeContainer? GetInternalNodeContainer(Node node)
+        => _nodeContainers.TryGetValue(node, out var c) ? c : null;
+
     internal bool IsPanning => _isPanning;
 
     internal bool IsDragging => _isDragging;
