@@ -163,10 +163,16 @@ public class BezierRouterTests
         var points = router.Route(source, target);
         var start = points[0];
         var cp1 = points[1];
+        var cp2 = points[2];
+        var end = points[3];
 
         // Tie-break prefers horizontal → left emission → cp1.X < start.X, cp1.Y == start.Y.
         Assert.Equal(start.Y, cp1.Y);
         Assert.True(cp1.X < start.X);
+
+        // Target is symmetric: same corner, same classification, same leftward push.
+        Assert.Equal(end.Y, cp2.Y);
+        Assert.True(cp2.X < end.X);
     }
 
     [Fact]
