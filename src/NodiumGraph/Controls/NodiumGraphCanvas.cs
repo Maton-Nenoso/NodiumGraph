@@ -1648,7 +1648,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         return ft;
     }
 
-    internal Pen GetSelectedBorderPen(IBrush brush, double thickness)
+    internal Pen GetOrCreateSelectedBorderPen(IBrush brush, double thickness)
     {
         if (_cachedSelectedBorderPen == null
             || !ReferenceEquals(_lastSelectedBrush, brush)
@@ -1661,7 +1661,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         return _cachedSelectedBorderPen!;
     }
 
-    internal Pen GetHoveredBorderPen(IBrush brush, double thickness)
+    internal Pen GetOrCreateHoveredBorderPen(IBrush brush, double thickness)
     {
         if (_cachedHoveredBorderPen == null
             || !ReferenceEquals(_lastHoveredBrush, brush)
@@ -1674,7 +1674,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         return _cachedHoveredBorderPen!;
     }
 
-    internal Pen GetPortOutlinePen(IBrush brush, double thickness)
+    internal Pen GetOrCreatePortOutlinePen(IBrush brush, double thickness)
     {
         if (_cachedPortOutlinePen == null
             || !ReferenceEquals(_lastPortOutlineBrush, brush)

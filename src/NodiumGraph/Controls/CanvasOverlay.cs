@@ -41,8 +41,8 @@ internal class CanvasOverlay : Control
         var defaultHoveredThickness = ResolveResource<double>(
             NodiumGraphResources.NodeHoveredBorderThicknessKey, 1.5);
 
-        var selectedBorderPen = _canvas.GetSelectedBorderPen(defaultSelectedBrush, defaultSelectedThickness);
-        var hoveredBorderPen = _canvas.GetHoveredBorderPen(defaultHoveredBrush, defaultHoveredThickness);
+        var selectedBorderPen = _canvas.GetOrCreateSelectedBorderPen(defaultSelectedBrush, defaultSelectedThickness);
+        var hoveredBorderPen = _canvas.GetOrCreateHoveredBorderPen(defaultHoveredBrush, defaultHoveredThickness);
 
         // Node state borders (hovered + selected)
         foreach (var node in graph.Nodes)
@@ -93,7 +93,7 @@ internal class CanvasOverlay : Control
                 NodiumGraphResources.PortOutlineBrushKey,
                 NodiumGraphCanvas.DefaultPortOutlineBrush);
 
-            var defaultPortPen = _canvas.GetPortOutlinePen(defaultPortOutlineBrush, 1.0);
+            var defaultPortPen = _canvas.GetOrCreatePortOutlinePen(defaultPortOutlineBrush, 1.0);
 
             foreach (var node in graph.Nodes)
             {
