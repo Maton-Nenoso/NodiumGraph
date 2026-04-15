@@ -36,8 +36,9 @@ public sealed class BarEndpoint : IEndpointRenderer
     public bool IsFilled => false;
 
     /// <inheritdoc />
-    // Bar is centered on its width; the connection line meets the middle of the bar.
-    public double GetInset(double strokeThickness) => Width / 2;
+    // The inset accounts for half the bar's width (center-to-outer-edge distance) plus half the
+    // stroke thickness so the connection line meets the outer edge of the stroked bar.
+    public double GetInset(double strokeThickness) => Width / 2.0 + strokeThickness / 2.0;
 
     /// <inheritdoc />
     public Geometry BuildGeometry(Point tip, Vector direction, double strokeThickness)
@@ -48,7 +49,7 @@ public sealed class BarEndpoint : IEndpointRenderer
         var geo = new StreamGeometry();
         using (var ctx = geo.Open())
         {
-            ctx.BeginFigure(new Point(-Width / 2, -Length / 2), isFilled: false);
+            ctx.BeginFigure(new Point(-Width / 2, -Length / 2), false);
             ctx.LineTo(new Point(-Width / 2, Length / 2));
             ctx.EndFigure(false);
         }

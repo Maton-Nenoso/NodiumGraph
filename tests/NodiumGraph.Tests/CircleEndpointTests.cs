@@ -58,4 +58,26 @@ public class CircleEndpointTests
         Assert.Equal(tip.X, transformed.X, precision: 6);
         Assert.Equal(tip.Y, transformed.Y, precision: 6);
     }
+
+    [AvaloniaFact]
+    public void BuildGeometry_rotates_canonical_points_correctly()
+    {
+        // Arrange: direction pointing +Y (90 degrees CCW from canonical +X).
+        // A 90 degree CCW rotation sends (x, y) -> (-y, x); after translating to the tip,
+        // a canonical point (cx, cy) lands at (tip.X - cy, tip.Y + cx). The top-left corner
+        // of the canonical ellipse bounding rect is asymmetric enough to catch Atan2 swaps.
+        var circle = new CircleEndpoint(radius: 5, filled: true);
+        var tip = new Point(100, 100);
+        var direction = new Vector(0, 1);
+        var geo = circle.BuildGeometry(tip, direction, strokeThickness: 2);
+        var transform = ((MatrixTransform)geo.Transform!).Value;
+
+        // Top-left corner of the canonical ellipse bounding rect.
+        var canonical = new Point(-circle.Radius, -circle.Radius);
+        var expected = new Point(tip.X - canonical.Y, tip.Y + canonical.X);
+
+        var actual = transform.Transform(canonical);
+        Assert.Equal(expected.X, actual.X, precision: 6);
+        Assert.Equal(expected.Y, actual.Y, precision: 6);
+    }
 }

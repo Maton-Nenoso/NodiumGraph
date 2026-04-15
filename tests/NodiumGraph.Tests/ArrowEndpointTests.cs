@@ -60,4 +60,26 @@ public class ArrowEndpointTests
         Assert.Throws<ArgumentException>(
             () => arrow.BuildGeometry(new Point(0, 0), new Vector(0, 0), strokeThickness: 2));
     }
+
+    [AvaloniaFact]
+    public void BuildGeometry_rotates_canonical_points_correctly()
+    {
+        // Arrange: direction pointing +Y (90 degrees CCW from canonical +X).
+        // A 90 degree CCW rotation sends (x, y) -> (-y, x); after translating to the tip,
+        // a canonical point (cx, cy) lands at (tip.X - cy, tip.Y + cx). A swapped Atan2 or
+        // sign error would land the point elsewhere.
+        var arrow = new ArrowEndpoint(size: 10, filled: true);
+        var tip = new Point(100, 100);
+        var direction = new Vector(0, 1);
+        var geo = arrow.BuildGeometry(tip, direction, strokeThickness: 2);
+        var transform = ((MatrixTransform)geo.Transform!).Value;
+
+        // Top-left base vertex of the canonical arrow triangle.
+        var canonical = new Point(-arrow.Size, -arrow.Size / 2.0);
+        var expected = new Point(tip.X - canonical.Y, tip.Y + canonical.X);
+
+        var actual = transform.Transform(canonical);
+        Assert.Equal(expected.X, actual.X, precision: 6);
+        Assert.Equal(expected.Y, actual.Y, precision: 6);
+    }
 }

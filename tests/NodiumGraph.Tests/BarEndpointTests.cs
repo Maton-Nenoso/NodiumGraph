@@ -39,10 +39,12 @@ public class BarEndpointTests
     }
 
     [Fact]
-    public void GetInset_equals_half_width()
+    public void GetInset_is_half_width_plus_half_stroke()
     {
-        Assert.Equal(1, new BarEndpoint(width: 2, length: 12).GetInset(2));
-        Assert.Equal(2, new BarEndpoint(width: 4, length: 12).GetInset(2));
+        // Width/2 + strokeThickness/2
+        Assert.Equal(2, new BarEndpoint(width: 2, length: 12).GetInset(2));
+        Assert.Equal(3, new BarEndpoint(width: 4, length: 12).GetInset(2));
+        Assert.Equal(3, new BarEndpoint(width: 2, length: 12).GetInset(4));
     }
 
     [Fact]
@@ -67,5 +69,28 @@ public class BarEndpointTests
         var transformed = ((MatrixTransform)geo.Transform!).Value.Transform(new Point(0, 0));
         Assert.Equal(tip.X, transformed.X, precision: 6);
         Assert.Equal(tip.Y, transformed.Y, precision: 6);
+    }
+
+    [AvaloniaFact]
+    public void BuildGeometry_rotates_canonical_points_correctly()
+    {
+        // Arrange: direction pointing +Y (90 degrees CCW from canonical +X).
+        // A 90 degree CCW rotation sends (x, y) -> (-y, x); after translating to the tip,
+        // a canonical point (cx, cy) lands at (tip.X - cy, tip.Y + cx). Picking a non-origin,
+        // asymmetric canonical point would flip to an obviously wrong location under Atan2 or
+        // sign errors in the rotation math.
+        var bar = new BarEndpoint(width: 2, length: 12);
+        var tip = new Point(100, 100);
+        var direction = new Vector(0, 1);
+        var geo = bar.BuildGeometry(tip, direction, strokeThickness: 2);
+        var transform = ((MatrixTransform)geo.Transform!).Value;
+
+        // Top endpoint of the canonical bar segment.
+        var canonical = new Point(-bar.Width / 2.0, -bar.Length / 2.0);
+        var expected = new Point(tip.X - canonical.Y, tip.Y + canonical.X);
+
+        var actual = transform.Transform(canonical);
+        Assert.Equal(expected.X, actual.X, precision: 6);
+        Assert.Equal(expected.Y, actual.Y, precision: 6);
     }
 }
