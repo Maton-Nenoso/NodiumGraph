@@ -479,4 +479,65 @@ public class GraphTests
         Assert.IsType<ReadOnlyObservableCollection<Node>>(graph.SelectedNodes);
         Assert.IsType<ReadOnlyObservableCollection<Connection>>(graph.SelectedConnections);
     }
+
+    [Fact]
+    public void SelectedItems_Add_rejects_foreign_node()
+    {
+        var g1 = new Graph();
+        var g2 = new Graph();
+        var foreign = new Node();
+        g2.AddNode(foreign);
+
+        Assert.Throws<InvalidOperationException>(() => g1.SelectedItems.Add(foreign));
+    }
+
+    [Fact]
+    public void SelectedItems_Add_rejects_foreign_connection()
+    {
+        var g1 = new Graph();
+        var g2 = new Graph();
+        var node = new Node();
+        g2.AddNode(node);
+        var source = new Port(node, new Point(0, 0));
+        var target = new Port(node, new Point(10, 0));
+        var foreignConnection = new Connection(source, target);
+        g2.AddConnection(foreignConnection);
+
+        Assert.Throws<InvalidOperationException>(() => g1.SelectedItems.Add(foreignConnection));
+    }
+
+    [Fact]
+    public void SelectedItems_Add_is_idempotent_on_duplicate()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+
+        graph.SelectedItems.Add(node);
+        graph.SelectedItems.Add(node);
+
+        Assert.Single(graph.SelectedItems);
+        Assert.Single(graph.SelectedNodes);
+    }
+
+    [Fact]
+    public void SelectedItems_Add_null_throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => new Graph().SelectedItems.Add(null!));
+    }
+
+    [Fact]
+    public void Mutating_SelectedItems_from_view_handler_throws()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+
+        ((INotifyCollectionChanged)graph.SelectedNodes).CollectionChanged += (_, _) =>
+        {
+            graph.SelectedItems.Clear(); // reentrant mutation
+        };
+
+        Assert.Throws<InvalidOperationException>(() => graph.SelectedItems.Add(node));
+    }
 }

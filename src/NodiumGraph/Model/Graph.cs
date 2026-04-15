@@ -27,6 +27,14 @@ public class Graph
     /// Canonical selection set for both nodes and connections.
     /// Write here; <see cref="SelectedNodes"/> and <see cref="SelectedConnections"/> are
     /// read-only views that mirror the relevant subset automatically.
+    ///
+    /// Enforces set semantics (duplicate adds are no-ops) and graph ownership (adding an
+    /// element that is not in <see cref="Nodes"/> or <see cref="Connections"/> throws
+    /// <see cref="InvalidOperationException"/>).
+    ///
+    /// Mutations are not reentrancy-safe. Do not modify from inside a
+    /// <see cref="SelectedNodes"/> / <see cref="SelectedConnections"/> / <see cref="SelectedItems"/>
+    /// change handler — doing so throws <see cref="InvalidOperationException"/>.
     /// </summary>
     public ObservableCollection<IGraphElement> SelectedItems { get; }
 
@@ -46,36 +54,50 @@ public class Graph
         Connections = new ReadOnlyObservableCollection<Connection>(_connections);
         SelectedNodes = new ReadOnlyObservableCollection<Node>(_selectedNodes);
         SelectedConnections = new ReadOnlyObservableCollection<Connection>(_selectedConnections);
-        SelectedItems = new ObservableCollection<IGraphElement>();
+        SelectedItems = new GraphSelectionCollection(this);
         SelectedItems.CollectionChanged += OnSelectedItemsChanged;
     }
 
+    private bool _partitioning;
+
     private void OnSelectedItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        switch (e.Action)
+        if (_partitioning)
+            throw new InvalidOperationException(
+                "Do not mutate Graph.SelectedItems from a SelectedNodes/SelectedConnections change handler.");
+
+        _partitioning = true;
+        try
         {
-            case NotifyCollectionChangedAction.Add:
-                if (e.NewItems != null)
-                    foreach (var item in e.NewItems) AddToViews(item);
-                break;
-            case NotifyCollectionChangedAction.Remove:
-                if (e.OldItems != null)
-                    foreach (var item in e.OldItems) RemoveFromViews(item);
-                break;
-            case NotifyCollectionChangedAction.Replace:
-                if (e.OldItems != null)
-                    foreach (var item in e.OldItems) RemoveFromViews(item);
-                if (e.NewItems != null)
-                    foreach (var item in e.NewItems) AddToViews(item);
-                break;
-            case NotifyCollectionChangedAction.Reset:
-                foreach (var n in _selectedNodes) n.IsSelected = false;
-                _selectedNodes.Clear();
-                _selectedConnections.Clear();
-                break;
-            case NotifyCollectionChangedAction.Move:
-                // Views are unordered — nothing to do.
-                break;
+            switch (e.Action)
+            {
+                case NotifyCollectionChangedAction.Add:
+                    if (e.NewItems != null)
+                        foreach (var item in e.NewItems) AddToViews(item);
+                    break;
+                case NotifyCollectionChangedAction.Remove:
+                    if (e.OldItems != null)
+                        foreach (var item in e.OldItems) RemoveFromViews(item);
+                    break;
+                case NotifyCollectionChangedAction.Replace:
+                    if (e.OldItems != null)
+                        foreach (var item in e.OldItems) RemoveFromViews(item);
+                    if (e.NewItems != null)
+                        foreach (var item in e.NewItems) AddToViews(item);
+                    break;
+                case NotifyCollectionChangedAction.Reset:
+                    foreach (var n in _selectedNodes) n.IsSelected = false;
+                    _selectedNodes.Clear();
+                    _selectedConnections.Clear();
+                    break;
+                case NotifyCollectionChangedAction.Move:
+                    // Views are unordered — nothing to do.
+                    break;
+            }
+        }
+        finally
+        {
+            _partitioning = false;
         }
     }
 
@@ -197,5 +219,46 @@ public class Graph
     public void ClearSelection()
     {
         SelectedItems.Clear();
+    }
+
+    private sealed class GraphSelectionCollection : ObservableCollection<IGraphElement>
+    {
+        private readonly Graph _graph;
+
+        public GraphSelectionCollection(Graph graph) => _graph = graph;
+
+        protected override void InsertItem(int index, IGraphElement item)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+
+            // Idempotent: no-op if already in the collection.
+            if (Contains(item)) return;
+
+            // Membership: must belong to the owning graph.
+            bool belongs = item switch
+            {
+                Node n => _graph._nodes.Contains(n),
+                Connection c => _graph._connections.Contains(c),
+                _ => false
+            };
+
+            if (!belongs)
+                throw new InvalidOperationException(
+                    $"Cannot select a {item.GetType().Name} that is not part of this Graph.");
+
+            base.InsertItem(index, item);
+        }
+
+        protected override void SetItem(int index, IGraphElement item)
+        {
+            // Replace is rarely used for selection. Keep the same guards.
+            ArgumentNullException.ThrowIfNull(item);
+
+            if (!ReferenceEquals(this[index], item) && Contains(item))
+                // The new item is already elsewhere in the collection — treat as a remove-at-index.
+                RemoveAt(index);
+            else
+                base.SetItem(index, item);
+        }
     }
 }
