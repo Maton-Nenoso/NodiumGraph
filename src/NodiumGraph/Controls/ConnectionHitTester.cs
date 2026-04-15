@@ -15,11 +15,19 @@ namespace NodiumGraph.Controls;
 internal static class ConnectionHitTester
 {
     /// <summary>
-    /// Returns the topmost connection whose cached geometry contains the given world
-    /// point, or <c>null</c> if no connection is hit. Iterates in reverse z-order
-    /// (last in list = topmost). Connections missing from <paramref name="cache"/>
-    /// are skipped silently.
+    /// Returns the topmost connection in <paramref name="connections"/> whose cached geometry
+    /// is hit by <paramref name="worldPoint"/>. Connections without a cache entry are skipped.
+    /// Iterates in reverse order so the last connection in the list (the topmost z-order) wins.
     /// </summary>
+    /// <param name="worldPoint">Test point in world coordinates.</param>
+    /// <param name="worldTolerance">
+    /// Extra hit margin in world units. Inflates the cached AABB for the cheap reject and
+    /// bumps the hit-test pen thickness to at least this value so hairline strokes remain grabbable.
+    /// </param>
+    /// <param name="connections">Connection list in z-order (last = topmost).</param>
+    /// <param name="resolveStyle">Resolves the style for a given connection (used only for pen thickness).</param>
+    /// <param name="cache">World-space geometry cache. Connections missing from the cache are skipped.</param>
+    /// <returns>The topmost hit connection, or <c>null</c> if none hit.</returns>
     public static Connection? HitTest(
         Point worldPoint,
         double worldTolerance,
