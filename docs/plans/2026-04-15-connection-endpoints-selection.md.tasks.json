@@ -1,0 +1,32 @@
+{
+  "planPath": "docs/plans/2026-04-15-connection-endpoints-selection.md",
+  "tasks": [
+    {"id": 7,  "subject": "Task 1: IEndpointRenderer interface + NoneEndpoint sentinel",       "status": "pending"},
+    {"id": 8,  "subject": "Task 2: ArrowEndpoint",                                              "status": "pending", "blockedBy": [7]},
+    {"id": 9,  "subject": "Task 3: DiamondEndpoint + CircleEndpoint + BarEndpoint",             "status": "pending", "blockedBy": [7]},
+    {"id": 10, "subject": "Task 4: RouteTangents helper",                                       "status": "pending"},
+    {"id": 11, "subject": "Task 5: IConnectionStyle SourceEndpoint/TargetEndpoint",             "status": "pending", "blockedBy": [7]},
+    {"id": 12, "subject": "Task 6: ConnectionRenderer world-space geometry switch",             "status": "pending"},
+    {"id": 13, "subject": "Task 7: Endpoint integration in ConnectionRenderer",                 "status": "pending", "blockedBy": [7, 10, 11, 12]},
+    {"id": 14, "subject": "Task 8: Selection halo pass",                                        "status": "pending", "blockedBy": [13]},
+    {"id": 15, "subject": "Task 9: IGraphElement marker interface",                             "status": "pending"},
+    {"id": 16, "subject": "Task 10: Graph.SelectedItems unified + mirror views",                "status": "pending", "blockedBy": [15]},
+    {"id": 17, "subject": "Task 11: Remove-cascade into SelectedItems",                         "status": "pending", "blockedBy": [16]},
+    {"id": 18, "subject": "Task 12: Connection geometry cache on canvas",                       "status": "pending", "blockedBy": [13]},
+    {"id": 19, "subject": "Task 13: ConnectionHitTester.HitTest",                               "status": "pending", "blockedBy": [18]},
+    {"id": 20, "subject": "Task 14: Cache invalidation wiring",                                 "status": "pending", "blockedBy": [18]},
+    {"id": 21, "subject": "Task 15: ISelectionHandler.OnSelectionChanged signature change",     "status": "pending", "blockedBy": [15]},
+    {"id": 22, "subject": "Task 16: Remove INodeInteractionHandler.OnDeleteRequested",          "status": "pending"},
+    {"id": 23, "subject": "Task 17: IGraphInteractionHandler + canvas styled property",         "status": "pending", "blockedBy": [15]},
+    {"id": 24, "subject": "Task 18: Pointer-press connection hit-test path",                    "status": "pending", "blockedBy": [16, 19, 21]},
+    {"id": 25, "subject": "Task 19: Marquee picks connections",                                 "status": "pending", "blockedBy": [16, 18]},
+    {"id": 26, "subject": "Task 20: Delete key fires IGraphInteractionHandler",                 "status": "pending", "blockedBy": [16, 23]},
+    {"id": 27, "subject": "Task 21: Sample GraphInteractionHandler + wiring",                   "status": "pending", "blockedBy": [22, 23]},
+    {"id": 28, "subject": "Task 22: Sample styled connections",                                 "status": "pending", "blockedBy": [14]},
+    {"id": 29, "subject": "Task 23: Update rendering-pipeline.md",                              "status": "pending", "blockedBy": [14]},
+    {"id": 30, "subject": "Task 24: Connection API reference",                                  "status": "pending", "blockedBy": [13]},
+    {"id": 31, "subject": "Task 25: How-to — style connections with arrowheads",                "status": "pending", "blockedBy": [11]},
+    {"id": 32, "subject": "Task 26: How-to — select and delete connections",                    "status": "pending", "blockedBy": [23, 26]}
+  ],
+  "lastUpdated": "2026-04-15T09:44:00+02:00"
+}
