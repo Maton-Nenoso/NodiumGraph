@@ -1141,7 +1141,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         }
         else if (e.Key == Key.Delete)
         {
-            // Delete is re-wired to IGraphInteractionHandler in Task 20.
+            if (TryHandleDeleteKey())
+                e.Handled = true;
         }
         else if (e.Key == Key.A && (e.KeyModifiers & KeyModifiers.Control) != 0)
         {
@@ -1200,6 +1201,30 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
         if (e.Key == Key.Space)
             _isSpaceHeld = false;
+    }
+
+    /// <summary>
+    /// Fires <see cref="IGraphInteractionHandler.OnDeleteRequested"/> with a defensive
+    /// snapshot of <see cref="Graph.SelectedItems"/>. Returns <c>true</c> when the key
+    /// should be treated as handled (selection was non-empty and a handler was
+    /// registered). The library never mutates the graph or the selection itself —
+    /// the consumer owns removal decisions.
+    /// </summary>
+    internal bool TryHandleDeleteKey()
+    {
+        if (Graph is null)
+            return false;
+
+        var handler = GraphInteractionHandler;
+        if (handler is null)
+            return false;
+
+        if (Graph.SelectedItems.Count == 0)
+            return false;
+
+        var snapshot = Graph.SelectedItems.ToArray();
+        handler.OnDeleteRequested(snapshot);
+        return true;
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
