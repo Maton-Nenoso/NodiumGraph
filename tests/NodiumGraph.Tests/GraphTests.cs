@@ -540,4 +540,117 @@ public class GraphTests
 
         Assert.Throws<InvalidOperationException>(() => graph.SelectedItems.Add(node));
     }
+
+    [Fact]
+    public void RemoveConnection_removes_from_SelectedItems()
+    {
+        var graph = new Graph();
+        var n1 = new Node();
+        var n2 = new Node();
+        graph.AddNode(n1);
+        graph.AddNode(n2);
+        var source = new Port(n1, new Point(0, 0));
+        var target = new Port(n2, new Point(0, 0));
+        var conn = new Connection(source, target);
+        graph.AddConnection(conn);
+        graph.SelectedItems.Add(conn);
+        Assert.Contains(conn, graph.SelectedItems);
+
+        graph.RemoveConnection(conn);
+
+        Assert.DoesNotContain(conn, graph.SelectedItems);
+        Assert.Empty(graph.SelectedConnections);
+    }
+
+    [Fact]
+    public void RemoveNode_cascades_connection_removal_into_SelectedItems()
+    {
+        var graph = new Graph();
+        var n1 = new Node();
+        var n2 = new Node();
+        graph.AddNode(n1);
+        graph.AddNode(n2);
+        var source = new Port(n1, new Point(0, 0));
+        var target = new Port(n2, new Point(0, 0));
+        var conn = new Connection(source, target);
+        graph.AddConnection(conn);
+        graph.SelectedItems.Add(n1);
+        graph.SelectedItems.Add(conn);
+        Assert.Equal(2, graph.SelectedItems.Count);
+
+        graph.RemoveNode(n1);
+
+        Assert.Empty(graph.SelectedItems);
+        Assert.Empty(graph.SelectedNodes);
+        Assert.Empty(graph.SelectedConnections);
+    }
+
+    [Fact]
+    public void RemoveNode_removes_only_owned_connections_from_selection()
+    {
+        var graph = new Graph();
+        var n1 = new Node();
+        var n2 = new Node();
+        var n3 = new Node();
+        graph.AddNode(n1);
+        graph.AddNode(n2);
+        graph.AddNode(n3);
+        var p1 = new Port(n1, new Point(0, 0));
+        var p2a = new Port(n2, new Point(0, 0));
+        var p2b = new Port(n2, new Point(10, 0));
+        var p3 = new Port(n3, new Point(0, 0));
+        var conn12 = new Connection(p1, p2a);
+        var conn23 = new Connection(p2b, p3);
+        graph.AddConnection(conn12);
+        graph.AddConnection(conn23);
+
+        graph.SelectedItems.Add(conn12);
+        graph.SelectedItems.Add(conn23);
+        graph.SelectedItems.Add(n3);
+
+        graph.RemoveNode(n1);
+
+        Assert.DoesNotContain(conn12, graph.SelectedItems);
+        Assert.Contains(conn23, graph.SelectedItems);
+        Assert.Contains(n3, graph.SelectedItems);
+        Assert.DoesNotContain(conn12, graph.Connections);
+        Assert.Contains(conn23, graph.Connections);
+    }
+
+    [Fact]
+    public void RemoveConnection_on_unselected_connection_is_noop_on_SelectedItems()
+    {
+        var graph = new Graph();
+        var n1 = new Node();
+        var n2 = new Node();
+        graph.AddNode(n1);
+        graph.AddNode(n2);
+        var source = new Port(n1, new Point(0, 0));
+        var target = new Port(n2, new Point(0, 0));
+        var conn = new Connection(source, target);
+        graph.AddConnection(conn);
+        graph.SelectedItems.Add(n1);
+        var countBefore = graph.SelectedItems.Count;
+
+        graph.RemoveConnection(conn);
+
+        Assert.Equal(countBefore, graph.SelectedItems.Count);
+        Assert.Contains(n1, graph.SelectedItems);
+    }
+
+    [Fact]
+    public void RemoveNode_on_unselected_node_does_not_affect_selected_unrelated_elements()
+    {
+        var graph = new Graph();
+        var n1 = new Node();
+        var n2 = new Node();
+        graph.AddNode(n1);
+        graph.AddNode(n2);
+        graph.SelectedItems.Add(n2);
+
+        graph.RemoveNode(n1);
+
+        Assert.Contains(n2, graph.SelectedItems);
+        Assert.Single(graph.SelectedNodes);
+    }
 }

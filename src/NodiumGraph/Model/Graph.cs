@@ -137,6 +137,7 @@ public class Graph
 
     /// <summary>
     /// Removes a node and cascades to any connections referencing its ports.
+    /// Cascaded connections and the node itself are also pulled out of <see cref="SelectedItems"/>.
     /// </summary>
     public void RemoveNode(Node node)
     {
@@ -147,6 +148,9 @@ public class Graph
             .ToList();
 
         foreach (var conn in toRemove)
+            SelectedItems.Remove(conn);
+
+        foreach (var conn in toRemove)
             _connections.Remove(conn);
 
         SelectedItems.Remove(node);
@@ -155,6 +159,7 @@ public class Graph
 
     /// <summary>
     /// Removes multiple nodes and all connections referencing their ports in a single pass.
+    /// Cascaded connections and the nodes themselves are also pulled out of <see cref="SelectedItems"/>.
     /// Nodes in the input sequence that are not part of this graph are silently skipped.
     /// </summary>
     public void RemoveNodes(IEnumerable<Node> nodes)
@@ -166,6 +171,9 @@ public class Graph
         var connectionsToRemove = _connections
             .Where(c => nodeSet.Contains(c.SourcePort.Owner) || nodeSet.Contains(c.TargetPort.Owner))
             .ToList();
+
+        foreach (var conn in connectionsToRemove)
+            SelectedItems.Remove(conn);
 
         foreach (var conn in connectionsToRemove)
             _connections.Remove(conn);
@@ -190,11 +198,13 @@ public class Graph
     }
 
     /// <summary>
-    /// Removes a connection. No-op if the connection is not in the graph (idempotent).
+    /// Removes a connection. Also pulls it out of <see cref="SelectedItems"/> if selected.
+    /// No-op if the connection is not in the graph (idempotent).
     /// </summary>
     public void RemoveConnection(Connection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
+        SelectedItems.Remove(connection);
         _connections.Remove(connection);
     }
 
