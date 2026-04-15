@@ -477,7 +477,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             Graph.Select(node);
 
         InvalidateNodeAdornments(node);
-        SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
+        SelectionHandler?.OnSelectionChanged(Graph.SelectedItems);
     }
 
     internal void ClearSelection()
@@ -488,7 +488,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         Graph.ClearSelection();
         foreach (var n in previouslySelected)
             InvalidateNodeAdornments(n);
-        SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
+        SelectionHandler?.OnSelectionChanged(Graph.SelectedItems);
     }
 
     public void SelectAll()
@@ -501,7 +501,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             InvalidateNodeAdornments(node);
         }
 
-        SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
+        SelectionHandler?.OnSelectionChanged(Graph.SelectedItems);
     }
 
     public void DeleteSelected()
@@ -830,7 +830,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                         Graph.Select(node);
                 }
 
-                SelectionHandler?.OnSelectionChanged(Graph.SelectedNodes);
+                SelectionHandler?.OnSelectionChanged(Graph.SelectedItems);
             }
 
             InvalidateVisual();

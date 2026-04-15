@@ -5,7 +5,11 @@ namespace NodiumGraph.Tests;
 
 internal class TestSelectionHandler(Action<IReadOnlyList<Node>> callback) : ISelectionHandler
 {
-    public void OnSelectionChanged(IReadOnlyList<Node> selectedNodes) => callback(selectedNodes);
+    public void OnSelectionChanged(IReadOnlyCollection<IGraphElement> selected)
+    {
+        var nodes = selected.OfType<Node>().ToList();
+        callback(nodes);
+    }
 }
 
 internal class TestNodeHandler : INodeInteractionHandler
