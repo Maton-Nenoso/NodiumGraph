@@ -33,6 +33,27 @@ The per-node adornment layer draws in node-local world units under the container
 
 Connection rendering performs viewport culling: the canvas computes the AABB of each route's points (inflated by stroke thickness) and skips connections whose bounds do not intersect the visible world-space rectangle.
 
+## Rendering a connection
+
+`ConnectionRenderer` builds the stroke and its endpoint decorations in **world space**. `NodiumGraphCanvas.Render` pushes the viewport transform once around the entire connection loop. The world-space choice exists so that the per-connection geometry cache (below) survives pan and zoom — cached `Geometry` instances are viewport-independent and only rebuilt when the underlying route changes.
+
+For each visible connection, `ConnectionRenderer.CreateRenderable` produces a `ConnectionRenderable` split into three buckets: the stroke, a filled-endpoint `GeometryGroup`, and an open-endpoint `GeometryGroup`. `ConnectionRenderer.Render` then emits at most three `DrawGeometry` calls per unselected connection, or up to six when selected.
+
+**Stroke inset.** Before building the stroke, `ApplyInsets` shortens the routed polyline's first and last points by the source and target endpoints' `GetInset(thickness)` so the stroke terminates at the base of the decoration rather than at the port center. For a 4-point bezier only `p0` and `p3` move — control points are untouched so the curve's tangent angle is preserved. For polylines only `p0` and `p_N` move along the first and last segment directions.
+
+**Render order within a single connection.** When a connection is selected and a halo pen is available:
+
+1. **Halo pass** — a wider semi-transparent pen drawn under the stroke and both endpoint buckets, using the `ConnectionSelectionHaloBrushKey` theme resource. Filled endpoints use the halo brush as fill so the expanded silhouette reads as glow, not outline.
+2. **Stroke pass** — the normal stroke pen draws the inset stroke.
+3. **Filled endpoints** — `DrawGeometry(style.Stroke, strokePen, filledGroup)` fills shapes whose `IEndpointRenderer.IsFilled` is `true` with the connection stroke brush.
+4. **Open endpoints** — `DrawGeometry(null, strokePen, openGroup)` for stroke-only shapes.
+
+When the connection is not selected the halo pass is skipped. When no endpoints are attached — the default today, since a single `DefaultConnectionStyle` applies to all connections — the filled and open passes are skipped too, collapsing the path to a single `DrawGeometry` call for the stroke.
+
+**Endpoint decoration system.** Each endpoint is an `IEndpointRenderer` with three members: `BuildGeometry(Point tip, Vector direction, double thickness)` returns the outward-oriented world-space geometry; `GetInset(double thickness)` returns the stroke shortening; `IsFilled` decides the bucket. Filled shapes paint their interior with the connection's stroke brush — that's why there are two endpoint passes. Built-ins: `NoneEndpoint` (sentinel — zero inset, no geometry), `ArrowEndpoint`, `DiamondEndpoint`, `CircleEndpoint`, `BarEndpoint`. Consumers can implement `IEndpointRenderer` directly for custom glyphs.
+
+**Per-connection geometry cache.** `NodiumGraphCanvas` keeps a `Dictionary<Guid, CachedConnectionGeometry>` keyed by connection id. On each frame the canvas checks the cache before routing: a hit skips the router call, `ApplyInsets`, and geometry construction entirely, leaving only the culling check and the `DrawGeometry` calls. Entries are invalidated on connection remove, node move (only entries whose source or target touch that node), `ConnectionRouter` swap, `DefaultConnectionStyle` swap, and theme variant change. Pan and zoom do not invalidate the cache — that is what the world-space geometry choice buys.
+
 ## Coordinate spaces
 
 NodiumGraph works with three coordinate spaces:
@@ -69,7 +90,7 @@ From there, the canvas dispatches the event internally in roughly this priority 
 
 - **Grid** — O(visible cells). `GridRenderer` culls to the canvas bounds; major-cell brushes are reused.
 - **Origin axes** — two lines, constant cost.
-- **Connections** — O(visible connections). Each call invokes the active `IConnectionRouter`. The default `BezierRouter` is constant-time per connection; viewport culling via AABB intersection drops off-screen connections entirely. If you replace the router with something expensive (e.g., an orthogonal path finder), cache per-connection inside the router or the canvas will call your `Route` method on every frame that involves the connection.
+- **Connections** — O(visible connections). Each call invokes the active `IConnectionRouter` **only on cache misses**; the per-connection geometry cache described in [Rendering a connection](#rendering-a-connection) skips the router and geometry construction entirely on subsequent frames. Viewport culling via AABB intersection drops off-screen connections before the cache check. If you replace the router with something expensive (e.g. an orthogonal path finder) its `Route` method will still only be called on cache invalidation — node moves, connection add/remove, router/style swaps, theme variant changes — not on every frame.
 - **Node containers** — Avalonia's normal measure / arrange / render pipeline. Off-screen nodes still participate in layout but the canvas keeps the container cache tied to `Graph.Nodes`, so there is exactly one container per node for the lifetime of the graph.
 - **Per-node adornments** — port drawing is O(total ports) but uses cached geometry (diamond / triangle shapes are keyed by a bucketed radius), cached pens, and bucketed text formatting for labels. Caches live on `NodiumGraphCanvas` and are shared across every `NodeAdornmentLayer`. Because adornments render per-node, a selection change invalidates only one node's layer, not the whole canvas — smaller dirty rect per edit, fewer wasted repaints during drag.
 - **Connection preview / cutting line / marquee** — each is a single `DrawLine` or `DrawRectangle` call in the overlay; negligible.
