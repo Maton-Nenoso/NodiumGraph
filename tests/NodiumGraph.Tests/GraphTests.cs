@@ -618,6 +618,51 @@ public class GraphTests
     }
 
     [Fact]
+    public void RemoveNodes_cascades_selection_for_all_affected_connections()
+    {
+        var graph = new Graph();
+        var n1 = new Node();
+        var n2 = new Node();
+        var n3 = new Node();
+        graph.AddNode(n1);
+        graph.AddNode(n2);
+        graph.AddNode(n3);
+
+        var p1a = new Port(n1, new Point(0, 0));
+        var p1b = new Port(n1, new Point(10, 0));
+        var p2a = new Port(n2, new Point(0, 0));
+        var p2b = new Port(n2, new Point(10, 0));
+        var p3a = new Port(n3, new Point(0, 0));
+        var p3b = new Port(n3, new Point(10, 0));
+
+        var c1 = new Connection(p1a, p2a);
+        var c2 = new Connection(p2b, p3a);
+        var c3 = new Connection(p1b, p3b);
+        graph.AddConnection(c1);
+        graph.AddConnection(c2);
+        graph.AddConnection(c3);
+
+        graph.SelectedItems.Add(n1);
+        graph.SelectedItems.Add(n2);
+        graph.SelectedItems.Add(n3);
+        graph.SelectedItems.Add(c1);
+        graph.SelectedItems.Add(c2);
+        graph.SelectedItems.Add(c3);
+
+        Assert.Equal(6, graph.SelectedItems.Count);
+
+        graph.RemoveNodes(new[] { n1, n2 });
+
+        Assert.Single(graph.SelectedItems);
+        Assert.Contains(n3, graph.SelectedItems);
+        Assert.Single(graph.SelectedNodes);
+        Assert.Empty(graph.SelectedConnections);
+
+        Assert.Single(graph.Nodes);
+        Assert.Empty(graph.Connections);
+    }
+
+    [Fact]
     public void RemoveConnection_on_unselected_connection_is_noop_on_SelectedItems()
     {
         var graph = new Graph();
