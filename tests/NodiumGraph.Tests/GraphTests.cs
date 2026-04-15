@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using NodiumGraph.Model;
 using Avalonia;
 using Xunit;
@@ -13,6 +15,8 @@ public class GraphTests
         Assert.Empty(graph.Nodes);
         Assert.Empty(graph.Connections);
         Assert.Empty(graph.SelectedNodes);
+        Assert.Empty(graph.SelectedItems);
+        Assert.Empty(graph.SelectedConnections);
     }
 
     [Fact]
@@ -347,5 +351,132 @@ public class GraphTests
         Assert.False(a.IsSelected);
         Assert.False(b.IsSelected);
         Assert.Empty(graph.SelectedNodes);
+    }
+
+    [Fact]
+    public void SelectedItems_is_empty_after_construction()
+    {
+        var graph = new Graph();
+        Assert.Empty(graph.SelectedItems);
+        Assert.Empty(graph.SelectedNodes);
+        Assert.Empty(graph.SelectedConnections);
+    }
+
+    [Fact]
+    public void Adding_node_to_SelectedItems_appears_in_SelectedNodes_view()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+
+        graph.SelectedItems.Add(node);
+
+        Assert.Contains(node, graph.SelectedNodes);
+        Assert.Empty(graph.SelectedConnections);
+    }
+
+    [Fact]
+    public void Adding_connection_to_SelectedItems_appears_in_SelectedConnections_view()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        var source = new Port(node, new Point(0, 0));
+        var target = new Port(node, new Point(10, 0));
+        var connection = new Connection(source, target);
+        graph.AddConnection(connection);
+
+        graph.SelectedItems.Add(connection);
+
+        Assert.Contains(connection, graph.SelectedConnections);
+        Assert.Empty(graph.SelectedNodes);
+    }
+
+    [Fact]
+    public void Mixed_selection_partitions_correctly()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        var source = new Port(node, new Point(0, 0));
+        var target = new Port(node, new Point(10, 0));
+        var connection = new Connection(source, target);
+        graph.AddConnection(connection);
+
+        graph.SelectedItems.Add(node);
+        graph.SelectedItems.Add(connection);
+
+        Assert.Equal(2, graph.SelectedItems.Count);
+        Assert.Single(graph.SelectedNodes);
+        Assert.Single(graph.SelectedConnections);
+    }
+
+    [Fact]
+    public void SelectedNodes_fires_CollectionChanged_on_node_add()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+
+        NotifyCollectionChangedEventArgs? captured = null;
+        ((INotifyCollectionChanged)graph.SelectedNodes).CollectionChanged += (_, e) => captured = e;
+
+        graph.SelectedItems.Add(node);
+
+        Assert.NotNull(captured);
+        Assert.Equal(NotifyCollectionChangedAction.Add, captured!.Action);
+        Assert.NotNull(captured.NewItems);
+        Assert.Contains(node, captured.NewItems!.Cast<Node>());
+    }
+
+    [Fact]
+    public void Removing_from_SelectedItems_removes_from_view()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        var source = new Port(node, new Point(0, 0));
+        var target = new Port(node, new Point(10, 0));
+        var connection = new Connection(source, target);
+        graph.AddConnection(connection);
+
+        graph.SelectedItems.Add(node);
+        graph.SelectedItems.Add(connection);
+
+        graph.SelectedItems.Remove(node);
+        graph.SelectedItems.Remove(connection);
+
+        Assert.Empty(graph.SelectedNodes);
+        Assert.Empty(graph.SelectedConnections);
+        Assert.Empty(graph.SelectedItems);
+    }
+
+    [Fact]
+    public void Clearing_SelectedItems_clears_views()
+    {
+        var graph = new Graph();
+        var node = new Node();
+        graph.AddNode(node);
+        var source = new Port(node, new Point(0, 0));
+        var target = new Port(node, new Point(10, 0));
+        var connection = new Connection(source, target);
+        graph.AddConnection(connection);
+
+        graph.SelectedItems.Add(node);
+        graph.SelectedItems.Add(connection);
+
+        graph.SelectedItems.Clear();
+
+        Assert.Empty(graph.SelectedNodes);
+        Assert.Empty(graph.SelectedConnections);
+        Assert.Empty(graph.SelectedItems);
+    }
+
+    [Fact]
+    public void SelectedNodes_is_readonly_observable_collection()
+    {
+        var graph = new Graph();
+        Assert.IsType<ReadOnlyObservableCollection<Node>>(graph.SelectedNodes);
+        Assert.IsType<ReadOnlyObservableCollection<Connection>>(graph.SelectedConnections);
     }
 }

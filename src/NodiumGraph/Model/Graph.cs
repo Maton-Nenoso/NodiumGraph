@@ -1,31 +1,109 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 namespace NodiumGraph.Model;
 
 /// <summary>
 /// Container for nodes and connections that enforces structural invariants.
 /// Mutate via AddNode/RemoveNode and AddConnection/RemoveConnection — the exposed
-/// collections are read-only but observable for UI binding.
+/// <see cref="Nodes"/> and <see cref="Connections"/> collections are read-only but
+/// observable for UI binding.
+///
+/// Selection is unified: write to <see cref="SelectedItems"/> (both nodes and connections);
+/// <see cref="SelectedNodes"/> and <see cref="SelectedConnections"/> are read-only views
+/// that automatically mirror the relevant subset.
 /// </summary>
 public class Graph
 {
     private readonly ObservableCollection<Node> _nodes = new();
     private readonly ObservableCollection<Connection> _connections = new();
-    private readonly List<Node> _selectedNodes = new();
-    private readonly HashSet<Node> _selectedSet = new();
-    private readonly ReadOnlyCollection<Node> _selectedNodesReadOnly;
+    private readonly ObservableCollection<Node> _selectedNodes = new();
+    private readonly ObservableCollection<Connection> _selectedConnections = new();
 
     public ReadOnlyObservableCollection<Node> Nodes { get; }
     public ReadOnlyObservableCollection<Connection> Connections { get; }
 
+    /// <summary>
+    /// Canonical selection set for both nodes and connections.
+    /// Write here; <see cref="SelectedNodes"/> and <see cref="SelectedConnections"/> are
+    /// read-only views that mirror the relevant subset automatically.
+    /// </summary>
+    public ObservableCollection<IGraphElement> SelectedItems { get; }
+
+    /// <summary>
+    /// Read-only view over the <see cref="Node"/> entries in <see cref="SelectedItems"/>.
+    /// </summary>
+    public ReadOnlyObservableCollection<Node> SelectedNodes { get; }
+
+    /// <summary>
+    /// Read-only view over the <see cref="Connection"/> entries in <see cref="SelectedItems"/>.
+    /// </summary>
+    public ReadOnlyObservableCollection<Connection> SelectedConnections { get; }
+
     public Graph()
     {
-        Nodes = new(_nodes);
-        Connections = new(_connections);
-        _selectedNodesReadOnly = _selectedNodes.AsReadOnly();
+        Nodes = new ReadOnlyObservableCollection<Node>(_nodes);
+        Connections = new ReadOnlyObservableCollection<Connection>(_connections);
+        SelectedNodes = new ReadOnlyObservableCollection<Node>(_selectedNodes);
+        SelectedConnections = new ReadOnlyObservableCollection<Connection>(_selectedConnections);
+        SelectedItems = new ObservableCollection<IGraphElement>();
+        SelectedItems.CollectionChanged += OnSelectedItemsChanged;
     }
 
-    public IReadOnlyList<Node> SelectedNodes => _selectedNodesReadOnly;
+    private void OnSelectedItemsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        switch (e.Action)
+        {
+            case NotifyCollectionChangedAction.Add:
+                if (e.NewItems != null)
+                    foreach (var item in e.NewItems) AddToViews(item);
+                break;
+            case NotifyCollectionChangedAction.Remove:
+                if (e.OldItems != null)
+                    foreach (var item in e.OldItems) RemoveFromViews(item);
+                break;
+            case NotifyCollectionChangedAction.Replace:
+                if (e.OldItems != null)
+                    foreach (var item in e.OldItems) RemoveFromViews(item);
+                if (e.NewItems != null)
+                    foreach (var item in e.NewItems) AddToViews(item);
+                break;
+            case NotifyCollectionChangedAction.Reset:
+                foreach (var n in _selectedNodes) n.IsSelected = false;
+                _selectedNodes.Clear();
+                _selectedConnections.Clear();
+                break;
+            case NotifyCollectionChangedAction.Move:
+                // Views are unordered — nothing to do.
+                break;
+        }
+    }
+
+    private void AddToViews(object? item)
+    {
+        if (item is Node n)
+        {
+            _selectedNodes.Add(n);
+            n.IsSelected = true;
+        }
+        else if (item is Connection c)
+        {
+            _selectedConnections.Add(c);
+        }
+    }
+
+    private void RemoveFromViews(object? item)
+    {
+        if (item is Node n)
+        {
+            _selectedNodes.Remove(n);
+            n.IsSelected = false;
+        }
+        else if (item is Connection c)
+        {
+            _selectedConnections.Remove(c);
+        }
+    }
 
     public void AddNode(Node node)
     {
@@ -49,9 +127,7 @@ public class Graph
         foreach (var conn in toRemove)
             _connections.Remove(conn);
 
-        node.IsSelected = false;
-        _selectedSet.Remove(node);
-        _selectedNodes.Remove(node);
+        SelectedItems.Remove(node);
         _nodes.Remove(node);
     }
 
@@ -74,9 +150,7 @@ public class Graph
 
         foreach (var node in nodeSet)
         {
-            node.IsSelected = false;
-            _selectedSet.Remove(node);
-            _selectedNodes.Remove(node);
+            SelectedItems.Remove(node);
             _nodes.Remove(node);
         }
     }
@@ -107,11 +181,8 @@ public class Graph
         ArgumentNullException.ThrowIfNull(node);
         if (!_nodes.Contains(node))
             throw new InvalidOperationException("Node is not part of this graph.");
-        if (_selectedSet.Add(node))
-        {
-            _selectedNodes.Add(node);
-            node.IsSelected = true;
-        }
+        if (!SelectedItems.Contains(node))
+            SelectedItems.Add(node);
     }
 
     /// <summary>
@@ -119,18 +190,12 @@ public class Graph
     /// </summary>
     public void Deselect(Node node)
     {
-        if (_selectedSet.Remove(node))
-        {
-            node.IsSelected = false;
-            _selectedNodes.Remove(node);
-        }
+        ArgumentNullException.ThrowIfNull(node);
+        SelectedItems.Remove(node);
     }
 
     public void ClearSelection()
     {
-        foreach (var node in _selectedNodes)
-            node.IsSelected = false;
-        _selectedNodes.Clear();
-        _selectedSet.Clear();
+        SelectedItems.Clear();
     }
 }
