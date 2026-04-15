@@ -36,6 +36,13 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     private const double AutoPanMargin = 40.0;
     private const double AutoPanSpeed = 10.0;
+    // Halo stroke thickness = style thickness + this pad. A constant glow extent
+    // keeps the selection ring consistent across styles of different thickness.
+    private const double ConnectionHaloPadding = 6.0;
+    // Screen-space tolerance used when hit-testing connections under a click.
+    // Divided by the current zoom so the grabbable band stays constant on screen
+    // regardless of viewport scale.
+    private const double ConnectionClickToleranceScreenPx = 8.0;
 
     private readonly Dictionary<Node, NodiumNodeContainer> _nodeContainers = new();
     private Node? _hoveredNode;
@@ -75,6 +82,18 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private IBrush? _lastConnectionStroke;
     private double _lastConnectionThickness;
     private IDashStyle? _lastConnectionDashPattern;
+
+    // Single-slot halo pen cache. Resolved per render pass from
+    // NodiumGraphResources.ConnectionSelectionHaloBrushKey so theme swaps pick up
+    // the latest brush. Keyed on (brush-ref, bucketed-thickness) so N selected
+    // connections with the same default style reuse one Pen instance. The cache
+    // lives in fields — not locals — so back-to-back renders without a theme
+    // change skip the allocation entirely. Task 14 clears the geometry cache on
+    // theme change, which is an orthogonal concern; the halo brush is re-resolved
+    // every frame, so it can't go stale independently of the resource tree.
+    private Pen? _cachedConnectionHaloPen;
+    private IBrush? _lastConnectionHaloBrush;
+    private double _lastConnectionHaloThickness;
 
     // Shared render caches — used by CanvasOverlay (validation feedback, previews)
     // and by per-node NodeAdornmentLayer (selection border, ports, labels).
@@ -132,6 +151,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal static readonly SolidColorBrush DefaultMarqueeFillBrush = new(Color.FromArgb(30, 100, 150, 255));
     internal static readonly SolidColorBrush DefaultMarqueeBorderBrush = new(Color.FromArgb(150, 100, 150, 255));
     internal static readonly SolidColorBrush DefaultSelectedBorderBrush = new(Color.FromRgb(80, 160, 255));
+    // Soft blue glow — matches the 0x55 alpha used by the light-theme halo brush in Generic.axaml.
+    internal static readonly SolidColorBrush DefaultConnectionSelectionHaloBrush = new(Color.FromArgb(85, 59, 130, 246));
     internal static readonly SolidColorBrush DefaultHoveredBorderBrush = new(Color.FromArgb(120, 150, 190, 255));
     internal static readonly SolidColorBrush DefaultPortLabelBrush = new(Color.FromRgb(220, 220, 220));
     internal static readonly SolidColorBrush DefaultMinimapBackgroundBrush = new(Color.FromArgb(200, 30, 30, 30));
@@ -166,6 +187,27 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     {
         var brush = ResolveBrush(brushKey, fallbackBrush);
         return new Pen(brush, thickness, dashStyle);
+    }
+
+    /// <summary>
+    /// Returns a cached connection halo <see cref="Pen"/> for the given brush and thickness.
+    /// Single-slot cache: N selected connections using the same default style thickness
+    /// reuse one <c>Pen</c> instance per frame. The cache invalidates on brush reference
+    /// or rounded-thickness change, so theme swaps and style mutations are picked up.
+    /// </summary>
+    private Pen GetOrCreateConnectionHaloPen(IBrush haloBrush, double thickness)
+    {
+        // Bucket to 0.5 px so continuous style mutations reuse cache entries.
+        var bucketed = Math.Round(thickness * 2.0) / 2.0;
+        if (_cachedConnectionHaloPen is null
+            || !ReferenceEquals(_lastConnectionHaloBrush, haloBrush)
+            || _lastConnectionHaloThickness != bucketed)
+        {
+            _cachedConnectionHaloPen = new Pen(haloBrush, bucketed);
+            _lastConnectionHaloBrush = haloBrush;
+            _lastConnectionHaloThickness = bucketed;
+        }
+        return _cachedConnectionHaloPen;
     }
 
     private readonly CanvasOverlay _overlay;
@@ -449,6 +491,70 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         return (null, null);
     }
 
+    /// <summary>
+    /// Attempts to select a connection under <paramref name="screenPosition"/>. Returns
+    /// <c>true</c> when a connection was hit and the selection was updated (in which case
+    /// callers should treat the pointer press as consumed). Returns <c>false</c> when no
+    /// connection lies under the cursor — callers fall through to their empty-click path.
+    /// </summary>
+    /// <remarks>
+    /// Selection semantics mirror the node path: a plain click replaces the selection with
+    /// just this connection; <paramref name="ctrl"/> toggles membership. A <c>SelectionHandler</c>
+    /// notification with a snapshot of <c>Graph.SelectedItems</c> is fired only when the
+    /// hit-test matches, keeping the no-op path silent.
+    /// </remarks>
+    internal bool TryClickSelectConnection(Point screenPosition, bool ctrl)
+    {
+        if (Graph is null) return false;
+
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+        var worldPoint = transform.ScreenToWorld(screenPosition);
+        var zoom = ViewportZoom > 0 ? ViewportZoom : 1.0;
+        var worldTolerance = ConnectionClickToleranceScreenPx / zoom;
+
+        var hit = ConnectionHitTester.HitTest(
+            worldPoint,
+            worldTolerance,
+            Graph.Connections,
+            ResolveConnectionStyleForHitTest,
+            _connectionGeometryCache);
+
+        if (hit is null)
+            return false;
+
+        if (!ctrl)
+        {
+            // Plain click: replace the selection with just this connection.
+            // Clearing also pulls any node selection out, so the visual adornments
+            // on previously-selected nodes also need an invalidation pass.
+            var previouslySelectedNodes = Graph.SelectedNodes.ToList();
+            Graph.SelectedItems.Clear();
+            foreach (var n in previouslySelectedNodes)
+                InvalidateNodeAdornments(n);
+            Graph.SelectedItems.Add(hit);
+        }
+        else
+        {
+            // Ctrl-click toggles membership.
+            if (Graph.SelectedItems.Contains(hit))
+                Graph.SelectedItems.Remove(hit);
+            else
+                Graph.SelectedItems.Add(hit);
+        }
+
+        InvalidateVisual();
+        SelectionHandler?.OnSelectionChanged(Graph.SelectedItems.ToArray());
+        return true;
+    }
+
+    /// <summary>
+    /// Style resolver passed to <see cref="ConnectionHitTester.HitTest"/>. Uses the same
+    /// <see cref="DefaultConnectionStyle"/> the render loop uses so the hit-test tolerance
+    /// lines up with the drawn stroke thickness. When per-connection styles land, this is
+    /// the single seam that needs updating.
+    /// </summary>
+    private IConnectionStyle ResolveConnectionStyleForHitTest(Connection connection) => DefaultConnectionStyle;
+
     internal Node? HitTestNode(Point screenPosition)
     {
         if (Graph == null) return null;
@@ -676,6 +782,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             _dragStartPositions = Graph!.SelectedNodes.ToDictionary(
                 n => n,
                 n => new Point(n.X, n.Y));
+            e.Handled = true;
+        }
+        else if (TryClickSelectConnection(position, isCtrl))
+        {
+            // Connection consumed the click — don't start a marquee and don't
+            // clear selection. The helper already fired OnSelectionChanged.
             e.Handled = true;
         }
         else
@@ -1144,6 +1256,13 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             }
             var connectionPen = _cachedConnectionPen;
 
+            // Resolve the halo brush once per render pass. Field caching across
+            // frames would go stale on theme swap; resolution is cheap (resource
+            // tree walk) and only happens when the graph has connections.
+            var haloBrush = ResolveBrush(
+                NodiumGraphResources.ConnectionSelectionHaloBrushKey,
+                DefaultConnectionSelectionHaloBrush);
+
             var topLeftWorld = transform.ScreenToWorld(new Point(0, 0));
             var bottomRightWorld = transform.ScreenToWorld(new Point(Bounds.Width, Bounds.Height));
             var zoom = ViewportZoom;
@@ -1194,12 +1313,13 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                         _connectionGeometryCache[connection.Id] = cached;
                     }
 
-                    // Selection flag and halo pen are plumbed here but there is no way
-                    // to mark a connection as selected yet — Task 18 wires the pointer
-                    // hit-test path. Until then every connection renders non-selected;
-                    // the halo pen is allocated lazily only when selected becomes true
-                    // so the common case stays allocation-free.
-                    ConnectionRenderer.Render(context, cached.Renderable, style, connectionPen, selected: false, haloPen: null);
+                    // Halo pen is allocated lazily only when the connection is
+                    // actually selected, so the common case stays allocation-free.
+                    var selected = Graph.SelectedItems.Contains(connection);
+                    var haloPen = selected
+                        ? GetOrCreateConnectionHaloPen(haloBrush, style.Thickness + ConnectionHaloPadding)
+                        : null;
+                    ConnectionRenderer.Render(context, cached.Renderable, style, connectionPen, selected, haloPen);
                 }
             }
         }
@@ -1445,6 +1565,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             ((INotifyCollectionChanged)oldGraph.Nodes).CollectionChanged -= OnNodesCollectionChanged;
             ((INotifyCollectionChanged)oldGraph.Connections).CollectionChanged -= OnConnectionsCollectionChanged;
+            ((INotifyCollectionChanged)oldGraph.SelectedItems).CollectionChanged -= OnSelectedItemsCollectionChanged;
             foreach (var node in oldGraph.Nodes)
             {
                 node.PropertyChanged -= OnNodePropertyChanged;
@@ -1467,9 +1588,23 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             ((INotifyCollectionChanged)newGraph.Nodes).CollectionChanged += OnNodesCollectionChanged;
             ((INotifyCollectionChanged)newGraph.Connections).CollectionChanged += OnConnectionsCollectionChanged;
+            ((INotifyCollectionChanged)newGraph.SelectedItems).CollectionChanged += OnSelectedItemsCollectionChanged;
             foreach (var node in newGraph.Nodes)
                 AddNodeContainer(node);
         }
+    }
+
+    /// <summary>
+    /// Forces a redraw whenever the unified selection changes. The connection render
+    /// loop reads <c>Graph.SelectedItems</c> directly to decide which connections get
+    /// the halo pass, so external mutations (e.g. consumer code or tests) still need
+    /// to kick off an invalidation. <see cref="TryClickSelectConnection"/> also calls
+    /// InvalidateVisual directly for the same reason — this handler just covers the
+    /// out-of-band mutation path.
+    /// </summary>
+    private void OnSelectedItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        InvalidateVisual();
     }
 
     private void OnNodesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
