@@ -32,6 +32,9 @@ public static class NodiumGraphResources
     public const string ConnectionPreviewValidBrushKey = "NodiumGraphConnectionPreviewValidBrush";
     public const string ConnectionPreviewInvalidBrushKey = "NodiumGraphConnectionPreviewInvalidBrush";
 
+    // Connection selection halo (wider semi-transparent under-pass drawn behind selected connections)
+    public const string ConnectionSelectionHaloBrushKey = "NodiumGraphConnectionSelectionHaloBrush";
+
     // Connection cutting
     public const string CuttingLineBrushKey = "NodiumGraphCuttingLineBrush";
 

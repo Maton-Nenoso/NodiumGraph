@@ -39,6 +39,9 @@
                     <SolidColorBrush x:Key="NodiumGraphConnectionPreviewValidBrush" Color="#FF22C55E" />
                     <SolidColorBrush x:Key="NodiumGraphConnectionPreviewInvalidBrush" Color="#FF94A3B8" />
 
+                    <!-- Connection selection halo (matches the node selection accent #3B82F6 at ~33% alpha) -->
+                    <SolidColorBrush x:Key="NodiumGraphConnectionSelectionHaloBrush" Color="#553B82F6" />
+
                     <!-- Cutting line -->
                     <SolidColorBrush x:Key="NodiumGraphCuttingLineBrush" Color="#FFEF4444" />
 
@@ -82,6 +85,9 @@
                     <!-- Connection preview -->
                     <SolidColorBrush x:Key="NodiumGraphConnectionPreviewValidBrush" Color="#FF22C55E" />
                     <SolidColorBrush x:Key="NodiumGraphConnectionPreviewInvalidBrush" Color="#FF808080" />
+
+                    <!-- Connection selection halo (matches the dark node selection accent #50A0FF at ~33% alpha) -->
+                    <SolidColorBrush x:Key="NodiumGraphConnectionSelectionHaloBrush" Color="#5550A0FF" />
 
                     <!-- Cutting line -->
                     <SolidColorBrush x:Key="NodiumGraphCuttingLineBrush" Color="#FFFF0000" />

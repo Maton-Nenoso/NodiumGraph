@@ -1165,7 +1165,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                     // Route once per frame: hand the already-computed points to the
                     // renderer so it doesn't call router.Route() a second time.
                     var renderable = ConnectionRenderer.CreateRenderable(routePoints, router.RouteKind, style);
-                    ConnectionRenderer.Render(context, renderable, style, connectionPen);
+                    // Selection flag and halo pen are plumbed here but there is no way
+                    // to mark a connection as selected yet — Task 18 wires the pointer
+                    // hit-test path. Until then every connection renders non-selected;
+                    // the halo pen is allocated lazily only when selected becomes true
+                    // so the common case stays allocation-free.
+                    ConnectionRenderer.Render(context, renderable, style, connectionPen, selected: false, haloPen: null);
                 }
             }
         }

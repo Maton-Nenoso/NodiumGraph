@@ -259,6 +259,108 @@ public class ConnectionRendererTests
         Assert.Equal(100, strokeBounds.Height, 3);
     }
 
+    [AvaloniaFact]
+    public void Render_with_selected_false_and_null_halo_does_not_throw()
+    {
+        // Non-selected path must be identical to the Task 7 behavior: no halo pass,
+        // just stroke + endpoints. Null haloPen is the legal "nothing selected" signal.
+        var connection = MakeStraightConnection(200, 0);
+        var router = new StraightRouter();
+        var style = new ConnectionStyle(targetEndpoint: new ArrowEndpoint(size: 10, filled: true));
+        var renderable = ConnectionRenderer.CreateRenderable(connection, router, style);
+        var strokePen = new Pen(style.Stroke, style.Thickness);
+
+        using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(256, 256));
+        using (var ctx = bitmap.CreateDrawingContext())
+        {
+            ConnectionRenderer.Render(ctx, renderable, style, strokePen, selected: false, haloPen: null);
+        }
+    }
+
+    [AvaloniaFact]
+    public void Render_with_selected_true_and_halo_pen_does_not_throw()
+    {
+        // Smoke gate for the halo draw path. We pick a style with both a filled and an
+        // open endpoint so every branch of the halo pass runs (stroke halo, filled halo,
+        // open halo) before the normal stroke+endpoint draws. No recording context —
+        // the two contracts we rely on are: no exception and the signature accepts
+        // selected=true with a non-null halo pen.
+        var connection = MakeStraightConnection(200, 0);
+        var router = new StraightRouter();
+        var style = new ConnectionStyle(
+            sourceEndpoint: new BarEndpoint(),
+            targetEndpoint: new ArrowEndpoint(size: 10, filled: true));
+        var renderable = ConnectionRenderer.CreateRenderable(connection, router, style);
+        var strokePen = new Pen(style.Stroke, style.Thickness);
+        var haloPen = new Pen(new SolidColorBrush(Color.FromArgb(0x55, 0x21, 0x96, 0xF3)), style.Thickness + 6);
+
+        using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(256, 256));
+        using (var ctx = bitmap.CreateDrawingContext())
+        {
+            ConnectionRenderer.Render(ctx, renderable, style, strokePen, selected: true, haloPen: haloPen);
+        }
+    }
+
+    [AvaloniaFact]
+    public void Render_with_selected_true_but_null_halo_is_noop_for_halo_pass()
+    {
+        // Degenerate case: selected flag set but no halo pen supplied. The renderer
+        // must fall back to the non-selected path rather than NRE — this is the
+        // contract the canvas relies on if halo resolution ever fails.
+        var connection = MakeStraightConnection(200, 0);
+        var router = new StraightRouter();
+        var style = new ConnectionStyle();
+        var renderable = ConnectionRenderer.CreateRenderable(connection, router, style);
+        var strokePen = new Pen(style.Stroke, style.Thickness);
+
+        using var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(256, 256));
+        using (var ctx = bitmap.CreateDrawingContext())
+        {
+            ConnectionRenderer.Render(ctx, renderable, style, strokePen, selected: true, haloPen: null);
+        }
+    }
+
+    [Fact]
+    public void ConnectionSelectionHaloBrushKey_is_defined_and_namespaced()
+    {
+        // Structural pin for the new theme resource key. Changing the string is a
+        // breaking change for any consumer that overrode the halo brush, so we lock
+        // the exact name here. Prefix matches the existing NodiumGraph* convention.
+        Assert.Equal("NodiumGraphConnectionSelectionHaloBrush", NodiumGraphResources.ConnectionSelectionHaloBrushKey);
+        Assert.StartsWith("NodiumGraph", NodiumGraphResources.ConnectionSelectionHaloBrushKey);
+    }
+
+    [AvaloniaFact]
+    public void ConnectionSelectionHaloBrush_is_defined_in_both_theme_dictionaries()
+    {
+        // Prove the halo brush is wired up in Generic.axaml for both Light and Dark
+        // theme dictionaries. We load the library's generic styles from its avares
+        // URI and interrogate the ThemeDictionaries directly — this side-steps the
+        // need for a live Application/Window hosting the canvas while still pinning
+        // the concrete key → brush mapping in the XAML.
+        var styles = (Avalonia.Styling.Styles)Avalonia.Markup.Xaml.AvaloniaXamlLoader.Load(
+            new System.Uri("avares://NodiumGraph/Themes/Generic.axaml"));
+
+        var dict = styles.Resources;
+        Assert.True(dict.ThemeDictionaries.ContainsKey(Avalonia.Styling.ThemeVariant.Light));
+        Assert.True(dict.ThemeDictionaries.ContainsKey(Avalonia.Styling.ThemeVariant.Dark));
+
+        var lightDict = (Avalonia.Controls.IResourceDictionary)dict.ThemeDictionaries[Avalonia.Styling.ThemeVariant.Light];
+        var darkDict = (Avalonia.Controls.IResourceDictionary)dict.ThemeDictionaries[Avalonia.Styling.ThemeVariant.Dark];
+
+        Assert.True(lightDict.TryGetResource(
+            NodiumGraphResources.ConnectionSelectionHaloBrushKey,
+            Avalonia.Styling.ThemeVariant.Light,
+            out var lightBrush));
+        Assert.IsAssignableFrom<IBrush>(lightBrush);
+
+        Assert.True(darkDict.TryGetResource(
+            NodiumGraphResources.ConnectionSelectionHaloBrushKey,
+            Avalonia.Styling.ThemeVariant.Dark,
+            out var darkBrush));
+        Assert.IsAssignableFrom<IBrush>(darkBrush);
+    }
+
     private sealed class DegenerateFirstSegmentRouter : IConnectionRouter
     {
         public RouteKind RouteKind => RouteKind.Polyline;

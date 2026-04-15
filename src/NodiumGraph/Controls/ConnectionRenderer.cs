@@ -248,16 +248,40 @@ internal static class ConnectionRenderer
 
     /// <summary>
     /// Renders a previously-built <see cref="ConnectionRenderable"/> to the drawing
-    /// context: one stroke draw, optionally one filled-endpoint draw, optionally one
-    /// open-endpoint draw. Filled endpoints share the connection stroke brush for fill;
-    /// open endpoints are stroke-only.
+    /// context: optionally a halo under-pass, then one stroke draw, optionally one
+    /// filled-endpoint draw, optionally one open-endpoint draw. Filled endpoints share
+    /// the connection stroke brush for fill; open endpoints are stroke-only.
+    /// <para>
+    /// When <paramref name="selected"/> is <c>true</c> and <paramref name="haloPen"/>
+    /// is non-null, a semi-transparent halo is drawn FIRST on the same three buckets
+    /// (stroke, filled endpoints, open endpoints) using the wider halo pen — so the
+    /// selection glow reads as a single unified shape around the stroke and its
+    /// endpoint decorations. The normal passes are then drawn on top. When
+    /// <paramref name="selected"/> is <c>false</c> OR <paramref name="haloPen"/> is
+    /// null the halo pass is skipped and behavior is identical to the non-selected
+    /// baseline. Filled-endpoint halo uses the halo brush as fill so the expanded
+    /// silhouette around the shape reads as glow rather than as a hollow outline.
+    /// </para>
     /// </summary>
     public static void Render(
         DrawingContext context,
         ConnectionRenderable renderable,
         IConnectionStyle style,
-        Pen strokePen)
+        Pen strokePen,
+        bool selected,
+        Pen? haloPen)
     {
+        if (selected && haloPen is not null)
+        {
+            context.DrawGeometry(null, haloPen, renderable.Stroke);
+
+            if (renderable.FilledEndpoints is not null)
+                context.DrawGeometry(haloPen.Brush, haloPen, renderable.FilledEndpoints);
+
+            if (renderable.OpenEndpoints is not null)
+                context.DrawGeometry(null, haloPen, renderable.OpenEndpoints);
+        }
+
         context.DrawGeometry(null, strokePen, renderable.Stroke);
 
         if (renderable.FilledEndpoints is not null)
