@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using NodiumGraph.Controls;
@@ -129,6 +131,10 @@ public partial class MainWindow : Window
         // out of the box, which enforces self/same-owner/Flow/DataType rules.
         Canvas.ConnectionHandler = new SampleConnectionHandler(graph);
 
+        // Unified delete handler — fires on Delete key with a mixed selection of
+        // nodes and connections. Library reports; consumer mutates the graph.
+        Canvas.GraphInteractionHandler = new SampleGraphInteractionHandler(graph);
+
         // Wire grid style combo to canvas property
         GridStyleCombo.SelectionChanged += (_, _) =>
         {
@@ -161,5 +167,22 @@ file class SampleConnectionHandler(Graph graph) : IConnectionHandler
     public void OnConnectionDeleteRequested(Connection connection)
     {
         graph.RemoveConnection(connection);
+    }
+}
+
+file sealed class SampleGraphInteractionHandler(Graph graph) : IGraphInteractionHandler
+{
+    public void OnDeleteRequested(IReadOnlyCollection<IGraphElement> elements)
+    {
+        // Remove connections first so node-cascade doesn't double-remove.
+        // The library defensively snapshots before firing, so mutating the
+        // graph from inside this callback is safe. The .ToList() calls here
+        // are an extra belt-and-braces guard against reentrancy via
+        // SelectedItems.CollectionChanged.
+        foreach (var connection in elements.OfType<Connection>().ToList())
+            graph.RemoveConnection(connection);
+
+        foreach (var node in elements.OfType<Node>().ToList())
+            graph.RemoveNode(node);
     }
 }

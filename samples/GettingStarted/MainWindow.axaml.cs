@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using NodiumGraph;
@@ -15,6 +17,7 @@ public partial class MainWindow : Window
         var graph = BuildGraph();
         Canvas.Graph = graph;
         Canvas.ConnectionHandler = new GraphConnectionHandler(graph);
+        Canvas.GraphInteractionHandler = new SampleGraphInteractionHandler(graph);
     }
 
     private static Graph BuildGraph()
@@ -73,5 +76,18 @@ file sealed class GraphConnectionHandler(Graph graph) : IConnectionHandler
     public void OnConnectionDeleteRequested(Connection connection)
     {
         graph.RemoveConnection(connection);
+    }
+}
+
+file sealed class SampleGraphInteractionHandler(Graph graph) : IGraphInteractionHandler
+{
+    public void OnDeleteRequested(IReadOnlyCollection<IGraphElement> elements)
+    {
+        // Connections first so node-cascade doesn't double-remove.
+        foreach (var connection in elements.OfType<Connection>().ToList())
+            graph.RemoveConnection(connection);
+
+        foreach (var node in elements.OfType<Node>().ToList())
+            graph.RemoveNode(node);
     }
 }
