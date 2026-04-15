@@ -127,6 +127,10 @@ public partial class MainWindow : Window
         // Don't set Canvas.NodeTemplate — let DataTemplate resolution from Window work
         Canvas.Graph = graph;
 
+        // Decorate connections with an arrow at the target end — the common
+        // directed-graph look. Default arrow size of 8 reads well at 1:1 zoom.
+        Canvas.DefaultConnectionStyle = new ConnectionStyle(targetEndpoint: new ArrowEndpoint());
+
         // Wire a simple connection handler. The canvas uses DefaultConnectionValidator
         // out of the box, which enforces self/same-owner/Flow/DataType rules.
         Canvas.ConnectionHandler = new SampleConnectionHandler(graph);
