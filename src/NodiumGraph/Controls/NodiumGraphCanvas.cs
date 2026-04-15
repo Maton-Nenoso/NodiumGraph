@@ -1144,19 +1144,26 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 bottomRightWorld.X - topLeftWorld.X,
                 bottomRightWorld.Y - topLeftWorld.Y).Inflate(strokeBleed);
 
-            foreach (var connection in Graph.Connections)
+            // Push the viewport transform once for the entire connection batch so
+            // ConnectionRenderer can emit world-space geometry. Keeping geometry in
+            // world space lets a future hit-test cache avoid thrashing on pan/zoom.
+            var viewportMatrix = Matrix.CreateScale(zoom, zoom) * Matrix.CreateTranslation(transform.Offset.X, transform.Offset.Y);
+            using (context.PushTransform(viewportMatrix))
             {
-                // Route() is the single source of truth for geometry; bounds fall out of the
-                // returned points. Cubic beziers stay inside the convex hull of their control
-                // points, so the AABB of the route output is a valid conservative bound for
-                // bezier curves regardless of which direction control points push.
-                var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
-                if (routePoints.Count < 2) continue;
+                foreach (var connection in Graph.Connections)
+                {
+                    // Route() is the single source of truth for geometry; bounds fall out of the
+                    // returned points. Cubic beziers stay inside the convex hull of their control
+                    // points, so the AABB of the route output is a valid conservative bound for
+                    // bezier curves regardless of which direction control points push.
+                    var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
+                    if (routePoints.Count < 2) continue;
 
-                var bounds = ComputeRouteBounds(routePoints);
-                if (!viewportWorld.Intersects(bounds)) continue;
+                    var bounds = ComputeRouteBounds(routePoints);
+                    if (!viewportWorld.Intersects(bounds)) continue;
 
-                ConnectionRenderer.Render(context, routePoints, router.RouteKind, connectionPen, transform);
+                    ConnectionRenderer.Render(context, routePoints, router.RouteKind, connectionPen);
+                }
             }
         }
 

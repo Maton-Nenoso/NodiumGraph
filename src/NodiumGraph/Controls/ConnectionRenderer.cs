@@ -8,7 +8,7 @@ namespace NodiumGraph.Controls;
 internal static class ConnectionRenderer
 {
     public static Geometry CreateGeometry(
-        IReadOnlyList<Point> routePoints, RouteKind routeKind, ViewportTransform transform)
+        IReadOnlyList<Point> routePoints, RouteKind routeKind)
     {
         if (routePoints.Count < 2)
             return new StreamGeometry();
@@ -16,19 +16,16 @@ internal static class ConnectionRenderer
         var geo = new StreamGeometry();
         using (var ctx = geo.Open())
         {
-            ctx.BeginFigure(transform.WorldToScreen(routePoints[0]), false);
+            ctx.BeginFigure(routePoints[0], false);
 
             if (routeKind == RouteKind.Bezier && routePoints.Count == 4)
             {
-                ctx.CubicBezierTo(
-                    transform.WorldToScreen(routePoints[1]),
-                    transform.WorldToScreen(routePoints[2]),
-                    transform.WorldToScreen(routePoints[3]));
+                ctx.CubicBezierTo(routePoints[1], routePoints[2], routePoints[3]);
             }
             else
             {
                 for (var i = 1; i < routePoints.Count; i++)
-                    ctx.LineTo(transform.WorldToScreen(routePoints[i]));
+                    ctx.LineTo(routePoints[i]);
             }
 
             ctx.EndFigure(false);
@@ -38,20 +35,19 @@ internal static class ConnectionRenderer
     }
 
     public static Geometry CreateGeometry(
-        Connection connection, IConnectionRouter router, ViewportTransform transform)
+        Connection connection, IConnectionRouter router)
     {
         var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
-        return CreateGeometry(routePoints, router.RouteKind, transform);
+        return CreateGeometry(routePoints, router.RouteKind);
     }
 
     public static void Render(
         DrawingContext context,
         IReadOnlyList<Point> routePoints,
         RouteKind routeKind,
-        Pen pen,
-        ViewportTransform transform)
+        Pen pen)
     {
-        var geometry = CreateGeometry(routePoints, routeKind, transform);
+        var geometry = CreateGeometry(routePoints, routeKind);
         context.DrawGeometry(null, pen, geometry);
     }
 }
