@@ -97,7 +97,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     // router.Route + ConnectionRenderer.CreateRenderable. Task 13 piggy-backs on
     // this cache for pointer hit-testing so click handlers don't rebuild geometry.
     // TODO(task-14): wire invalidation on node move, add/remove, router/style swap.
-    // Until then entries are never removed — acceptable for pre-1.0.
+    // Until Task 14 wires invalidation: moving a node will leave its connections drawn at their stale cached positions.
+    // Style-swap invalidation is also Task 14's scope — cached ConnectionRenderable captures endpoint geometries built from the style at first-render time.
     private readonly Dictionary<Guid, CachedConnectionGeometry> _connectionGeometryCache = new();
 
     // Single-slot cached pens — dirty-tracked by brush/thickness identity.
@@ -1160,32 +1161,34 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             {
                 foreach (var connection in Graph.Connections)
                 {
-                    // Cache hit: the renderable's world bounds are already known — cull
-                    // against those directly so we skip router.Route() entirely. Cache
-                    // entries are built and inserted on the first in-viewport render and
-                    // reused on every subsequent frame until Task 14 invalidation lands.
-                    if (_connectionGeometryCache.TryGetValue(connection.Id, out var cached))
+                    CachedConnectionGeometry cached;
+                    if (_connectionGeometryCache.TryGetValue(connection.Id, out var existing))
                     {
-                        if (!viewportWorld.Intersects(cached.WorldBounds)) continue;
+                        // Cache hit: cull against the renderable's world bounds.
+                        // WorldBounds already unions stroke + endpoint geometries, so
+                        // near-edge connections with large arrowheads stay visible.
+                        if (!viewportWorld.Intersects(existing.WorldBounds)) continue;
+                        cached = existing;
                     }
                     else
                     {
-                        // Route() is the single source of truth for geometry; bounds fall out of the
-                        // returned points. Cubic beziers stay inside the convex hull of their control
-                        // points, so the AABB of the route output is a valid conservative bound for
-                        // bezier curves regardless of which direction control points push.
+                        // Cache miss: build the renderable BEFORE culling so the cull
+                        // rect matches the hit-branch exactly (both use renderable.WorldBounds).
+                        // Using raw route-point bounds here would be stricter than the hit
+                        // branch — a connection whose polyline sits just outside the viewport
+                        // but whose arrowhead extends inside would get rejected here every
+                        // frame and never enter the cache.
                         var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
                         if (routePoints.Count < 2) continue;
-
-                        var routeBounds = ComputeRouteBounds(routePoints);
-                        // Off-screen: don't populate the cache with geometry we're about to
-                        // throw away. The connection hasn't been observed yet — no need to pay
-                        // the CreateRenderable cost until it actually enters the viewport.
-                        if (!viewportWorld.Intersects(routeBounds)) continue;
 
                         // Route once per frame: hand the already-computed points to the
                         // renderer so it doesn't call router.Route() a second time.
                         var renderable = ConnectionRenderer.CreateRenderable(routePoints, router.RouteKind, style);
+
+                        // Off-screen: don't populate the cache with geometry we're about to
+                        // throw away. Cull on the same bounds the hit-branch will use.
+                        if (!viewportWorld.Intersects(renderable.WorldBounds)) continue;
+
                         cached = new CachedConnectionGeometry(renderable, Version: 0);
                         _connectionGeometryCache[connection.Id] = cached;
                     }
@@ -1222,21 +1225,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         => _connectionGeometryCache.TryGetValue(connectionId, out var cached)
             ? cached.Renderable.Stroke
             : null;
-
-    private static Rect ComputeRouteBounds(IReadOnlyList<Point> points)
-    {
-        var first = points[0];
-        double minX = first.X, minY = first.Y, maxX = first.X, maxY = first.Y;
-        for (var i = 1; i < points.Count; i++)
-        {
-            var p = points[i];
-            if (p.X < minX) minX = p.X;
-            else if (p.X > maxX) maxX = p.X;
-            if (p.Y < minY) minY = p.Y;
-            else if (p.Y > maxY) maxY = p.Y;
-        }
-        return new Rect(minX, minY, maxX - minX, maxY - minY);
-    }
 
     internal bool CuttingLineIntersectsGeometry(
         Point lineStart, Point lineEnd, Connection connection, ViewportTransform transform)
