@@ -1162,7 +1162,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                     var bounds = ComputeRouteBounds(routePoints);
                     if (!viewportWorld.Intersects(bounds)) continue;
 
-                    ConnectionRenderer.Render(context, routePoints, router.RouteKind, connectionPen);
+                    var renderable = ConnectionRenderer.CreateRenderable(connection, router, style);
+                    ConnectionRenderer.Render(context, renderable, style, connectionPen);
                 }
             }
         }
