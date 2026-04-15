@@ -1,8 +1,11 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Styling;
 using NodiumGraph.Controls;
+using NodiumGraph.Interactions;
 using NodiumGraph.Model;
 using Xunit;
 
@@ -90,5 +93,159 @@ public class NodiumGraphCanvasConnectionCacheTests
         Assert.False(
             canvas.ConnectionGeometryCacheContains(connection.Id),
             "Off-screen connection must not be inserted into the cache.");
+    }
+
+    [AvaloniaFact]
+    public void RemoveConnection_invalidates_cache_entry()
+    {
+        var (canvas, graph, connection) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        DriveRender(canvas);
+        Assert.True(canvas.ConnectionGeometryCacheContains(connection.Id));
+
+        graph.RemoveConnection(connection);
+
+        Assert.False(
+            canvas.ConnectionGeometryCacheContains(connection.Id),
+            "Removing a connection must drop its cached geometry.");
+    }
+
+    [AvaloniaFact]
+    public void MoveNode_invalidates_touching_connections()
+    {
+        // Three nodes, two connections, both touching n1.
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var n1 = new Node { X = 100, Y = 100 };
+        var n2 = new Node { X = 300, Y = 100 };
+        var n3 = new Node { X = 300, Y = 250 };
+        graph.AddNode(n1);
+        graph.AddNode(n2);
+        graph.AddNode(n3);
+        var c12 = new Connection(new Port(n1, new Point(0, 0)), new Port(n2, new Point(0, 0)));
+        var c13 = new Connection(new Port(n1, new Point(0, 0)), new Port(n3, new Point(0, 0)));
+        graph.AddConnection(c12);
+        graph.AddConnection(c13);
+        canvas.Graph = graph;
+        canvas.Measure(new Size(CanvasWidth, CanvasHeight));
+        canvas.Arrange(new Rect(0, 0, CanvasWidth, CanvasHeight));
+
+        DriveRender(canvas);
+        Assert.True(canvas.ConnectionGeometryCacheContains(c12.Id));
+        Assert.True(canvas.ConnectionGeometryCacheContains(c13.Id));
+
+        n1.X += 25;
+
+        Assert.False(
+            canvas.ConnectionGeometryCacheContains(c12.Id),
+            "Connection touching moved node must drop cached geometry.");
+        Assert.False(
+            canvas.ConnectionGeometryCacheContains(c13.Id),
+            "Connection touching moved node must drop cached geometry.");
+
+        // Subsequent render repopulates.
+        canvas.Arrange(new Rect(0, 0, CanvasWidth, CanvasHeight));
+        DriveRender(canvas);
+        Assert.True(canvas.ConnectionGeometryCacheContains(c12.Id));
+        Assert.True(canvas.ConnectionGeometryCacheContains(c13.Id));
+    }
+
+    [AvaloniaFact]
+    public void UnrelatedNode_move_does_not_affect_cache()
+    {
+        // Two disjoint connection pairs: n1->n2 and n3->n4.
+        var canvas = new NodiumGraphCanvas();
+        var graph = new Graph();
+        var n1 = new Node { X = 100, Y = 100 };
+        var n2 = new Node { X = 250, Y = 100 };
+        var n3 = new Node { X = 100, Y = 250 };
+        var n4 = new Node { X = 250, Y = 250 };
+        graph.AddNode(n1);
+        graph.AddNode(n2);
+        graph.AddNode(n3);
+        graph.AddNode(n4);
+        var c12 = new Connection(new Port(n1, new Point(0, 0)), new Port(n2, new Point(0, 0)));
+        var c34 = new Connection(new Port(n3, new Point(0, 0)), new Port(n4, new Point(0, 0)));
+        graph.AddConnection(c12);
+        graph.AddConnection(c34);
+        canvas.Graph = graph;
+        canvas.Measure(new Size(CanvasWidth, CanvasHeight));
+        canvas.Arrange(new Rect(0, 0, CanvasWidth, CanvasHeight));
+
+        DriveRender(canvas);
+        var c12Stroke = canvas.TryGetCachedConnectionStroke(c12.Id);
+        Assert.NotNull(c12Stroke);
+        Assert.True(canvas.ConnectionGeometryCacheContains(c34.Id));
+
+        // Move n3: only c34 should be invalidated; c12 should keep its cached entry.
+        n3.X += 30;
+
+        Assert.False(
+            canvas.ConnectionGeometryCacheContains(c34.Id),
+            "Connection touching moved node must be invalidated.");
+        var c12StrokeAfter = canvas.TryGetCachedConnectionStroke(c12.Id);
+        Assert.NotNull(c12StrokeAfter);
+        Assert.Same(c12Stroke, c12StrokeAfter);
+    }
+
+    [AvaloniaFact]
+    public void SwapRouter_clears_entire_cache()
+    {
+        var (canvas, _, connection) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        DriveRender(canvas);
+        Assert.True(canvas.ConnectionGeometryCacheContains(connection.Id));
+
+        canvas.ConnectionRouter = new StepRouter();
+
+        Assert.Equal(0, canvas.ConnectionGeometryCacheCount);
+    }
+
+    [AvaloniaFact]
+    public void SwapDefaultConnectionStyle_clears_entire_cache()
+    {
+        var (canvas, _, connection) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        DriveRender(canvas);
+        Assert.True(canvas.ConnectionGeometryCacheContains(connection.Id));
+
+        canvas.DefaultConnectionStyle = new ConnectionStyle();
+
+        Assert.Equal(0, canvas.ConnectionGeometryCacheCount);
+    }
+
+    [AvaloniaFact]
+    public void ThemeChange_clears_cache()
+    {
+        // Host the canvas inside a ThemeVariantScope so a parent theme swap
+        // propagates ActualThemeVariantChanged down to the canvas.
+        var canvas = new NodiumGraphCanvas();
+        var scope = new ThemeVariantScope
+        {
+            RequestedThemeVariant = ThemeVariant.Light,
+            Child = canvas,
+        };
+        var graph = new Graph();
+        var nodeA = new Node { X = 100, Y = 100 };
+        var nodeB = new Node { X = 300, Y = 200 };
+        var portOut = new Port(nodeA, new Point(0, 0));
+        var portIn = new Port(nodeB, new Point(0, 0));
+        graph.AddNode(nodeA);
+        graph.AddNode(nodeB);
+        var connection = new Connection(portOut, portIn);
+        graph.AddConnection(connection);
+        canvas.Graph = graph;
+        scope.Measure(new Size(CanvasWidth, CanvasHeight));
+        scope.Arrange(new Rect(0, 0, CanvasWidth, CanvasHeight));
+
+        DriveRender(canvas);
+        Assert.True(canvas.ConnectionGeometryCacheContains(connection.Id));
+
+        scope.RequestedThemeVariant = ThemeVariant.Dark;
+
+        Assert.Equal(0, canvas.ConnectionGeometryCacheCount);
     }
 }

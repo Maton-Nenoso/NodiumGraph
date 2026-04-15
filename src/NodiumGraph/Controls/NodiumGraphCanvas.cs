@@ -30,6 +30,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         _overlay.ZIndex = int.MaxValue;
         VisualChildren.Add(_overlay);
         LogicalChildren.Add(_overlay);
+        ActualThemeVariantChanged += OnActualThemeVariantChanged;
     }
 
     private const double AutoPanMargin = 40.0;
@@ -1216,6 +1217,57 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         => _connectionGeometryCache.ContainsKey(connectionId);
 
     /// <summary>
+    /// Test-only: number of entries currently in the connection geometry cache.
+    /// Used to assert wholesale invalidation paths (router/style/theme swap).
+    /// </summary>
+    internal int ConnectionGeometryCacheCount => _connectionGeometryCache.Count;
+
+    /// <summary>
+    /// Drop the cached geometry for a single connection. Called from the
+    /// connections collection-changed handler when a connection is removed.
+    /// </summary>
+    private void InvalidateConnectionGeometry(Connection connection)
+    {
+        _connectionGeometryCache.Remove(connection.Id);
+    }
+
+    /// <summary>
+    /// Drop cached geometry for every connection that touches the given node.
+    /// Called from <see cref="OnNodePropertyChanged"/> when X or Y changes so the
+    /// next render rebuilds the affected paths from the moved node coordinates.
+    /// </summary>
+    private void InvalidateConnectionGeometryForNode(Node node)
+    {
+        if (Graph == null || _connectionGeometryCache.Count == 0)
+            return;
+
+        List<Guid>? toRemove = null;
+        foreach (var conn in Graph.Connections)
+        {
+            if (conn.SourcePort.Owner == node || conn.TargetPort.Owner == node)
+            {
+                toRemove ??= new List<Guid>();
+                toRemove.Add(conn.Id);
+            }
+        }
+
+        if (toRemove == null)
+            return;
+
+        foreach (var id in toRemove)
+            _connectionGeometryCache.Remove(id);
+    }
+
+    /// <summary>
+    /// Drop every cached connection geometry. Called when wholesale invalidation
+    /// is required: router swap, default-style swap, or theme variant change.
+    /// </summary>
+    private void InvalidateAllConnectionGeometry()
+    {
+        _connectionGeometryCache.Clear();
+    }
+
+    /// <summary>
     /// Test-only: returns the cached stroke <see cref="Geometry"/> for the given
     /// connection id, or <c>null</c> when no entry exists. Tests use reference
     /// identity on the returned geometry to confirm the cache is reused and not
@@ -1318,6 +1370,8 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (_disposed) return;
         _disposed = true;
 
+        ActualThemeVariantChanged -= OnActualThemeVariantChanged;
+
         if (Graph != null)
             OnGraphChanged(Graph, null);
 
@@ -1361,8 +1415,28 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                  change.Property == ShowMinimapProperty ||
                  change.Property == MinimapPositionProperty)
         {
+            // Router or default-style swaps invalidate every cached connection
+            // geometry — cached entries captured the old router output and the
+            // old style's pen, endpoint shapes, and dash pattern.
+            if (change.Property == ConnectionRouterProperty ||
+                change.Property == DefaultConnectionStyleProperty)
+            {
+                InvalidateAllConnectionGeometry();
+            }
             InvalidateVisual();
         }
+    }
+
+    /// <summary>
+    /// Theme-resource brushes resolve through <see cref="IConnectionStyle.Stroke"/>
+    /// at first-render time and get baked into the cached pen + renderable. A theme
+    /// swap leaves stale cache entries painting in the wrong palette, so wipe the
+    /// cache here and let the next render rebuild from the new theme resources.
+    /// </summary>
+    private void OnActualThemeVariantChanged(object? sender, EventArgs e)
+    {
+        InvalidateAllConnectionGeometry();
+        InvalidateVisual();
     }
 
     private void OnGraphChanged(Graph? oldGraph, Graph? newGraph)
@@ -1435,7 +1509,17 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             {
                 NotifyProviderOfDisconnect(conn.SourcePort);
                 NotifyProviderOfDisconnect(conn.TargetPort);
+                InvalidateConnectionGeometry(conn);
             }
+        }
+        else if (e.Action == NotifyCollectionChangedAction.Replace && e.OldItems != null)
+        {
+            foreach (Connection conn in e.OldItems)
+                InvalidateConnectionGeometry(conn);
+        }
+        else if (e.Action == NotifyCollectionChangedAction.Reset)
+        {
+            InvalidateAllConnectionGeometry();
         }
         InvalidateVisual();
     }
@@ -1605,7 +1689,11 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private void OnNodePropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(Node.X) or nameof(Node.Y))
+        {
+            if (sender is Node movedNode)
+                InvalidateConnectionGeometryForNode(movedNode);
             InvalidateArrange();
+        }
         else if (e.PropertyName is nameof(Node.IsSelected))
         {
             if (sender is Node node)
