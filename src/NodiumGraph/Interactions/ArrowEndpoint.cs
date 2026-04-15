@@ -12,7 +12,8 @@ namespace NodiumGraph.Interactions;
 /// </summary>
 public sealed class ArrowEndpoint : IEndpointRenderer
 {
-    private readonly double _size;
+    // Open chevrons shorten slightly so the stroke miter lands on the inset point, not past it.
+    private const double OpenChevronInsetFactor = 0.9;
 
     /// <summary>
     /// Creates a new <see cref="ArrowEndpoint"/>.
@@ -22,25 +23,31 @@ public sealed class ArrowEndpoint : IEndpointRenderer
     public ArrowEndpoint(double size = 8, bool filled = true)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(size);
-        _size = size;
+        Size = size;
         IsFilled = filled;
     }
+
+    /// <summary>Arrow length (from base to tip) in world units.</summary>
+    public double Size { get; }
 
     /// <inheritdoc />
     public bool IsFilled { get; }
 
     /// <inheritdoc />
-    public double GetInset(double strokeThickness) => IsFilled ? _size : _size * 0.9;
+    public double GetInset(double strokeThickness) => IsFilled ? Size : Size * OpenChevronInsetFactor;
 
     /// <inheritdoc />
     public Geometry BuildGeometry(Point tip, Vector direction, double strokeThickness)
     {
+        if (direction.X == 0 && direction.Y == 0)
+            throw new ArgumentException("direction must be non-zero", nameof(direction));
+
         var geo = new StreamGeometry();
         using (var ctx = geo.Open())
         {
             ctx.BeginFigure(new Point(0, 0), IsFilled);
-            ctx.LineTo(new Point(-_size, -_size / 2));
-            ctx.LineTo(new Point(-_size, _size / 2));
+            ctx.LineTo(new Point(-Size, -Size / 2));
+            ctx.LineTo(new Point(-Size, Size / 2));
             ctx.EndFigure(IsFilled);
         }
 

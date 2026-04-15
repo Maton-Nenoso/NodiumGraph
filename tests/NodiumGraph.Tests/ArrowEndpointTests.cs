@@ -1,6 +1,7 @@
 using System;
 using Avalonia;
 using Avalonia.Headless.XUnit;
+using Avalonia.Media;
 using NodiumGraph.Interactions;
 using Xunit;
 
@@ -37,17 +38,26 @@ public class ArrowEndpointTests
     }
 
     [AvaloniaTheory]
-    [InlineData(1.0, 0.0)]
-    [InlineData(0.0, 1.0)]
-    [InlineData(-1.0, 0.0)]
-    [InlineData(0.0, -1.0)]
-    public void BuildGeometry_points_tip_at_expected_position(double dx, double dy)
+    [InlineData(1, 0)]
+    [InlineData(0, 1)]
+    [InlineData(-1, 0)]
+    [InlineData(0, -1)]
+    [InlineData(0.7071067811865475, 0.7071067811865475)] // diagonal
+    public void BuildGeometry_tip_lands_on_transformed_origin(double dx, double dy)
     {
-        var endpoint = new ArrowEndpoint(size: 8, filled: true);
+        var arrow = new ArrowEndpoint(size: 10, filled: true);
         var tip = new Point(50, 50);
+        var geo = arrow.BuildGeometry(tip, new Vector(dx, dy), strokeThickness: 2);
+        var transformed = ((MatrixTransform)geo.Transform!).Value.Transform(new Point(0, 0));
+        Assert.Equal(tip.X, transformed.X, precision: 6);
+        Assert.Equal(tip.Y, transformed.Y, precision: 6);
+    }
 
-        var geo = endpoint.BuildGeometry(tip, new Vector(dx, dy), strokeThickness: 2);
-
-        Assert.True(geo.Bounds.Contains(new Point(50, 50)));
+    [Fact]
+    public void BuildGeometry_throws_on_zero_direction()
+    {
+        var arrow = new ArrowEndpoint();
+        Assert.Throws<ArgumentException>(
+            () => arrow.BuildGeometry(new Point(0, 0), new Vector(0, 0), strokeThickness: 2));
     }
 }
