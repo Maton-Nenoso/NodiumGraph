@@ -45,6 +45,29 @@ public class ISelectionHandlerTests
     }
 
     [Fact]
+    public void Handler_receives_snapshot_not_live_collection()
+    {
+        var graph = new Graph();
+        var node1 = new Node { X = 0, Y = 0 };
+        var node2 = new Node { X = 100, Y = 0 };
+        graph.AddNode(node1);
+        graph.AddNode(node2);
+        graph.SelectedItems.Add(node1);
+
+        var spy = new SelectionSpy();
+        // Simulate what the canvas does: snapshot via ToArray before firing.
+        spy.OnSelectionChanged(graph.SelectedItems.ToArray());
+
+        // Now mutate the graph's selection.
+        graph.SelectedItems.Add(node2);
+
+        // Received collection should be unchanged.
+        var received = spy.Calls[0];
+        Assert.Single(received);
+        Assert.Same(node1, received.Single());
+    }
+
+    [Fact]
     public void OnSelectionChanged_receives_empty_collection_on_clear()
     {
         var graph = new Graph();
