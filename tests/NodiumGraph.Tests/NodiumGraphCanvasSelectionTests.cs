@@ -427,4 +427,94 @@ public class NodiumGraphCanvasSelectionTests
         DriveRender(canvas);
         Assert.Contains(conn, graph.SelectedItems);
     }
+
+    // These two tests pin the hit-test priority enforced by OnPointerPressed:
+    // port-branch -> node-branch -> connection-branch. Because simulating a
+    // PointerPressedEventArgs in headless is fragile, we reproduce that
+    // ordering directly via the internal seams (ResolvePortWithProvider and
+    // HitTestNode) at a click point that is *also* on the connection stroke.
+    // A ground-truth TryClickSelectConnection call on a throwaway canvas
+    // confirms the conflict is real (the point hits the connection), then we
+    // assert the earlier branch catches the click first so the connection
+    // branch is never reached in production.
+
+    [AvaloniaFact]
+    public void Click_on_port_does_not_select_connection_behind_it()
+    {
+        var (canvas, graph, _, _, conn) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        // Straight route midpoint (210, 160). Place a node carrying a fixed
+        // port whose absolute position lands exactly on the stroke. Node C is
+        // positioned so (210, 160) is *outside* its rect — only the port
+        // (resolved via radius) should hit, not HitTestNode.
+        var nodeC = new Node { X = 400, Y = 400 };
+        nodeC.Width = 20;
+        nodeC.Height = 20;
+        // Relative (-190, -240) + node origin (400, 400) = absolute (210, 160).
+        var floatingPort = new Port(nodeC, new Point(-190, -240));
+        nodeC.PortProvider = new FixedPortProvider(new[] { floatingPort });
+        graph.AddNode(nodeC);
+
+        var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
+        var screenPoint = transform.WorldToScreen(new Point(210, 160));
+
+        // Ground-truth: the point *is* on the connection stroke, so without
+        // any priority rule the connection branch would select it.
+        var groundTruth = BuildCanvasWithConnection(new Point(100, 100), new Point(300, 200));
+        Assert.True(
+            groundTruth.canvas.TryClickSelectConnection(screenPoint, ctrl: false),
+            "Fixture sanity: the click point must actually lie on the connection stroke.");
+
+        // Priority check — reproduce OnPointerPressed branch ordering:
+        // port first, then node, then connection.
+        var (hitPort, _) = canvas.ResolvePortWithProvider(screenPoint, preview: false);
+        Assert.Same(floatingPort, hitPort);
+
+        // Because the port branch fires first, OnPointerPressed never reaches
+        // TryClickSelectConnection, so the connection stays unselected.
+        Assert.Empty(graph.SelectedItems);
+        Assert.DoesNotContain(conn, graph.SelectedItems);
+
+        // Belt-and-braces: HitTestNode must NOT be returning nodeC at this
+        // point, otherwise this test would be exercising the node branch by
+        // accident instead of the port branch.
+        Assert.Null(canvas.HitTestNode(screenPoint));
+    }
+
+    [AvaloniaFact]
+    public void Click_on_node_does_not_select_connection_passing_through_it()
+    {
+        var (canvas, graph, _, _, conn) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        // Straight route midpoint (210, 160). Place node C so its rect
+        // covers that point: (200..220) x (150..170). Node C has no
+        // PortProvider, so the port branch falls through.
+        var nodeC = new Node { X = 200, Y = 150 };
+        nodeC.Width = 20;
+        nodeC.Height = 20;
+        graph.AddNode(nodeC);
+
+        var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
+        var screenPoint = transform.WorldToScreen(new Point(210, 160));
+
+        // Ground-truth: the connection is still hittable at that point.
+        var groundTruth = BuildCanvasWithConnection(new Point(100, 100), new Point(300, 200));
+        Assert.True(
+            groundTruth.canvas.TryClickSelectConnection(screenPoint, ctrl: false),
+            "Fixture sanity: the click point must actually lie on the connection stroke.");
+
+        // Priority check — reproduce OnPointerPressed branch ordering.
+        var (hitPort, _) = canvas.ResolvePortWithProvider(screenPoint, preview: false);
+        Assert.Null(hitPort);
+
+        var hitNode = canvas.HitTestNode(screenPoint);
+        Assert.Same(nodeC, hitNode);
+
+        // Node branch catches the click first, so production OnPointerPressed
+        // never reaches TryClickSelectConnection. The connection is not in
+        // SelectedItems even though its stroke passes through nodeC.
+        Assert.DoesNotContain(conn, graph.SelectedItems);
+    }
 }
