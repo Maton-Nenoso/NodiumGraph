@@ -505,19 +505,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         SelectionHandler?.OnSelectionChanged(Graph.SelectedItems.ToArray());
     }
 
-    public void DeleteSelected()
-    {
-        if (Graph == null || Graph.SelectedNodes.Count == 0) return;
-
-        var selectedNodes = Graph.SelectedNodes.ToList();
-        var affectedConnections = Graph.Connections
-            .Where(c => selectedNodes.Contains(c.SourcePort.Owner) ||
-                        selectedNodes.Contains(c.TargetPort.Owner))
-            .ToList();
-
-        NodeHandler?.OnDeleteRequested(selectedNodes, affectedConnections);
-    }
-
     public void ZoomToFit(double padding = 50.0)
     {
         if (Graph == null || Graph.Nodes.Count == 0) return;
@@ -975,8 +962,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         }
         else if (e.Key == Key.Delete)
         {
-            DeleteSelected();
-            e.Handled = true;
+            // Delete is re-wired to IGraphInteractionHandler in Task 20.
         }
         else if (e.Key == Key.A && (e.KeyModifiers & KeyModifiers.Control) != 0)
         {

@@ -15,21 +15,17 @@ internal class TestSelectionHandler(Action<IReadOnlyList<Node>> callback) : ISel
 internal class TestNodeHandler : INodeInteractionHandler
 {
     private readonly Action<IReadOnlyList<NodeMoveInfo>>? _onMoved;
-    private readonly Action<IReadOnlyList<Node>, IReadOnlyList<Connection>>? _onDelete;
     private readonly Action<Node>? _onDoubleClick;
 
     public TestNodeHandler(
         Action<IReadOnlyList<NodeMoveInfo>>? onMoved = null,
-        Action<IReadOnlyList<Node>, IReadOnlyList<Connection>>? onDelete = null,
         Action<Node>? onDoubleClick = null)
     {
         _onMoved = onMoved;
-        _onDelete = onDelete;
         _onDoubleClick = onDoubleClick;
     }
 
     public void OnNodesMoved(IReadOnlyList<NodeMoveInfo> moves) => _onMoved?.Invoke(moves);
-    public void OnDeleteRequested(IReadOnlyList<Node> nodes, IReadOnlyList<Connection> connections) => _onDelete?.Invoke(nodes, connections);
     public void OnNodeDoubleClicked(Node node) => _onDoubleClick?.Invoke(node);
 }
 

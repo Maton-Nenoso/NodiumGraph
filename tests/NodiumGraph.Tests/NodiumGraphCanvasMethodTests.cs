@@ -122,13 +122,4 @@ public class NodiumGraphCanvasMethodTests
         Assert.Same(second, hit);
     }
 
-    [AvaloniaFact]
-    public void DeleteSelected_is_public()
-    {
-        var canvas = new NodiumGraphCanvas();
-        var graph = new Graph();
-        canvas.Graph = graph;
-
-        canvas.DeleteSelected(); // Should compile as public method, no-op with no selection
-    }
 }
