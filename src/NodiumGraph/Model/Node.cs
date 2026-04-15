@@ -7,7 +7,7 @@ namespace NodiumGraph.Model;
 /// A visual node in the graph. Subclass to attach domain data.
 /// Width and Height are set internally by the canvas after measure.
 /// </summary>
-public class Node : INotifyPropertyChanged
+public class Node : INotifyPropertyChanged, IGraphElement
 {
     private double _x;
     private double _y;
