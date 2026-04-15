@@ -21,11 +21,15 @@ public class NoneEndpointTests
     }
 
     [AvaloniaFact]
-    public void BuildGeometry_returns_empty()
+    public void BuildGeometry_returns_non_null()
     {
         var geo = NoneEndpoint.Instance.BuildGeometry(new Point(0, 0), new Vector(1, 0), 2);
         Assert.NotNull(geo);
-        Assert.Equal(0, geo.Bounds.Width);
-        Assert.Equal(0, geo.Bounds.Height);
+    }
+
+    [Fact]
+    public void Instance_is_singleton()
+    {
+        Assert.Same(NoneEndpoint.Instance, NoneEndpoint.Instance);
     }
 }

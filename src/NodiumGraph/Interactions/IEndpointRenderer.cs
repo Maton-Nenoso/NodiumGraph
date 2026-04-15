@@ -23,9 +23,15 @@ public interface IEndpointRenderer
 
     /// <summary>
     /// Builds the geometry for the endpoint decoration.
+    /// <paramref name="tip"/> is the port center in world coordinates.
+    /// <paramref name="direction"/> is a unit vector pointing from the connection line outward along the
+    /// curve tangent at this endpoint; implementations may assume <c>|direction| ≈ 1</c>.
     /// </summary>
-    /// <param name="tip">The tip point where the decoration meets the port (world space).</param>
-    /// <param name="direction">Unit vector pointing outward from the connection toward the tip.</param>
+    /// <param name="tip">The port center in world coordinates.</param>
+    /// <param name="direction">
+    /// Unit vector pointing from the connection line outward, along the curve tangent at this endpoint.
+    /// Implementations may assume <c>|direction| ≈ 1</c>.
+    /// </param>
     /// <param name="strokeThickness">The connection's stroke thickness, for size-proportional decorations.</param>
     Geometry BuildGeometry(Point tip, Vector direction, double strokeThickness);
 }
