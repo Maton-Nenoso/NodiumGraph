@@ -229,6 +229,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     public static readonly StyledProperty<ICanvasInteractionHandler?> CanvasHandlerProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, ICanvasInteractionHandler?>(nameof(CanvasHandler));
 
+    public static readonly StyledProperty<IGraphInteractionHandler?> GraphInteractionHandlerProperty =
+        AvaloniaProperty.Register<NodiumGraphCanvas, IGraphInteractionHandler?>(nameof(GraphInteractionHandler));
+
     public static readonly StyledProperty<IConnectionValidator?> ConnectionValidatorProperty =
         AvaloniaProperty.Register<NodiumGraphCanvas, IConnectionValidator?>(
             nameof(ConnectionValidator),
@@ -362,6 +365,16 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     {
         get => GetValue(CanvasHandlerProperty);
         set => SetValue(CanvasHandlerProperty, value);
+    }
+
+    /// <summary>
+    /// Cross-cutting handler for canvas-wide interactions that may target a mix of
+    /// nodes and connections, e.g. the delete key firing with a heterogeneous selection.
+    /// </summary>
+    public IGraphInteractionHandler? GraphInteractionHandler
+    {
+        get => GetValue(GraphInteractionHandlerProperty);
+        set => SetValue(GraphInteractionHandlerProperty, value);
     }
 
     /// <summary>

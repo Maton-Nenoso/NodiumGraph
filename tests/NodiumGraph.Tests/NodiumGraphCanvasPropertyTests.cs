@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Avalonia;
 using Avalonia.Headless.XUnit;
 using NodiumGraph.Controls;
@@ -87,6 +89,24 @@ public class NodiumGraphCanvasPropertyTests
         Assert.Null(canvas.ConnectionHandler);
         Assert.Null(canvas.SelectionHandler);
         Assert.Null(canvas.CanvasHandler);
+        Assert.Null(canvas.GraphInteractionHandler);
+    }
+
+    [AvaloniaFact]
+    public void GraphInteractionHandler_property_round_trips()
+    {
+        var canvas = new NodiumGraphCanvas();
+        Assert.Null(canvas.GraphInteractionHandler);
+        var handler = new TestGraphInteractionHandler();
+        canvas.GraphInteractionHandler = handler;
+        Assert.Same(handler, canvas.GraphInteractionHandler);
+    }
+
+    private class TestGraphInteractionHandler : IGraphInteractionHandler
+    {
+        public List<IReadOnlyCollection<IGraphElement>> Calls { get; } = new();
+        public void OnDeleteRequested(IReadOnlyCollection<IGraphElement> elements)
+            => Calls.Add(elements.ToList());
     }
 
     [AvaloniaFact]
