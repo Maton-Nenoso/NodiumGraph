@@ -211,18 +211,7 @@ public class ConnectionRendererTests
     [AvaloniaFact]
     public void Zero_length_first_segment_skips_source_endpoint()
     {
-        // A StepRouter output with a coincident first pair: source port at (5,5) and
-        // the router may emit a zero-length leading segment. We simulate this with a
-        // straight router that routes from (5,5) to (20,5) and use a custom stub by
-        // constructing via a 3-point list directly is not possible; instead we use a
-        // scenario where source endpoint is set but first-segment tangent is degenerate.
-        // Easiest: a connection whose source port is coincident with the target-entry
-        // point of a routed path. StraightRouter with both ports at same position would
-        // produce a zero-length route, but that's rejected (< 2 points). We cover the
-        // guard by asserting the symmetric contract: with a polyline whose first segment
-        // is zero-length we do not render the source endpoint.
-
-        // Use a fake router that returns a points list with a zero-length leading segment.
+        // Polyline with coincident p0==p1 — source tangent is degenerate, source endpoint must be skipped.
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 20, Y = 0 };
         var source = new Port(nodeA, new Point(5, 5));
@@ -242,6 +231,34 @@ public class ConnectionRendererTests
         Assert.Null(renderable.OpenEndpoints);
     }
 
+    [AvaloniaFact]
+    public void StepRouter_long_path_with_small_endpoints_still_insets()
+    {
+        // Regression gate for the per-segment inset guard. The old guard used the
+        // straight-line p0-to-pN distance, which for a zig-zag polyline is much smaller
+        // than the actual polyline length — so a small inset that fits comfortably inside
+        // the first/last segments was wrongly rejected. Here: a polyline
+        // [(0,0), (100,0), (100,100), (200,100)] with a 5-unit endpoint. Straight-line
+        // endpoint distance is ~224, but the guard must look at per-segment lengths (100).
+        var nodeA = new Node { X = 0, Y = 0 };
+        var nodeB = new Node { X = 200, Y = 100 };
+        var source = new Port(nodeA, new Point(0, 0));
+        var target = new Port(nodeB, new Point(0, 0));
+        var connection = new Connection(source, target);
+        var router = new FixedZigZagRouter();
+        var style = new ConnectionStyle(targetEndpoint: new ArrowEndpoint(size: 5, filled: true));
+
+        var renderable = ConnectionRenderer.CreateRenderable(connection, router, style);
+
+        // Last segment runs from (100,100) to (200,100) along +X. A 5-unit inset must
+        // pull pN back from (200,100) to (195,100), shrinking the stroke bounds by 5.
+        var strokeBounds = renderable.Stroke.Bounds;
+        Assert.Equal(0, strokeBounds.X, 3);
+        Assert.Equal(0, strokeBounds.Y, 3);
+        Assert.Equal(195, strokeBounds.Width, 3); // 200 - 5 inset along last segment
+        Assert.Equal(100, strokeBounds.Height, 3);
+    }
+
     private sealed class DegenerateFirstSegmentRouter : IConnectionRouter
     {
         public RouteKind RouteKind => RouteKind.Polyline;
@@ -252,5 +269,18 @@ public class ConnectionRendererTests
             var p0 = source.AbsolutePosition;
             return new[] { p0, p0, target.AbsolutePosition };
         }
+    }
+
+    private sealed class FixedZigZagRouter : IConnectionRouter
+    {
+        public RouteKind RouteKind => RouteKind.Polyline;
+
+        public IReadOnlyList<Point> Route(Port source, Port target) => new[]
+        {
+            new Point(0, 0),
+            new Point(100, 0),
+            new Point(100, 100),
+            new Point(200, 100),
+        };
     }
 }

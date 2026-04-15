@@ -54,8 +54,17 @@ internal static class ConnectionRenderer
     /// For bezier routes (4 points) only the endpoints p0 and p3 move — the control
     /// points stay put so the curve still leaves/enters tangentially at the same angle.
     /// For polylines only p0 and p_N move along the first/last-segment directions.
-    /// If the combined inset would exceed the straight-line distance between p0 and p_N,
-    /// insetting is skipped entirely (returns the original list).
+    /// <para>
+    /// Guard policy: the validity constraint for an inset depends on the route shape.
+    /// For a 4-point bezier the actual curve length isn't cheap to compute, so we fall
+    /// back to the straight-line distance between p0 and p3 as a conservative guard —
+    /// this is a cheap approximation and may still skip insetting in rare degenerate
+    /// control-point layouts, but never produces an invalid curve. For polyline/step
+    /// routes the straight-line distance can be much shorter than the actual polyline
+    /// length (e.g. a StepRouter zig-zag), which would wrongly skip insetting; the
+    /// correct per-segment guard is that the source inset must not exceed the first
+    /// segment's length and the target inset must not exceed the last segment's length.
+    /// </para>
     /// </summary>
     private static IReadOnlyList<Point> ApplyInsets(
         IReadOnlyList<Point> points,
@@ -69,11 +78,29 @@ internal static class ConnectionRenderer
 
         var p0 = points[0];
         var pN = points[points.Count - 1];
-        var dx = pN.X - p0.X;
-        var dy = pN.Y - p0.Y;
-        var distance = System.Math.Sqrt(dx * dx + dy * dy);
-        if (sourceInset + targetInset >= distance)
-            return points;
+
+        if (kind == RouteKind.Bezier && points.Count == 4)
+        {
+            // Cheap conservative guard: the straight-line endpoint distance is a lower
+            // bound a bezier curve may bow out from but a reasonable sanity check.
+            var dx = pN.X - p0.X;
+            var dy = pN.Y - p0.Y;
+            var straight = System.Math.Sqrt(dx * dx + dy * dy);
+            if (sourceInset + targetInset >= straight)
+                return points;
+        }
+        else
+        {
+            // Polyline: the inset must not exceed its owning segment length. Using the
+            // endpoint-to-endpoint distance here would wrongly reject a StepRouter
+            // zig-zag whose actual polyline length is much larger than its AABB diagonal.
+            var firstSeg = points[1] - points[0];
+            var lastSeg = points[points.Count - 1] - points[points.Count - 2];
+            var firstSegLength = System.Math.Sqrt(firstSeg.X * firstSeg.X + firstSeg.Y * firstSeg.Y);
+            var lastSegLength = System.Math.Sqrt(lastSeg.X * lastSeg.X + lastSeg.Y * lastSeg.Y);
+            if (sourceInset >= firstSegLength || targetInset >= lastSegLength)
+                return points;
+        }
 
         // Source tangent is curve velocity pointing INTO the curve (away from p0).
         // Moving p0 in that direction shortens the first segment.
@@ -103,19 +130,34 @@ internal static class ConnectionRenderer
     }
 
     /// <summary>
-    /// Builds the renderable split for a connection: stroke + bucketed endpoint groups.
+    /// Convenience overload: routes the connection and builds the renderable in a single
+    /// call. The canvas's per-frame loop prefers the
+    /// <see cref="CreateRenderable(IReadOnlyList{Point}, RouteKind, IConnectionStyle)"/>
+    /// overload with precomputed route points so it can route exactly once per connection
+    /// per frame (routing for culling, then again for rendering would double the cost).
     /// </summary>
     public static ConnectionRenderable CreateRenderable(
         Connection connection, IConnectionRouter router, IConnectionStyle style)
     {
         var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
+        return CreateRenderable(routePoints, router.RouteKind, style);
+    }
+
+    /// <summary>
+    /// Builds the renderable split for a connection using precomputed route points.
+    /// Prefer this overload when the caller already has a route in hand (e.g. the canvas
+    /// connection loop uses the points for viewport culling before deciding to render).
+    /// </summary>
+    public static ConnectionRenderable CreateRenderable(
+        IReadOnlyList<Point> routePoints, RouteKind routeKind, IConnectionStyle style)
+    {
         if (routePoints.Count < 2)
         {
             return new ConnectionRenderable(
                 new StreamGeometry(), null, null, default);
         }
 
-        var tangents = RouteTangents.From(routePoints, router.RouteKind);
+        var tangents = RouteTangents.From(routePoints, routeKind);
 
         var sourceEndpoint = style.SourceEndpoint;
         var targetEndpoint = style.TargetEndpoint;
@@ -125,8 +167,8 @@ internal static class ConnectionRenderer
         var originalP0 = routePoints[0];
         var originalPN = routePoints[routePoints.Count - 1];
 
-        var insetPoints = ApplyInsets(routePoints, tangents, sourceInset, targetInset, router.RouteKind);
-        var stroke = CreateStrokeGeometry(insetPoints, router.RouteKind);
+        var insetPoints = ApplyInsets(routePoints, tangents, sourceInset, targetInset, routeKind);
+        var stroke = CreateStrokeGeometry(insetPoints, routeKind);
 
         GeometryGroup? filledGroup = null;
         GeometryGroup? openGroup = null;
