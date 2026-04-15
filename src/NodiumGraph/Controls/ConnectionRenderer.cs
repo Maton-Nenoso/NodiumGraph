@@ -17,6 +17,19 @@ internal readonly record struct ConnectionRenderable(
     Geometry? OpenEndpoints,
     Rect WorldBounds);
 
+/// <summary>
+/// Cache entry for a connection's world-space rendered geometry. The
+/// <see cref="Renderable"/> is reused across frames to skip re-routing and
+/// re-building geometry; <see cref="Version"/> is a placeholder for Task 14
+/// invalidation — assigned at insertion time and not yet consulted.
+/// </summary>
+internal readonly record struct CachedConnectionGeometry(
+    ConnectionRenderable Renderable,
+    int Version)
+{
+    public Rect WorldBounds => Renderable.WorldBounds;
+}
+
 internal static class ConnectionRenderer
 {
     /// <summary>

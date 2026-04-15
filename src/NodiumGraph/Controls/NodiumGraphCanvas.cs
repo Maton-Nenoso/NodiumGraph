@@ -92,6 +92,14 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private const int PortGeometryCacheMaxEntries = 64;
     private readonly Dictionary<(PortShape shape, double bucketedRadius), Geometry> _portGeometryCache = new();
 
+    // Per-connection world-space geometry cache. Populated inside Render when a
+    // connection first enters the viewport; reused on subsequent frames to skip
+    // router.Route + ConnectionRenderer.CreateRenderable. Task 13 piggy-backs on
+    // this cache for pointer hit-testing so click handlers don't rebuild geometry.
+    // TODO(task-14): wire invalidation on node move, add/remove, router/style swap.
+    // Until then entries are never removed — acceptable for pre-1.0.
+    private readonly Dictionary<Guid, CachedConnectionGeometry> _connectionGeometryCache = new();
+
     // Single-slot cached pens — dirty-tracked by brush/thickness identity.
     private Pen? _cachedSelectedBorderPen;
     private IBrush? _lastSelectedBrush;
@@ -1152,25 +1160,42 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             {
                 foreach (var connection in Graph.Connections)
                 {
-                    // Route() is the single source of truth for geometry; bounds fall out of the
-                    // returned points. Cubic beziers stay inside the convex hull of their control
-                    // points, so the AABB of the route output is a valid conservative bound for
-                    // bezier curves regardless of which direction control points push.
-                    var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
-                    if (routePoints.Count < 2) continue;
+                    // Cache hit: the renderable's world bounds are already known — cull
+                    // against those directly so we skip router.Route() entirely. Cache
+                    // entries are built and inserted on the first in-viewport render and
+                    // reused on every subsequent frame until Task 14 invalidation lands.
+                    if (_connectionGeometryCache.TryGetValue(connection.Id, out var cached))
+                    {
+                        if (!viewportWorld.Intersects(cached.WorldBounds)) continue;
+                    }
+                    else
+                    {
+                        // Route() is the single source of truth for geometry; bounds fall out of the
+                        // returned points. Cubic beziers stay inside the convex hull of their control
+                        // points, so the AABB of the route output is a valid conservative bound for
+                        // bezier curves regardless of which direction control points push.
+                        var routePoints = router.Route(connection.SourcePort, connection.TargetPort);
+                        if (routePoints.Count < 2) continue;
 
-                    var bounds = ComputeRouteBounds(routePoints);
-                    if (!viewportWorld.Intersects(bounds)) continue;
+                        var routeBounds = ComputeRouteBounds(routePoints);
+                        // Off-screen: don't populate the cache with geometry we're about to
+                        // throw away. The connection hasn't been observed yet — no need to pay
+                        // the CreateRenderable cost until it actually enters the viewport.
+                        if (!viewportWorld.Intersects(routeBounds)) continue;
 
-                    // Route once per frame: hand the already-computed points to the
-                    // renderer so it doesn't call router.Route() a second time.
-                    var renderable = ConnectionRenderer.CreateRenderable(routePoints, router.RouteKind, style);
+                        // Route once per frame: hand the already-computed points to the
+                        // renderer so it doesn't call router.Route() a second time.
+                        var renderable = ConnectionRenderer.CreateRenderable(routePoints, router.RouteKind, style);
+                        cached = new CachedConnectionGeometry(renderable, Version: 0);
+                        _connectionGeometryCache[connection.Id] = cached;
+                    }
+
                     // Selection flag and halo pen are plumbed here but there is no way
                     // to mark a connection as selected yet — Task 18 wires the pointer
                     // hit-test path. Until then every connection renders non-selected;
                     // the halo pen is allocated lazily only when selected becomes true
                     // so the common case stays allocation-free.
-                    ConnectionRenderer.Render(context, renderable, style, connectionPen, selected: false, haloPen: null);
+                    ConnectionRenderer.Render(context, cached.Renderable, style, connectionPen, selected: false, haloPen: null);
                 }
             }
         }
@@ -1178,6 +1203,25 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         // Ports, connection preview, cutting line, marquee, minimap
         // are drawn by _overlay (renders on top of node containers)
     }
+
+    /// <summary>
+    /// Test-only: reports whether the connection geometry cache currently holds an
+    /// entry for the given connection id. Behavioral probe for <c>_connectionGeometryCache</c>
+    /// so tests don't need reflection.
+    /// </summary>
+    internal bool ConnectionGeometryCacheContains(Guid connectionId)
+        => _connectionGeometryCache.ContainsKey(connectionId);
+
+    /// <summary>
+    /// Test-only: returns the cached stroke <see cref="Geometry"/> for the given
+    /// connection id, or <c>null</c> when no entry exists. Tests use reference
+    /// identity on the returned geometry to confirm the cache is reused and not
+    /// rebuilt on subsequent renders.
+    /// </summary>
+    internal Geometry? TryGetCachedConnectionStroke(Guid connectionId)
+        => _connectionGeometryCache.TryGetValue(connectionId, out var cached)
+            ? cached.Renderable.Stroke
+            : null;
 
     private static Rect ComputeRouteBounds(IReadOnlyList<Point> points)
     {
