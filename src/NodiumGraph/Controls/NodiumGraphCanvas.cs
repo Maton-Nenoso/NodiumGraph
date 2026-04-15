@@ -67,6 +67,7 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     private bool _isMarqueeSelecting;
     private Point _marqueeStart;
     private Point _marqueeEnd;
+    private bool _marqueeAdditive;
     private static bool _fallbackTemplatesRegistered;
     private IPortProvider? _commitProvider;
     private IPortProvider? _sourceProvider;
@@ -555,6 +556,73 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     /// </summary>
     private IConnectionStyle ResolveConnectionStyleForHitTest(Connection connection) => DefaultConnectionStyle;
 
+    /// <summary>
+    /// Commits a marquee selection over the given screen-space rectangle. Picks nodes by
+    /// screen-rect intersection and connections by world-bbox intersection against the
+    /// cached <see cref="ConnectionRenderable.WorldBounds"/>. When <paramref name="additive"/>
+    /// is true (ctrl-marquee), the new items are added to the existing selection; when
+    /// false, the existing selection is cleared first so only the marquee contents remain.
+    /// Fires <see cref="ISelectionHandler.OnSelectionChanged"/> exactly once at the end with
+    /// the final set.
+    /// </summary>
+    internal void FinishMarquee(Rect screenRect, bool additive)
+    {
+        if (Graph is null) return;
+
+        if (!additive)
+        {
+            // Plain marquee replaces the prior selection. Clear before collecting
+            // so adornments on previously-selected nodes also refresh.
+            var previouslySelectedNodes = Graph.SelectedNodes.ToList();
+            Graph.SelectedItems.Clear();
+            foreach (var n in previouslySelectedNodes)
+                InvalidateNodeAdornments(n);
+        }
+
+        var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
+
+        // World-space equivalent of the screen rect, for cheap bbox tests against
+        // the world-space connection geometry cache.
+        var worldTopLeft = transform.ScreenToWorld(screenRect.TopLeft);
+        var worldBottomRight = transform.ScreenToWorld(screenRect.BottomRight);
+        var worldRect = new Rect(worldTopLeft, worldBottomRight);
+
+        foreach (var node in Graph.Nodes)
+        {
+            var nodeScreenPos = transform.WorldToScreen(new Point(node.X, node.Y));
+            var nodeScreenSize = new Size(
+                transform.WorldToScreen(node.Width),
+                transform.WorldToScreen(node.Height));
+            var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
+
+            if (!screenRect.Intersects(nodeRect))
+                continue;
+
+            if (!Graph.SelectedItems.Contains(node))
+                Graph.SelectedItems.Add(node);
+        }
+
+        foreach (var connection in Graph.Connections)
+        {
+            if (!_connectionGeometryCache.TryGetValue(connection.Id, out var cached))
+                continue;
+
+            // WorldBounds intersection is good enough for marquee UX: a connection
+            // whose bbox overlaps the rect is visually "in the marquee" for user
+            // intent. Tighter per-segment clipping is YAGNI until profiling asks.
+            if (!cached.WorldBounds.Intersects(worldRect))
+                continue;
+
+            if (!Graph.SelectedItems.Contains(connection))
+                Graph.SelectedItems.Add(connection);
+        }
+
+        // Single fire after both batches commit — the loops above intentionally
+        // mutate SelectedItems directly rather than routing through SelectNode so
+        // we only fire OnSelectionChanged once.
+        SelectionHandler?.OnSelectionChanged(Graph.SelectedItems.ToArray());
+    }
+
     internal Node? HitTestNode(Point screenPosition)
     {
         if (Graph == null) return null;
@@ -792,10 +860,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         }
         else
         {
-            if (!isCtrl)
-                ClearSelection();
-
+            // Selection clearing happens at marquee commit (FinishMarquee) when
+            // !additive, consolidating OnSelectionChanged to a single fire. The
+            // prior selection stays visually intact during the drag — correct
+            // "uncommitted preview" feedback.
             _isMarqueeSelecting = true;
+            _marqueeAdditive = isCtrl;
             _marqueeStart = position;
             _marqueeEnd = position;
         }
@@ -922,29 +992,13 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             _isMarqueeSelecting = false;
 
-            if (Graph != null)
-            {
-                var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
-                var marqueeRect = new Rect(
-                    Math.Min(_marqueeStart.X, _marqueeEnd.X),
-                    Math.Min(_marqueeStart.Y, _marqueeEnd.Y),
-                    Math.Abs(_marqueeEnd.X - _marqueeStart.X),
-                    Math.Abs(_marqueeEnd.Y - _marqueeStart.Y));
+            var marqueeRect = new Rect(
+                Math.Min(_marqueeStart.X, _marqueeEnd.X),
+                Math.Min(_marqueeStart.Y, _marqueeEnd.Y),
+                Math.Abs(_marqueeEnd.X - _marqueeStart.X),
+                Math.Abs(_marqueeEnd.Y - _marqueeStart.Y));
 
-                foreach (var node in Graph.Nodes)
-                {
-                    var nodeScreenPos = transform.WorldToScreen(new Point(node.X, node.Y));
-                    var nodeScreenSize = new Size(
-                        transform.WorldToScreen(node.Width),
-                        transform.WorldToScreen(node.Height));
-                    var nodeRect = new Rect(nodeScreenPos, nodeScreenSize);
-
-                    if (marqueeRect.Intersects(nodeRect))
-                        Graph.Select(node);
-                }
-
-                SelectionHandler?.OnSelectionChanged(Graph.SelectedItems.ToArray());
-            }
+            FinishMarquee(marqueeRect, _marqueeAdditive);
 
             InvalidateVisual();
             e.Handled = true;

@@ -517,4 +517,124 @@ public class NodiumGraphCanvasSelectionTests
         // SelectedItems even though its stroke passes through nodeC.
         Assert.DoesNotContain(conn, graph.SelectedItems);
     }
+
+    // ----- Task 19: marquee picks connections by intersection -----
+
+    [AvaloniaFact]
+    public void Marquee_over_connection_selects_it()
+    {
+        var (canvas, graph, _, _, conn) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        var handler = new RecordingSelectionHandler();
+        canvas.SelectionHandler = handler;
+
+        // Straight route runs (110,110) -> (310,210). A tight marquee around
+        // the midpoint (210, 160) intersects the connection's world bbox.
+        var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
+        var topLeft = transform.WorldToScreen(new Point(200, 150));
+        var bottomRight = transform.WorldToScreen(new Point(220, 170));
+        var marqueeScreen = new Rect(topLeft, bottomRight);
+
+        canvas.FinishMarquee(marqueeScreen, additive: false);
+
+        Assert.Contains(conn, graph.SelectedItems);
+        Assert.Single(handler.Calls);
+        Assert.Contains(conn, handler.Calls[^1]);
+    }
+
+    [AvaloniaFact]
+    public void Marquee_not_touching_connection_does_not_select()
+    {
+        var (canvas, graph, _, _, conn) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        var handler = new RecordingSelectionHandler();
+        canvas.SelectionHandler = handler;
+
+        // Far from the connection's world bbox (110..310, 110..210).
+        var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
+        var topLeft = transform.WorldToScreen(new Point(500, 400));
+        var bottomRight = transform.WorldToScreen(new Point(550, 450));
+        var marqueeScreen = new Rect(topLeft, bottomRight);
+
+        canvas.FinishMarquee(marqueeScreen, additive: false);
+
+        Assert.DoesNotContain(conn, graph.SelectedItems);
+    }
+
+    [AvaloniaFact]
+    public void Marquee_with_ctrl_adds_connection_to_existing_selection()
+    {
+        var (canvas, graph, nodeA, _, conn) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        canvas.SelectNode(nodeA, additive: false);
+        Assert.Contains(nodeA, graph.SelectedItems);
+
+        var handler = new RecordingSelectionHandler();
+        canvas.SelectionHandler = handler;
+
+        // Tight marquee over the connection midpoint only.
+        var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
+        var topLeft = transform.WorldToScreen(new Point(200, 150));
+        var bottomRight = transform.WorldToScreen(new Point(220, 170));
+        var marqueeScreen = new Rect(topLeft, bottomRight);
+
+        canvas.FinishMarquee(marqueeScreen, additive: true);
+
+        Assert.Contains(nodeA, graph.SelectedItems);
+        Assert.Contains(conn, graph.SelectedItems);
+        Assert.Single(handler.Calls);
+    }
+
+    [AvaloniaFact]
+    public void Marquee_plain_clears_prior_and_selects_overlapping()
+    {
+        var (canvas, graph, nodeA, _, conn) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        canvas.SelectNode(nodeA, additive: false);
+        Assert.Contains(nodeA, graph.SelectedItems);
+
+        var handler = new RecordingSelectionHandler();
+        canvas.SelectionHandler = handler;
+
+        // Tight marquee over the connection midpoint only — must NOT cover nodeA
+        // (which lives at world (100..120, 100..120)).
+        var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
+        var topLeft = transform.WorldToScreen(new Point(200, 150));
+        var bottomRight = transform.WorldToScreen(new Point(220, 170));
+        var marqueeScreen = new Rect(topLeft, bottomRight);
+
+        canvas.FinishMarquee(marqueeScreen, additive: false);
+
+        Assert.DoesNotContain(nodeA, graph.SelectedItems);
+        Assert.Contains(conn, graph.SelectedItems);
+        Assert.Single(graph.SelectedItems);
+        Assert.Single(handler.Calls);
+    }
+
+    [AvaloniaFact]
+    public void Marquee_mixed_picks_both_types()
+    {
+        var (canvas, graph, nodeA, nodeB, conn) = BuildCanvasWithConnection(
+            new Point(100, 100), new Point(300, 200));
+
+        var handler = new RecordingSelectionHandler();
+        canvas.SelectionHandler = handler;
+
+        // Huge marquee covering both nodes and the connection between them.
+        var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
+        var topLeft = transform.WorldToScreen(new Point(50, 50));
+        var bottomRight = transform.WorldToScreen(new Point(400, 300));
+        var marqueeScreen = new Rect(topLeft, bottomRight);
+
+        canvas.FinishMarquee(marqueeScreen, additive: false);
+
+        Assert.Contains(nodeA, graph.SelectedItems);
+        Assert.Contains(nodeB, graph.SelectedItems);
+        Assert.Contains(conn, graph.SelectedItems);
+        Assert.Single(handler.Calls);
+    }
 }
