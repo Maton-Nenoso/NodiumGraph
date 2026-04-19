@@ -143,4 +143,21 @@ public class StepRouterTests
         Assert.Equal(new Point(350, 25), points[1]);   // end.X, start.Y
         Assert.Equal(new Point(350, 200), points[2]);
     }
+
+    [Fact]
+    public void Route_source_vertical_target_horizontal_bends_at_start_X_end_Y()
+    {
+        var router = new StepRouter();
+        var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
+        var nodeB = new Node { X = 300, Y = 200, Width = 100, Height = 50 };
+        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V (down)
+        var target = new Port(nodeB, new Point(0, 25));     // left edge   → H
+
+        var points = router.Route(source, target);
+
+        Assert.Equal(3, points.Count);
+        Assert.Equal(new Point(50, 50), points[0]);
+        Assert.Equal(new Point(50, 225), points[1]);   // start.X, end.Y
+        Assert.Equal(new Point(300, 225), points[2]);
+    }
 }
