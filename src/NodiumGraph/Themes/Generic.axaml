@@ -116,7 +116,7 @@
                 <Setter Property="MinWidth" Value="150" />
                 <Setter Property="BorderBrush" Value="{DynamicResource NodiumGraphNodeBorderBrush}" />
                 <Setter Property="Background" Value="{DynamicResource NodiumGraphNodeBodyBrush}" />
-                <Setter Property="BoxShadow" Value="0 1 3 0 #1A000000, 0 1 2 -1 #1A000000" />
+                <Setter Property="BaseBoxShadow" Value="0 1 3 0 #1A000000, 0 1 2 -1 #1A000000" />
                 <!-- Header -->
                 <Setter Property="HeaderBackground" Value="{DynamicResource NodiumGraphNodeHeaderBrush}" />
                 <Setter Property="HeaderForeground" Value="{DynamicResource NodiumGraphNodeHeaderForegroundBrush}" />

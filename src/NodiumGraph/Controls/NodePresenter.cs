@@ -1,6 +1,8 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 
 namespace NodiumGraph.Controls;
 
@@ -41,6 +43,9 @@ public class NodePresenter : ContentControl
 
     public static readonly StyledProperty<BoxShadows> BoxShadowProperty =
         Border.BoxShadowProperty.AddOwner<NodePresenter>();
+
+    public static readonly StyledProperty<BoxShadows> BaseBoxShadowProperty =
+        AvaloniaProperty.Register<NodePresenter, BoxShadows>(nameof(BaseBoxShadow));
 
     // --- Collapse toggle ---
 
@@ -98,11 +103,22 @@ public class NodePresenter : ContentControl
         set => SetValue(HeaderPaddingProperty, value);
     }
 
-    /// <summary>Box shadow for card elevation effect.</summary>
+    /// <summary>Effective box shadow for card elevation. Computed from <see cref="BaseBoxShadow"/>
+    /// scaled by the canvas's <see cref="NodiumGraphCanvas.ViewportZoom"/> so the shadow visually
+    /// scales with the node. Set by the library; do not assign directly — set <see cref="BaseBoxShadow"/>
+    /// instead.</summary>
     public BoxShadows BoxShadow
     {
         get => GetValue(BoxShadowProperty);
         set => SetValue(BoxShadowProperty, value);
+    }
+
+    /// <summary>Declared (zoom=1) box shadow for card elevation. The effective
+    /// <see cref="BoxShadow"/> is this value scaled by the canvas's ViewportZoom.</summary>
+    public BoxShadows BaseBoxShadow
+    {
+        get => GetValue(BaseBoxShadowProperty);
+        set => SetValue(BaseBoxShadowProperty, value);
     }
 
     /// <summary>Foreground brush for the collapse toggle arrows.</summary>
@@ -132,4 +148,67 @@ public class NodePresenter : ContentControl
         get => GetValue(CollapseCollapsedGlyphProperty);
         set => SetValue(CollapseCollapsedGlyphProperty, value);
     }
+
+    private NodiumGraphCanvas? _canvas;
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        _canvas = this.FindAncestorOfType<NodiumGraphCanvas>();
+        if (_canvas != null)
+            _canvas.PropertyChanged += OnCanvasPropertyChanged;
+        UpdateEffectiveShadow();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        if (_canvas != null)
+            _canvas.PropertyChanged -= OnCanvasPropertyChanged;
+        _canvas = null;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void OnCanvasPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == NodiumGraphCanvas.ViewportZoomProperty)
+            UpdateEffectiveShadow();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == BaseBoxShadowProperty)
+            UpdateEffectiveShadow();
+    }
+
+    private void UpdateEffectiveShadow()
+    {
+        var zoom = _canvas?.ViewportZoom ?? 1.0;
+        BoxShadow = ScaleBoxShadows(BaseBoxShadow, zoom);
+    }
+
+    internal static BoxShadows ScaleBoxShadows(BoxShadows source, double scale)
+    {
+        var count = source.Count;
+        if (count == 0 || scale == 1.0) return source;
+
+        if (count == 1)
+            return new BoxShadows(ScaleOne(source[0], scale));
+
+        var head = ScaleOne(source[0], scale);
+        var tail = new BoxShadow[count - 1];
+        for (var i = 1; i < count; i++)
+            tail[i - 1] = ScaleOne(source[i], scale);
+        return new BoxShadows(head, tail);
+    }
+
+    private static BoxShadow ScaleOne(BoxShadow s, double scale) => new()
+    {
+        OffsetX = s.OffsetX * scale,
+        OffsetY = s.OffsetY * scale,
+        Blur = s.Blur * scale,
+        Spread = s.Spread * scale,
+        Color = s.Color,
+        IsInset = s.IsInset,
+    };
 }

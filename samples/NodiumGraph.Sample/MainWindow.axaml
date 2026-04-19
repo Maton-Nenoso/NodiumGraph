@@ -15,7 +15,7 @@
                               HeaderFontFamily="Cascadia Code"
                               HeaderPadding="12,8"
                               CornerRadius="12"
-                              BoxShadow="5 15 6 -1 #80000000">
+                              BaseBoxShadow="5 15 6 -1 #80000000">
                 <StackPanel Spacing="4">
                     <TextBlock Text="Reads data from external source"
                                Foreground="#64748B"

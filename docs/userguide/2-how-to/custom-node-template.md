@@ -60,7 +60,7 @@ All of these are standard Avalonia `StyledProperty`s — bindable, stylable, dyn
 | `HeaderFontWeight` | `FontWeight` | `SemiBold` |
 | `HeaderFontFamily` | `FontFamily` | system default |
 | `HeaderPadding` | `Thickness` | `10,6` |
-| `BoxShadow` | `BoxShadows` | soft 1px card shadow |
+| `BaseBoxShadow` | `BoxShadows` | soft 1px card shadow — scales with `ViewportZoom` |
 | `CollapseToggleForeground` | `IBrush?` | `#94A3B8` |
 | `CollapseToggleFontSize` | `double` | `8` |
 | `CollapseExpandedGlyph` | `string` | `▲` |
