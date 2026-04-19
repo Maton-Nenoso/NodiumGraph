@@ -52,4 +52,29 @@ public class NodiumGraphCanvasPanZoomTests
         var canvas = new NodiumGraphCanvas();
         Assert.False(canvas.IsPanning);
     }
+
+    [AvaloniaFact]
+    public void Wheel_zoom_changes_zoom_when_not_panning()
+    {
+        var canvas = new NodiumGraphCanvas();
+        var before = canvas.ViewportZoom;
+
+        canvas.HandleWheelZoom(new Point(100, 100), 1.0);
+
+        Assert.NotEqual(before, canvas.ViewportZoom);
+    }
+
+    [AvaloniaFact]
+    public void Wheel_zoom_is_ignored_while_panning()
+    {
+        var canvas = new NodiumGraphCanvas { IsPanning = true };
+        var zoomBefore = canvas.ViewportZoom;
+        var offsetBefore = canvas.ViewportOffset;
+
+        canvas.HandleWheelZoom(new Point(100, 100), 1.0);
+        canvas.HandleWheelZoom(new Point(100, 100), -1.0);
+
+        Assert.Equal(zoomBefore, canvas.ViewportZoom);
+        Assert.Equal(offsetBefore, canvas.ViewportOffset);
+    }
 }

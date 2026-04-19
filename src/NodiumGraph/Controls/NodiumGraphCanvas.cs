@@ -449,7 +449,11 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     internal NodiumNodeContainer? GetInternalNodeContainer(Node node)
         => _nodeContainers.TryGetValue(node, out var c) ? c : null;
 
-    internal bool IsPanning => _isPanning;
+    internal bool IsPanning
+    {
+        get => _isPanning;
+        set => _isPanning = value;
+    }
 
     internal bool IsDragging => _isDragging;
 
@@ -1230,21 +1234,26 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
         base.OnPointerWheelChanged(e);
+        HandleWheelZoom(e.GetPosition(this), e.Delta.Y);
+        e.Handled = true;
+    }
 
-        var cursorScreen = e.GetPosition(this);
+    internal void HandleWheelZoom(Point cursorScreen, double deltaY)
+    {
+        // Middle-mouse pan consumes the wheel so accidental scroll-during-pan
+        // does not trigger zoom.
+        if (_isPanning) return;
+
         var transform = new ViewportTransform(ViewportZoom, ViewportOffset);
         var cursorWorld = transform.ScreenToWorld(cursorScreen);
 
-        var zoomFactor = e.Delta.Y > 0 ? 1.1 : 1.0 / 1.1;
+        var zoomFactor = deltaY > 0 ? 1.1 : 1.0 / 1.1;
         var newZoom = Math.Clamp(ViewportZoom * zoomFactor, MinZoom, MaxZoom);
 
-        // Adjust offset so cursor world point stays fixed
         ViewportZoom = newZoom;
         ViewportOffset = new Point(
             cursorScreen.X - cursorWorld.X * newZoom,
             cursorScreen.Y - cursorWorld.Y * newZoom);
-
-        e.Handled = true;
     }
 
     private void OnDrop(DragEventArgs e)
