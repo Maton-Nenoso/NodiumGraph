@@ -160,4 +160,41 @@ public class StepRouterTests
         Assert.Equal(new Point(50, 225), points[1]);   // start.X, end.Y
         Assert.Equal(new Point(300, 225), points[2]);
     }
+
+    [Fact]
+    public void Route_mixed_emission_on_aligned_row_collapses_to_line()
+    {
+        var router = new StepRouter();
+        var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
+        // Place nodeB so that target.AbsolutePosition.Y == source.AbsolutePosition.Y (aligned row).
+        var nodeB = new Node { X = 300, Y = 25, Width = 100, Height = 50 };
+        var source = new Port(nodeA, new Point(100, 25));   // right edge → H; absolute = (100, 25)
+        var target = new Port(nodeB, new Point(50, 0));     // top edge   → V; absolute = (350, 25)
+
+        var points = router.Route(source, target);
+
+        // H+V L-bend: [start, (end.X, start.Y), end] = [(100,25), (350,25), (350,25)]
+        // Dedup collapses the consecutive duplicate → 2 points.
+        Assert.Equal(2, points.Count);
+        Assert.Equal(new Point(100, 25), points[0]);
+        Assert.Equal(new Point(350, 25), points[1]);
+    }
+
+    [Fact]
+    public void Route_mixed_emission_on_aligned_column_collapses_to_line()
+    {
+        var router = new StepRouter();
+        var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
+        var nodeB = new Node { X = 50, Y = 300, Width = 100, Height = 50 };
+        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V; absolute = (50, 50)
+        var target = new Port(nodeB, new Point(0, 25));     // left edge   → H; absolute = (50, 325)
+
+        var points = router.Route(source, target);
+
+        // V+H L-bend: [start, (start.X, end.Y), end] = [(50,50), (50,325), (50,325)]
+        // Dedup collapses the consecutive duplicate → 2 points.
+        Assert.Equal(2, points.Count);
+        Assert.Equal(new Point(50, 50), points[0]);
+        Assert.Equal(new Point(50, 325), points[1]);
+    }
 }
