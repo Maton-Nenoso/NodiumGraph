@@ -197,4 +197,43 @@ public class StepRouterTests
         Assert.Equal(new Point(50, 50), points[0]);
         Assert.Equal(new Point(50, 325), points[1]);
     }
+
+    [Fact]
+    public void Route_both_horizontal_target_behind_source_still_uses_midX()
+    {
+        // Both ports emit → (right edge). Target sits LEFT of source (behind source's emission).
+        // midX H-V-H is geometrically valid but the first leg goes LEFT, contradicting source emission.
+        // This is the documented "partner behind" scope limit — no detour segments.
+        var router = new StepRouter();
+        var nodeA = new Node { X = 400, Y = 0, Width = 100, Height = 50 };
+        var nodeB = new Node { X = 0, Y = 200, Width = 100, Height = 50 };
+        var source = new Port(nodeA, new Point(100, 25));   // right edge → H
+        var target = new Port(nodeB, new Point(100, 25));   // right edge → H
+
+        var points = router.Route(source, target);
+
+        Assert.Equal(4, points.Count);
+        Assert.Equal(new Point(500, 25), points[0]);
+        Assert.Equal(new Point(300, 25), points[1]);    // midX = (500 + 100) / 2 = 300
+        Assert.Equal(new Point(300, 225), points[2]);
+        Assert.Equal(new Point(100, 225), points[3]);
+    }
+
+    [Fact]
+    public void Route_both_vertical_target_behind_source_still_uses_midY()
+    {
+        var router = new StepRouter();
+        var nodeA = new Node { X = 0, Y = 400, Width = 100, Height = 50 };
+        var nodeB = new Node { X = 200, Y = 0, Width = 100, Height = 50 };
+        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V (down)
+        var target = new Port(nodeB, new Point(50, 50));    // bottom edge → V (down)
+
+        var points = router.Route(source, target);
+
+        Assert.Equal(4, points.Count);
+        Assert.Equal(new Point(50, 450), points[0]);
+        Assert.Equal(new Point(50, 250), points[1]);    // midY = (450 + 50) / 2 = 250
+        Assert.Equal(new Point(250, 250), points[2]);
+        Assert.Equal(new Point(250, 50), points[3]);
+    }
 }
