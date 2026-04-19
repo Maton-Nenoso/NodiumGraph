@@ -92,4 +92,38 @@ public class StepRouterTests
         Assert.Equal(new Point(100, 25), points[0]);
         Assert.Equal(new Point(300, 25), points[1]);
     }
+
+    [Fact]
+    public void Route_both_ports_vertical_returns_midY_VHV()
+    {
+        var router = new StepRouter();
+        var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
+        var nodeB = new Node { X = 200, Y = 300, Width = 100, Height = 50 };
+        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V (down)
+        var target = new Port(nodeB, new Point(50, 0));     // top edge    → V (up)
+
+        var points = router.Route(source, target);
+
+        Assert.Equal(4, points.Count);
+        Assert.Equal(new Point(50, 50), points[0]);
+        Assert.Equal(new Point(50, 175), points[1]);    // start.X, midY
+        Assert.Equal(new Point(250, 175), points[2]);   // end.X, midY
+        Assert.Equal(new Point(250, 300), points[3]);
+    }
+
+    [Fact]
+    public void Route_both_ports_vertical_aligned_column_returns_straight_line()
+    {
+        var router = new StepRouter();
+        var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
+        var nodeB = new Node { X = 0, Y = 300, Width = 100, Height = 50 };
+        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V
+        var target = new Port(nodeB, new Point(50, 0));     // top edge    → V
+
+        var points = router.Route(source, target);
+
+        Assert.Equal(2, points.Count);
+        Assert.Equal(new Point(50, 50), points[0]);
+        Assert.Equal(new Point(50, 300), points[1]);
+    }
 }
