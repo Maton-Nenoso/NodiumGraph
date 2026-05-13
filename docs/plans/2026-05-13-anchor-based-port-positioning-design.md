@@ -72,12 +72,14 @@ Stateless strategy. Gains three methods; the existing `GetNearestBoundaryPoint` 
 ```csharp
 public interface INodeShape
 {
-    Point  GetNearestBoundaryPoint(Point centerRelative, double width, double height);    // existing
-    Point  GetEdgePoint(PortEdge edge, double fraction, double width, double height);     // new
-    Vector GetEdgeOutwardNormal(PortEdge edge, double fraction, double width, double height); // new
-    PortAnchor InferAnchor(Point boundaryLocal, double width, double height);             // new
+    Point  GetNearestBoundaryPoint(Point centerRelative, double width, double height);  // existing
+    Point  GetEdgePoint(PortAnchor anchor, double width, double height);                // new
+    Vector GetEdgeOutwardNormal(PortAnchor anchor, double width, double height);        // new
+    PortAnchor InferAnchor(Point boundaryLocal, double width, double height);           // new
 }
 ```
+
+The three new methods accept `PortAnchor` rather than raw `(edge, fraction)` pairs. `PortAnchor`'s constructor validates both `Edge` and `Fraction`; threading the validated value type through the shape API closes the bypass where `shape.GetEdgePoint((PortEdge)999, double.NaN, ...)` would otherwise reach the `switch` dispatch with garbage. Width/height stay parameterized because the shape is dimensionless (Section A rationale).
 
 Coordinate conventions:
 
@@ -99,9 +101,16 @@ Coordinate conventions:
 
   No wrap inside any single edge's range. Shared endpoints between adjacent edges land at the four 45° / 135° / etc. corner-midpoints and are governed by the canonical rule below.
 
-- `RoundedRectangleShape` — each `PortEdge` covers half of each adjacent corner arc plus the flat segment between them. The corner arc between `Top` and `Right` is split at its midpoint (45° from the corner center); the first half belongs to `Top`, the second to `Right`. Edge fraction is parameterized by arc length over the combined region; each half-arc contributes `π·r / 4` (a quarter-circle is `π·r / 2`; half of that), the flat segment contributes `max(0, edgeLength − 2·r)`, so total per-edge length is `max(0, edgeLength − 2·r) + π·r / 2`. Continuous and monotonic from corner-midpoint to corner-midpoint.
+- `RoundedRectangleShape` — each `PortEdge` covers half of each adjacent corner arc plus the flat segment between them. The corner arc between `Top` and `Right` is split at its midpoint (45° from the corner center); the first half belongs to `Top`, the second to `Right`. Edge fraction is parameterized by arc length over the combined region. With effective radius `rEff = min(r, w/2, h/2)`:
 
-  **Radius clamping.** The implementation uses an effective radius `rEff = min(r, w/2, h/2)`. When `r` equals or exceeds half the smaller dimension (capsule shape, or very small nodes), the flat segment is `0` and the entire edge is the two half-arcs — `Fraction = 0.5` lands at the boundary between them. Parameterization stays well-defined and the full boundary remains covered.
+  | Edge | `edgeLength` | Flat-segment length |
+  |---|---|---|
+  | `Top`, `Bottom` | `w` | `max(0, w − 2·rEff)` |
+  | `Left`, `Right` | `h` | `max(0, h − 2·rEff)` |
+
+  Each half-arc contributes `π·rEff / 4` (a quarter-circle is `π·rEff / 2`; half of that), so per-edge total length is `flatSegment + π·rEff / 2`. Continuous and monotonic from corner-midpoint to corner-midpoint.
+
+  **Capsule / degenerate cases (per-edge, not global).** When `rEff` equals or exceeds half a particular dimension, the flat segment **on edges parallel to that dimension's perpendicular** collapses to 0 — for a horizontal capsule (`w > h`, `r = h/2`), `Left` and `Right` have zero flat (entire edge is two half-arcs joined at `Fraction = 0.5`) while `Top` and `Bottom` still have a `w − h` flat region. For a square node with `r ≥ w/2 = h/2`, all four edges have zero flat. Parameterization stays well-defined in every case and the full boundary remains covered.
 
 **Canonical anchor at shared endpoints.** Adjacent edges share their boundary endpoint: `Top(1)` and `Right(0)` address the same top-right point; `Left(1)` and `Top(0)` address the top-left point; ellipse quadrants share the 45° / 135° / etc. points; rounded-rectangle edges meet at the corner-arc midpoints. To make `InferAnchor` deterministic, walk the boundary clockwise (`Top → Right → Bottom → Left → Top`) — **each edge owns its `Fraction = 0` endpoint and disclaims its `Fraction = 1` endpoint to the next edge**. Canonical anchors at shared corners:
 
@@ -129,11 +138,11 @@ public class Node : INotifyPropertyChanged
     public double Width  { get; internal set; }
     public double Height { get; internal set; }
 
-    public Point GetEdgePoint(PortEdge edge, double fraction) =>
-        Shape.GetEdgePoint(edge, fraction, Width, Height);
+    public Point GetEdgePoint(PortAnchor anchor) =>
+        Shape.GetEdgePoint(anchor, Width, Height);
 
-    public Vector GetEdgeOutwardNormal(PortEdge edge, double fraction) =>
-        Shape.GetEdgeOutwardNormal(edge, fraction, Width, Height);
+    public Vector GetEdgeOutwardNormal(PortAnchor anchor) =>
+        Shape.GetEdgeOutwardNormal(anchor, Width, Height);
 
     public PortAnchor InferAnchor(Point boundaryLocal) =>
         Shape.InferAnchor(boundaryLocal, Width, Height);
@@ -190,7 +199,7 @@ public class Port : INotifyPropertyChanged
         {
             if (_positionDirty)
             {
-                _cachedPosition = Owner.GetEdgePoint(Anchor.Edge, Anchor.Fraction);
+                _cachedPosition = Owner.GetEdgePoint(Anchor);
                 _positionDirty = false;
             }
             return _cachedPosition;
@@ -200,7 +209,7 @@ public class Port : INotifyPropertyChanged
     public Point AbsolutePosition { /* existing pattern: Owner.X + Position.X, Owner.Y + Position.Y, cached */ }
 
     public Vector EmissionDirection
-        => Owner.GetEdgeOutwardNormal(Anchor.Edge, Anchor.Fraction);
+        => Owner.GetEdgeOutwardNormal(Anchor);
 }
 ```
 
@@ -333,8 +342,8 @@ else if (e.PropertyName is nameof(Node.Width) or nameof(Node.Height) or nameof(N
 5. `NodeAdornmentLayer` re-measures + redraws ports at their new `Position` values on the next render pass; connection geometry is recomputed lazily from fresh `Port.AbsolutePosition` values on the next paint.
 
 Notes:
-- The `Width`/`Height` cases catch *both* user-resize (consumer mutating `Node.Width`) and the library's own measurement output (`internal set` from auto-sizing). Both paths flow through the same INPC notification.
-- `Shape` swap is a rare consumer action; covered by the same case for free.
+- `Node.Width` / `Node.Height` are `internal set` — there is no public consumer-resize API. The cases catch the library's own measurement/arrange output (e.g. `NodeContainer` writing back measured dimensions) and any internal/test write. Both flow through the same INPC notification.
+- `Shape` swap is a public consumer action (settable property); covered by the same case.
 - No new event types or interfaces; the chain rides existing `INotifyPropertyChanged` plumbing and the existing `InvalidateConnectionGeometryForNode` / `InvalidateNodeAdornments` helpers.
 - `ConnectionHitTester` consumes `_connectionGeometryCache` directly — there is no separate hit-tester cache, so the single `InvalidateConnectionGeometryForNode` call covers hit-testing too.
 
@@ -344,7 +353,7 @@ Notes:
 
 ```csharp
 public Vector EmissionDirection
-    => Owner.GetEdgeOutwardNormal(Anchor.Edge, Anchor.Fraction);
+    => Owner.GetEdgeOutwardNormal(Anchor);
 ```
 
 Router call sites change from `PortEmissionDirection.Resolve(port)` to `port.EmissionDirection`. Affected files identified during the plan phase via grep on `PortEmissionDirection.Resolve`.
@@ -406,7 +415,7 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 | Zero-dimension contract | **New per shape.** `GetEdgePoint` returns `(0, 0)`; `GetEdgeOutwardNormal` returns the cardinal unit vector for the edge; `InferAnchor` throws `InvalidOperationException`. Cases for `width = 0`, `height = 0`, and both zero. |
 | `RectangleShapeTests` | **Extend.** Cover `GetEdgePoint`, `GetEdgeOutwardNormal`, `InferAnchor`. |
 | `EllipseShapeTests` | **Extend.** Same three. Lock non-cardinal emission at non-midpoint fractions. Endpoint table from Section A: each edge's `Fraction = 0`/`1` lands at the documented angle (top-left corner-midpoint at `θ = -3π/4` for `Top(0)`, etc.); shared endpoints `Top(1) == Right(0)` produce the same boundary point. |
-| `RoundedRectangleShapeTests` | **Extend.** Same three. Corner-arc round-trip: a `boundary point` on a rounded corner round-trips exactly via `InferAnchor → GetEdgePoint`; outward normal on a corner-arc anchor is the radial vector from the corner center. **Capsule case** (`r >= min(w, h) / 2`): flat segment is 0; full edge is the two half-arcs; `Fraction = 0.5` lands at the arc-boundary midpoint. Parameterization stays well-defined. |
+| `RoundedRectangleShapeTests` | **Extend.** Same three. Corner-arc round-trip: a boundary point on a rounded corner round-trips exactly via `InferAnchor → GetEdgePoint`; outward normal on a corner-arc anchor is the radial vector from the corner center. **Per-edge capsule cases**: horizontal capsule (`w > h`, `r = h/2`) — `Left`/`Right` flat = 0 (two half-arcs joined at `Fraction = 0.5`); `Top`/`Bottom` still have `w − h` flat. Square + large radius (`r ≥ w/2`) — all four edges have zero flat. Boundary fully covered in every case. |
 | Round-trip property tests | **New per shape.** Three cases: (a) for canonical anchors (Fraction ∈ (0, 1) or canonical corner per Section A), `GetEdgePoint → InferAnchor` returns the same anchor within float epsilon; (b) for non-canonical shared-endpoint anchors (e.g. `Top(1)` at a corner that canonicalizes to the next edge's `Fraction = 0`), `GetEdgePoint → InferAnchor` returns the canonical equivalent — *same boundary point*, possibly different `(Edge, Fraction)`; (c) for any boundary point, `InferAnchor → GetEdgePoint` returns the same point unconditionally. |
 | `PortTests` | **Rewrite.** Anchor-based ctor, `Position` updates on Width/Height/Shape change with INPC, `EmissionDirection` matches `Owner.GetEdgeOutwardNormal` and fires INPC on Width/Height/Shape change (not on X/Y change). |
 | `FixedPortProviderTests` | **Trim.** Delete `Implements_ILayoutAwarePortProvider`, all `UpdateLayout`/snap tests. |
