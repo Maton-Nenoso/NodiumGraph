@@ -219,4 +219,17 @@ public class BezierRouterTests
         Assert.True(cp1.X < start.X,
             $"cp1.X ({cp1.X}) should be < start.X ({start.X}) for a port sitting left of its owner");
     }
+
+    [Fact]
+    public void Emission_for_ellipse_node_is_aspect_aware_non_cardinal()
+    {
+        var node = new Node { Width = 200, Height = 100, Shape = new EllipseShape() };
+        var port = new Port(node, "out", PortFlow.Output, PortAnchor.Right(0.0));
+        // For a 200×100 ellipse at PortAnchor.Right(0.0) — angle -π/4.
+        // Outward normal direction = unit((b·cosθ, a·sinθ)) = unit((50·cos(-π/4), 100·sin(-π/4)))
+        //                          = unit((35.36, -70.71)) ≈ (0.447, -0.894).
+        // (NOT (0.707, -0.707) — which would be the circle's normal.)
+        Assert.Equal(0.447, port.EmissionDirection.X, 3);
+        Assert.Equal(-0.894, port.EmissionDirection.Y, 3);
+    }
 }

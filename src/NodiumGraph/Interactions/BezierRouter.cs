@@ -20,8 +20,8 @@ public class BezierRouter : IConnectionRouter
         var start = source.AbsolutePosition;
         var end = target.AbsolutePosition;
 
-        var sourceDir = PortEmissionDirection.Resolve(source);
-        var targetDir = PortEmissionDirection.Resolve(target);
+        var sourceDir = source.EmissionDirection;
+        var targetDir = target.EmissionDirection;
 
         var dx = end.X - start.X;
         var dy = end.Y - start.Y;

@@ -21,8 +21,8 @@ public class StepRouter : IConnectionRouter
         var start = source.AbsolutePosition;
         var end = target.AbsolutePosition;
 
-        var sourceDir = PortEmissionDirection.Resolve(source);
-        var targetDir = PortEmissionDirection.Resolve(target);
+        var sourceDir = source.EmissionDirection;
+        var targetDir = target.EmissionDirection;
 
         var sourceHorizontal = Math.Abs(sourceDir.X) > 0.5;
         var targetHorizontal = Math.Abs(targetDir.X) > 0.5;
