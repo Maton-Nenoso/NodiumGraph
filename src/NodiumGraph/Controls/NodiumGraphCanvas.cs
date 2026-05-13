@@ -1659,8 +1659,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 node.PropertyChanged -= OnNodePropertyChanged;
                 if (node.PortProvider != null)
                     DetachProvider(node, node.PortProvider);
-                if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
-                    layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
             }
         }
 
@@ -1714,8 +1712,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 node.PropertyChanged -= OnNodePropertyChanged;
                 if (node.PortProvider != null)
                     DetachProvider(node, node.PortProvider);
-                if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
-                    layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
                 LogicalChildren.Remove(container);
                 VisualChildren.Remove(container);
             }
@@ -1780,9 +1776,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         if (node.PortProvider != null)
             AttachProvider(node, node.PortProvider);
 
-        if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
-            layoutAware.LayoutInvalidated += OnLayoutAwareProviderInvalidated;
-
         InvalidateMeasure();
     }
 
@@ -1808,21 +1801,11 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             if (node.PortProvider != null)
                 DetachProvider(node, node.PortProvider);
 
-            if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
-                layoutAware.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
-
             LogicalChildren.Remove(container);
             VisualChildren.Remove(container);
             _nodeContainers.Remove(node);
             InvalidateMeasure();
         }
-    }
-
-    private void OnLayoutAwareProviderInvalidated()
-    {
-        // No node context on the parameterless event — invalidate all adornment
-        // layers so port shapes and labels repaint at the new positions.
-        InvalidateAllNodeAdornments();
     }
 
     private void AttachProvider(Node node, IPortProvider provider)
@@ -1917,6 +1900,15 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
                 InvalidateConnectionGeometryForNode(movedNode);
             InvalidateArrange();
         }
+        else if (e.PropertyName is nameof(Node.Width) or nameof(Node.Height) or nameof(Node.Shape))
+        {
+            if (sender is Node resizedNode)
+            {
+                InvalidateConnectionGeometryForNode(resizedNode);
+                InvalidateNodeAdornments(resizedNode);
+            }
+            InvalidateVisual();
+        }
         else if (e.PropertyName is nameof(Node.IsSelected))
         {
             if (sender is Node node)
@@ -1930,18 +1922,10 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             {
                 // Detach old provider (tracked before PropertyChanged fired)
                 if (_nodeProviders.TryGetValue(node, out var oldProvider))
-                {
                     DetachProvider(node, oldProvider);
-                    if (oldProvider is ILayoutAwarePortProvider oldLayout)
-                        oldLayout.LayoutInvalidated -= OnLayoutAwareProviderInvalidated;
-                }
 
                 if (node.PortProvider != null)
-                {
                     AttachProvider(node, node.PortProvider);
-                    if (node.PortProvider is ILayoutAwarePortProvider newLayout)
-                        newLayout.LayoutInvalidated += OnLayoutAwareProviderInvalidated;
-                }
             }
             InvalidateVisual();
         }
@@ -1986,9 +1970,6 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
             var contentHeight = desired.Height - pad * 2;
             if (contentWidth > 0) node.Width = contentWidth;
             if (contentHeight > 0) node.Height = contentHeight;
-
-            if (node.PortProvider is ILayoutAwarePortProvider layoutAware)
-                layoutAware.UpdateLayout(node.Width, node.Height, node.Shape);
 
             var screenPos = transform.WorldToScreen(new Point(node.X, node.Y));
 
