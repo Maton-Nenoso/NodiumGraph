@@ -153,13 +153,17 @@ public class BezierRouterTests
     }
 
     [Fact]
-    public void Route_classifies_corner_port_as_horizontal()
+    public void Route_top_left_corner_port_emits_upward()
     {
+        // Under the anchor model, PortAt(node, 0, 0) infers the canonical top-left corner anchor
+        // Top(0) — emission is (0, -1) upward, not horizontal. The old PortEmissionDirection
+        // tie-break-horizontal-first heuristic is gone; with anchors there are no ties — the
+        // edge is named.
         var router = new BezierRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 100 };
         var nodeB = new Node { X = 300, Y = 300, Width = 100, Height = 100 };
-        var source = TestNodes.PortAt(nodeA, 0, 0);  // top-left corner
-        var target = TestNodes.PortAt(nodeB, 0, 0);  // top-left corner
+        var source = TestNodes.PortAt(nodeA, 0, 0);  // anchor Top(0)
+        var target = TestNodes.PortAt(nodeB, 0, 0);  // anchor Top(0)
 
         var points = router.Route(source, target);
         var start = points[0];
@@ -167,21 +171,24 @@ public class BezierRouterTests
         var cp2 = points[2];
         var end = points[3];
 
-        // Tie-break prefers horizontal → left emission → cp1.X < start.X, cp1.Y == start.Y.
-        Assert.Equal(start.Y, cp1.Y);
-        Assert.True(cp1.X < start.X);
+        // Top-edge emission → vertical-up push: cp1 same X as start, cp1.Y above start.Y.
+        Assert.Equal(start.X, cp1.X);
+        Assert.True(cp1.Y < start.Y);
 
-        // Target is symmetric: same corner, same classification, same leftward push.
-        Assert.Equal(end.Y, cp2.Y);
-        Assert.True(cp2.X < end.X);
+        // Target is symmetric: same Top(0) anchor → same upward push at the end.
+        Assert.Equal(end.X, cp2.X);
+        Assert.True(cp2.Y < end.Y);
     }
 
     [Fact]
-    public void Route_with_zero_size_owner_falls_back_to_horizontal()
+    public void Route_with_zero_size_owner_produces_finite_points()
     {
+        // Even with degenerate zero-size owners, the router must produce finite points
+        // (no NaN/Infinity). TestNodes.PortAt auto-grows owners to 1×1 to make InferAnchor
+        // well-defined; the resulting emission is the cardinal vector for the inferred edge.
         var router = new BezierRouter();
-        var nodeA = new Node { X = 0, Y = 0 };    // Width = Height = 0
-        var nodeB = new Node { X = 200, Y = 0 };  // Width = Height = 0
+        var nodeA = new Node { X = 0, Y = 0 };
+        var nodeB = new Node { X = 200, Y = 0 };
         var source = TestNodes.PortAt(nodeA, 0, 0);
         var target = TestNodes.PortAt(nodeB, 0, 0);
 
@@ -194,10 +201,6 @@ public class BezierRouterTests
             Assert.False(double.IsInfinity(p.X));
             Assert.False(double.IsInfinity(p.Y));
         });
-
-        // With all distances tied at 0, tie-break selects horizontal left emission.
-        Assert.Equal(points[0].Y, points[1].Y);
-        Assert.Equal(points[3].Y, points[2].Y);
     }
 
     [Fact]
