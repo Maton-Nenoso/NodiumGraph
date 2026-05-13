@@ -89,7 +89,16 @@ Coordinate conventions:
 
 **Boundary parameterization — full coverage per shape.** Each shape's four `PortEdge` values partition its boundary; the union of the four edges' addressable points is the entire boundary at the current `(w, h)`. Per-shape rules:
 
-- `RectangleShape` — each edge runs along its corresponding side. Trivial partition.
+- `RectangleShape` — each edge runs along its corresponding side, parameterized clockwise. `Fraction = 0` is the start of the clockwise traversal, `Fraction = 1` is its end. Points are in node-local coordinates (top-left origin):
+
+  | Edge | Point at `Fraction = 0` | Point at `Fraction = 1` | Formula |
+  |---|---|---|---|
+  | `Top`    | `(0, 0)` (top-left)     | `(w, 0)` (top-right)     | `(Fraction · w, 0)` |
+  | `Right`  | `(w, 0)` (top-right)    | `(w, h)` (bottom-right)  | `(w, Fraction · h)` |
+  | `Bottom` | `(w, h)` (bottom-right) | `(0, h)` (bottom-left)   | `((1 − Fraction) · w, h)` |
+  | `Left`   | `(0, h)` (bottom-left)  | `(0, 0)` (top-left)      | `(0, (1 − Fraction) · h)` |
+
+  Note `Bottom` and `Left` use `(1 − Fraction)` so the clockwise direction is consistent with the canonical rule — each edge owns its `Fraction = 0` corner, disclaims its `Fraction = 1` corner to the next edge.
 - `EllipseShape` — each `PortEdge` maps to a 90° quadrant arc in Avalonia screen coordinates (`+x` right, `+y` down). Parameterized clockwise; `Fraction = 0` is the start of the clockwise traversal, `Fraction = 1` is its end. With center at `(a, b)` and `a = w/2`, `b = h/2`, the point at parameter `θ` is `(a + a·cosθ, b + b·sinθ)`. Per-edge angle range:
 
   | Edge | θ at `Fraction = 0` | θ at `Fraction = 1` | Formula |
