@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using NodiumGraph.Model;
 using Xunit;
@@ -127,5 +128,113 @@ public class RectangleShapeTests
         var pt = _shape.GetNearestBoundaryPoint(new Point(50, 10), 100, 80);
         Assert.Equal(50, pt.X, Tolerance);
         Assert.Equal(10, pt.Y, Tolerance);
+    }
+}
+
+public class RectangleShapeAnchorTests
+{
+    private static readonly RectangleShape Shape = new();
+    private const double W = 100, H = 60;
+
+    [Theory]
+    [InlineData(PortEdge.Top,    0.0,   0.0,   0.0)]
+    [InlineData(PortEdge.Top,    1.0, 100.0,   0.0)]
+    [InlineData(PortEdge.Top,    0.5,  50.0,   0.0)]
+    [InlineData(PortEdge.Right,  0.0, 100.0,   0.0)]
+    [InlineData(PortEdge.Right,  1.0, 100.0,  60.0)]
+    [InlineData(PortEdge.Right,  0.5, 100.0,  30.0)]
+    [InlineData(PortEdge.Bottom, 0.0, 100.0,  60.0)]
+    [InlineData(PortEdge.Bottom, 1.0,   0.0,  60.0)]
+    [InlineData(PortEdge.Bottom, 0.5,  50.0,  60.0)]
+    [InlineData(PortEdge.Left,   0.0,   0.0,  60.0)]
+    [InlineData(PortEdge.Left,   1.0,   0.0,   0.0)]
+    [InlineData(PortEdge.Left,   0.5,   0.0,  30.0)]
+    public void GetEdgePoint_matches_per_edge_table(PortEdge edge, double f, double expectedX, double expectedY)
+    {
+        var p = Shape.GetEdgePoint(new PortAnchor(edge, f), W, H);
+        Assert.Equal(expectedX, p.X, 9);
+        Assert.Equal(expectedY, p.Y, 9);
+    }
+
+    [Theory]
+    [InlineData(PortEdge.Left,   -1.0,  0.0)]
+    [InlineData(PortEdge.Top,     0.0, -1.0)]
+    [InlineData(PortEdge.Right,   1.0,  0.0)]
+    [InlineData(PortEdge.Bottom,  0.0,  1.0)]
+    public void GetEdgeOutwardNormal_is_cardinal_unit_vector(PortEdge edge, double nx, double ny)
+    {
+        var n = Shape.GetEdgeOutwardNormal(new PortAnchor(edge, 0.5), W, H);
+        Assert.Equal(nx, n.X, 9);
+        Assert.Equal(ny, n.Y, 9);
+    }
+
+    [Theory]
+    [InlineData(  0.0,   0.0, PortEdge.Top,    0.0)]
+    [InlineData(100.0,   0.0, PortEdge.Right,  0.0)]
+    [InlineData(100.0,  60.0, PortEdge.Bottom, 0.0)]
+    [InlineData(  0.0,  60.0, PortEdge.Left,   0.0)]
+    public void InferAnchor_canonicalizes_corners(double x, double y, PortEdge expectedEdge, double expectedF)
+    {
+        var a = Shape.InferAnchor(new Point(x, y), W, H);
+        Assert.Equal(expectedEdge, a.Edge);
+        Assert.Equal(expectedF, a.Fraction, 9);
+    }
+
+    [Theory]
+    [InlineData(PortEdge.Top,    0.25)]
+    [InlineData(PortEdge.Top,    0.75)]
+    [InlineData(PortEdge.Right,  0.5)]
+    [InlineData(PortEdge.Bottom, 0.3)]
+    [InlineData(PortEdge.Left,   0.8)]
+    public void Roundtrip_for_canonical_anchors(PortEdge edge, double f)
+    {
+        var a = new PortAnchor(edge, f);
+        var p = Shape.GetEdgePoint(a, W, H);
+        var back = Shape.InferAnchor(p, W, H);
+        Assert.Equal(a, back);
+    }
+
+    [Theory]
+    [InlineData(PortEdge.Top,    PortEdge.Right,  0.0)]
+    [InlineData(PortEdge.Right,  PortEdge.Bottom, 0.0)]
+    [InlineData(PortEdge.Bottom, PortEdge.Left,   0.0)]
+    [InlineData(PortEdge.Left,   PortEdge.Top,    0.0)]
+    public void NonCanonical_Fraction1_canonicalizes_to_next_edge_zero(PortEdge fromEdge, PortEdge canonEdge, double canonF)
+    {
+        var nonCanon = new PortAnchor(fromEdge, 1.0);
+        var p = Shape.GetEdgePoint(nonCanon, W, H);
+        var inferred = Shape.InferAnchor(p, W, H);
+        Assert.Equal(canonEdge, inferred.Edge);
+        Assert.Equal(canonF, inferred.Fraction, 9);
+        // Boundary point preserved either way:
+        var p2 = Shape.GetEdgePoint(inferred, W, H);
+        Assert.Equal(p.X, p2.X, 9);
+        Assert.Equal(p.Y, p2.Y, 9);
+    }
+
+    [Fact]
+    public void GetEdgePoint_at_zero_size_returns_origin()
+    {
+        var p = Shape.GetEdgePoint(PortAnchor.Right(0.5), 0, 0);
+        Assert.Equal(0.0, p.X);
+        Assert.Equal(0.0, p.Y);
+    }
+
+    [Theory]
+    [InlineData(PortEdge.Left,   -1.0,  0.0)]
+    [InlineData(PortEdge.Top,     0.0, -1.0)]
+    [InlineData(PortEdge.Right,   1.0,  0.0)]
+    [InlineData(PortEdge.Bottom,  0.0,  1.0)]
+    public void GetEdgeOutwardNormal_at_zero_size_returns_cardinal(PortEdge edge, double nx, double ny)
+    {
+        var n = Shape.GetEdgeOutwardNormal(new PortAnchor(edge, 0.5), 0, 0);
+        Assert.Equal(nx, n.X);
+        Assert.Equal(ny, n.Y);
+    }
+
+    [Fact]
+    public void InferAnchor_at_zero_size_throws()
+    {
+        Assert.Throws<InvalidOperationException>(() => Shape.InferAnchor(new Point(0, 0), 0, 0));
     }
 }
