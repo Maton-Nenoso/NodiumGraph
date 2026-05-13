@@ -84,12 +84,20 @@ Coordinate conventions:
 - `EllipseShape` — each `PortEdge` maps to a 90° quadrant arc (`Right` = `-π/4..π/4`, etc.); the four quadrants cover the ellipse perimeter.
 - `RoundedRectangleShape` — each `PortEdge` covers half of each adjacent corner arc plus the flat segment between them. The corner arc between `Top` and `Right` is split at its midpoint (45° from the corner center); the first half belongs to `Top`, the second to `Right`. Edge fraction is parameterized by arc length over the combined region; each half-arc contributes `π·r / 4` (a quarter-circle is `π·r / 2`; half of that), the flat segment contributes `edgeLength − 2·r`, so total per-edge length is `(edgeLength − 2·r) + π·r / 2`. Continuous and monotonic from corner-midpoint to corner-midpoint.
 
-**Round-trip contract** — two directions, both hold unconditionally:
+**Canonical anchor at shared endpoints.** Adjacent edges share their boundary endpoint: `Top(1)` and `Right(0)` address the same top-right point; `Left(1)` and `Top(0)` address the top-left point; ellipse quadrants share the 45° / 135° / etc. points; rounded-rectangle edges meet at the corner-arc midpoints. To make `InferAnchor` deterministic, walk the boundary clockwise (`Top → Right → Bottom → Left → Top`) — **each edge owns its `Fraction = 0` endpoint and disclaims its `Fraction = 1` endpoint to the next edge**. Canonical anchors at shared corners:
 
-1. **Anchor → point → anchor.** For any well-formed `PortAnchor a`, `InferAnchor(GetEdgePoint(a, w, h), w, h) == a` within float epsilon.
-2. **Boundary point → anchor → boundary point.** For any point `p` lying on the boundary of the shape at `(w, h)`, `GetEdgePoint(InferAnchor(p, w, h), w, h) == p` within float epsilon.
+- Top-left corner → `Top(0)` is canonical; `Left(1)` is not.
+- Top-right corner → `Right(0)` is canonical; `Top(1)` is not.
+- Bottom-right corner → `Bottom(0)` is canonical; `Right(1)` is not.
+- Bottom-left corner → `Left(0)` is canonical; `Bottom(1)` is not.
 
-The second direction is what makes `DynamicPortProvider` predictable: a port created at a boundary hit point lands exactly where the user clicked, including on rounded corners.
+`InferAnchor` always returns a canonical anchor.
+
+**Round-trip contract** — two directions:
+
+1. **Anchor → point → anchor.** For any well-formed `PortAnchor a`, `InferAnchor(GetEdgePoint(a, w, h), w, h)` returns `a` exactly when `a` is canonical, and returns the canonical anchor for the same boundary point when `a` is not (i.e. when `a` is a `Fraction = 1` anchor on an edge whose endpoint is shared with the next edge). In both cases the *boundary point* is preserved exactly.
+
+2. **Boundary point → anchor → boundary point.** For any point `p` lying on the boundary of the shape at `(w, h)`, `GetEdgePoint(InferAnchor(p, w, h), w, h) == p` within float epsilon. This direction always holds unconditionally and is what makes `DynamicPortProvider` predictable: a port created at a boundary hit point lands exactly where the user clicked, including on rounded corners.
 
 #### `Node` dispatch
 
@@ -169,11 +177,13 @@ The consumer-facing name on `Port` stays `EmissionDirection` (router-side vocabu
 
 #### Invalidation chain
 
-| Owner property changed | Invalidate `Position`? | Invalidate `AbsolutePosition`? | Reason |
-|---|---|---|---|
-| `X`, `Y` | no | yes | Anchor → local position unchanged; world position shifts. |
-| `Width`, `Height` | **yes** | yes | `GetEdgePoint(edge, fraction, w, h)` depends on `w`/`h`. |
-| `Shape` | **yes** | yes | Different strategy → different boundary geometry. |
+| Owner property changed | Invalidate `Position`? | Invalidate `AbsolutePosition`? | Re-fire `EmissionDirection`? | Reason |
+|---|---|---|---|---|
+| `X`, `Y` | no | yes | no | Anchor → local position unchanged; world position shifts; emission is local-geometry-only. |
+| `Width`, `Height` | **yes** | yes | **yes** | `GetEdgePoint` and `GetEdgeOutwardNormal` both depend on `w`/`h` (aspect-dependent for ellipse / rounded-rect arc regions). |
+| `Shape` | **yes** | yes | **yes** | Different strategy → different boundary geometry and different outward normals. |
+
+`EmissionDirection` is not cached (it has no dirty flag); the INPC notification tells listeners the *property value* has changed even though the next read recomputes lazily.
 
 ```csharp
 private void OnOwnerPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -185,6 +195,7 @@ private void OnOwnerPropertyChanged(object? sender, PropertyChangedEventArgs e)
         _absolutePositionDirty = true;
         OnPropertyChanged(nameof(Position));
         OnPropertyChanged(nameof(AbsolutePosition));
+        OnPropertyChanged(nameof(EmissionDirection));
     }
     else if (name is nameof(Node.X) or nameof(Node.Y))
     {
@@ -364,7 +375,7 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 | `EllipseShapeTests` | **Extend.** Same three. Lock non-cardinal emission at non-midpoint fractions. |
 | `RoundedRectangleShapeTests` | **Extend.** Same three. Corner-arc round-trip: a `boundary point` on a rounded corner round-trips exactly via `InferAnchor → GetEdgePoint`; outward normal on a corner-arc anchor is the radial vector from the corner center. |
 | Round-trip property tests | **New per shape.** `GetEdgePoint → InferAnchor` returns the same anchor (float epsilon); `InferAnchor → GetEdgePoint` returns the same boundary point. |
-| `PortTests` | **Rewrite.** Anchor-based ctor, `Position` updates on Width/Height/Shape change with INPC, `EmissionDirection` matches `Owner.GetEdgeOutwardNormal`. |
+| `PortTests` | **Rewrite.** Anchor-based ctor, `Position` updates on Width/Height/Shape change with INPC, `EmissionDirection` matches `Owner.GetEdgeOutwardNormal` and fires INPC on Width/Height/Shape change (not on X/Y change). |
 | `FixedPortProviderTests` | **Trim.** Delete `Implements_ILayoutAwarePortProvider`, all `UpdateLayout`/snap tests. |
 | `DynamicPortProviderTests` | **Extend.** Created port's anchor round-trips to the hit point. Reuse-threshold unchanged. |
 | `BezierRouterTests` / `StepRouterTests` | **Adapt.** Replace any `PortEmissionDirection.Resolve` references with `port.EmissionDirection`. Add at least one ellipse-node emission case to lock non-cardinal aspect-aware behavior. |
