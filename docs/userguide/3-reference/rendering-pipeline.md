@@ -29,7 +29,7 @@ From bottom (drawn first) to top (drawn last):
 
 Layers 1–4 are drawn directly in `NodiumGraphCanvas.Render`. Layer 5 is the normal Avalonia visual-tree render of every `NodiumNodeContainer`, producing body + per-node decorations in a single pass per node. Layers 6–10 are drawn by the overlay on top of every node.
 
-The per-node adornment layer draws in node-local world units under the container's `RenderTransform = ScaleTransform(ViewportZoom, ViewportZoom)`. That means port positions (`Port.Position`) are used directly — no manual `WorldToScreen` — and pen thicknesses are divided by `bucketedZoom` so stroke width stays visually constant as the user zooms.
+The per-node adornment layer draws in node-local world units under the container's `RenderTransform = ScaleTransform(ViewportZoom, ViewportZoom)`. That means port positions (`Port.Position`, derived from `Port.Anchor` and the owner's measured size) are used directly — no manual `WorldToScreen` — and pen thicknesses are divided by `bucketedZoom` so stroke width stays visually constant as the user zooms.
 
 Connection rendering performs viewport culling: the canvas computes the AABB of each route's points (inflated by stroke thickness) and skips connections whose bounds do not intersect the visible world-space rectangle.
 
@@ -60,7 +60,7 @@ NodiumGraph works with three coordinate spaces:
 
 - **Screen coordinates** — raw Avalonia pixels inside the canvas control. These are what pointer events carry before the canvas translates them.
 - **World coordinates** — infinite graph space, where `Node.X` / `Node.Y` and `Port.AbsolutePosition` live. `ViewportOffset` and `ViewportZoom` map world to screen.
-- **Node-local coordinates** — relative to a node's top-left. `Port.Position` lives here; the canvas adds `(Owner.X, Owner.Y)` to reach world space (this is exactly what `Port.AbsolutePosition` returns).
+- **Node-local coordinates** — relative to a node's top-left. `Port.Position` lives here; it is derived from `Port.Anchor` and the owner's current `Width`/`Height`/`Shape`. The canvas adds `(Owner.X, Owner.Y)` to reach world space (this is exactly what `Port.AbsolutePosition` returns).
 
 The transform is implemented by `ViewportTransform` in `NodiumGraph.Controls`:
 

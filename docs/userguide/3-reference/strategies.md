@@ -138,16 +138,16 @@ public interface IPortProvider
 
 ### Built-in: FixedPortProvider
 
-`NodiumGraph.Model.FixedPortProvider` — a static set of declared ports. Also implements [`ILayoutAwarePortProvider`](#ilayoutawareportprovider).
+`NodiumGraph.Model.FixedPortProvider` — a static set of declared ports.
 
 ```csharp
-public FixedPortProvider(double hitRadius = 20.0, bool layoutAware = false);
-public FixedPortProvider(IEnumerable<Port> ports, double hitRadius = 20.0, bool layoutAware = false);
+public FixedPortProvider(double hitRadius = 20.0);
+public FixedPortProvider(IEnumerable<Port> ports, double hitRadius = 20.0);
 ```
 
 - `AddPort(Port port)` / `bool RemovePort(Port port)` mutate the port set and raise `PortAdded` / `PortRemoved`.
 - `ResolvePort` returns the nearest port within the configured hit radius (constructor argument). `CancelResolve` is a no-op; the provider never creates tentative state.
-- When `layoutAware: true`, `UpdateLayout` snaps every port to the nearest boundary point of the node's current `INodeShape`. This means you can declare ports at rough positions like `(0, 40)` and `(180, 40)` and they will settle onto the left and right edges of the node after measure.
+- Ports must be constructed with a `PortAnchor`. The canvas recomputes each port's `Position` automatically after measuring the node's `Width`, `Height`, and `Shape` — no manual snapping required.
 
 ### Built-in: DynamicPortProvider
 
@@ -165,20 +165,6 @@ public DynamicPortProvider(
 - `CancelResolve` removes the last port that `ResolvePort` created (if any), detaching it and raising `PortRemoved`. No-op if the last resolve reused an existing port.
 - `AutoPruneOnDisconnect` (writable `bool`) — when `true`, calling `NotifyDisconnected(port, graph)` after removing a connection removes the port if it has no remaining edges. Consumer must drive this call; the canvas does not.
 - `PruneUnconnected(graph)` removes every port in the provider that has no connection in `graph` — useful as a one-shot cleanup.
-
-### ILayoutAwarePortProvider
-
-Namespace: `NodiumGraph.Model`
-
-```csharp
-public interface ILayoutAwarePortProvider : IPortProvider
-{
-    void UpdateLayout(double width, double height, INodeShape? shape);
-    event Action? LayoutInvalidated;
-}
-```
-
-Providers that implement this interface are notified by the canvas after the owner node has been measured. `UpdateLayout` should recompute all port positions; `LayoutInvalidated` fires after a recompute so the canvas knows to redraw. `FixedPortProvider` (in layout-aware mode) uses this to snap ports to the shape boundary.
 
 ## See also
 

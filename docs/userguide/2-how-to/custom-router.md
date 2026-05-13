@@ -177,7 +177,7 @@ Canvas.ConnectionRouter = new OrthogonalRouter();
 - **Use `AbsolutePosition`, not `Position`.** `Port.Position` is node-local; `Port.AbsolutePosition` has the owner node's origin added. Routing against `Position` will put every connection at the top-left of the canvas.
 - **The AABB of returned points must bound the rendered curve.** For beziers this is automatic — the curve stays inside the convex hull of the control points. For polylines it's also automatic — straight segments never leave their endpoints. If you ever return bezier control points wildly outside the curve (don't), viewport culling will pop connections in and out near the viewport edge.
 - **Routers are singleton-like by assignment, not by contract.** The canvas keeps one `ConnectionRouter` at a time. There's no per-connection router override built into the model — if you want one, keep the canvas router as a dispatcher that picks a delegate based on the connection's type or tags.
-- **`Port.AbsolutePosition` is cached and invalidated when its owner node moves.** You don't need to worry about stale coordinates inside `Route(...)`; by the time you're called, positions are current.
+- **`Port.AbsolutePosition` is cached and invalidated when its owner node moves, resizes, or its `Shape` changes.** You don't need to worry about stale coordinates inside `Route(...)`; by the time you're called, positions are current.
 
 ## See also
 

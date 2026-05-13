@@ -45,7 +45,7 @@ Every `NodiumGraphCanvas` in the app now renders ports with that fill, outline, 
 using Avalonia.Media;
 using NodiumGraph.Model;
 
-var trigger = new Port(node, "trigger", PortFlow.Input, new Point(0, 40))
+var trigger = new Port(node, "trigger", PortFlow.Input, PortAnchor.Left(0.5))
 {
     Label = "trigger",
     Style = new PortStyle
@@ -113,7 +113,7 @@ static PortStyle StyleFor(PortFlow flow) => flow switch
     _ => new PortStyle(),
 };
 
-var inPort = new Port(node, "in", PortFlow.Input, new Point(0, 40))
+var inPort = new Port(node, "in", PortFlow.Input, PortAnchor.Left(0.5))
 {
     Label = "in",
     Style = StyleFor(PortFlow.Input),
@@ -123,11 +123,10 @@ var inPort = new Port(node, "in", PortFlow.Input, new Point(0, 40))
 ## Full code
 
 ```csharp
-using Avalonia;
 using Avalonia.Media;
 using NodiumGraph.Model;
 
-static Port MakeTypedPort(Node owner, string id, string label, PortFlow flow, Point position, string kind)
+static Port MakeTypedPort(Node owner, string id, string label, PortFlow flow, PortAnchor anchor, string kind)
 {
     var shape = flow == PortFlow.Input ? PortShape.Square : PortShape.Circle;
     var color = kind switch
@@ -138,7 +137,7 @@ static Port MakeTypedPort(Node owner, string id, string label, PortFlow flow, Po
         _ => "#64748B",
     };
 
-    return new Port(owner, id, flow, position)
+    return new Port(owner, id, flow, anchor)
     {
         Label = label,
         DataType = kind,

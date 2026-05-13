@@ -94,14 +94,13 @@ Namespace: `NodiumGraph.Model`
 
 The connection attachment point on a node.
 
-### Constructors
+### Constructor
 
 ```csharp
-public Port(Node owner, string name, PortFlow flow, Point position);
-public Port(Node owner, Point position); // name = "", flow = PortFlow.Input
+public Port(Node owner, string name, PortFlow flow, PortAnchor anchor);
 ```
 
-The single-argument form is the shortcut used by dynamic providers that don't need names or flows. Both forms subscribe to the owner node's `PropertyChanged` so that `AbsolutePosition` invalidates when the node moves.
+Subscribes to the owner node's `PropertyChanged` so that `Position` and `AbsolutePosition` invalidate when the node moves, resizes, or its `Shape` changes.
 
 ### Properties
 
@@ -111,8 +110,9 @@ The single-argument form is the shortcut used by dynamic providers that don't ne
 | `Owner` | `Node` | (ctor) | The node this port belongs to. Read-only. |
 | `Name` | `string` | (ctor) | Stable string identifier scoped to the owner. Read-only. |
 | `Flow` | `PortFlow` | (ctor) | `Input` or `Output`. Read-only and semantic only — it does not dictate position on the node. |
-| `Position` | `Point` | (ctor) | Node-local coordinates (relative to the node's top-left). Setter is `internal` — providers assign it during layout. |
-| `AbsolutePosition` | `Point` | computed | World-space position: `Owner.X + Position.X`, `Owner.Y + Position.Y`. Cached and invalidated on owner move or position change. Read-only. |
+| `Anchor` | `PortAnchor` | (ctor) | The immutable edge + fraction declaration. `PortAnchor.Left(0.5)` means the midpoint of the left edge. Read-only. |
+| `Position` | `Point` | derived | Node-local coordinates (relative to the node's top-left). Derived from `Anchor` + `Owner.Width`/`Height`/`Shape`. Cached and invalidated when any of those change. Read-only. |
+| `AbsolutePosition` | `Point` | derived | World-space position: `Owner.X + Position.X`, `Owner.Y + Position.Y`. Cached and invalidated on owner move, resize, or shape change. Read-only. |
 | `Label` | `string?` | `null` | Optional text label rendered next to the port when no custom `PortTemplate` is set. |
 | `MaxConnections` | `uint?` | `null` | Metadata for validators. The library itself never enforces this. |
 | `DataType` | `object?` | `null` | Opaque type token consumed by `IConnectionValidator`. The default validator compares with `Equals`. Prefer reference-typed tokens (strings, `System.Type`, records) to avoid boxing during drag. |
@@ -120,7 +120,7 @@ The single-argument form is the shortcut used by dynamic providers that don't ne
 
 ### Events
 
-- `PropertyChanged` — inherited from `INotifyPropertyChanged`. Fires for `Position`, `AbsolutePosition`, `Style`, `Label`, `MaxConnections`, and `DataType`.
+- `PropertyChanged` — inherited from `INotifyPropertyChanged`. Fires for `Position`, `AbsolutePosition`, `EmissionDirection`, `Style`, `Label`, `MaxConnections`, and `DataType`.
 
 ### PortFlow enum
 
@@ -128,7 +128,7 @@ The single-argument form is the shortcut used by dynamic providers that don't ne
 public enum PortFlow { Input, Output }
 ```
 
-> **Gotcha:** `PortFlow` is a *semantic* marker (direction of data) — it is orthogonal to where the port sits on the node. The default validator uses `Flow` to reject `Input`-to-`Input` and `Output`-to-`Output` pairs. `Position` is node-local; when you need canvas / world coordinates, use `AbsolutePosition`.
+> **Gotcha:** `PortFlow` is a *semantic* marker (direction of data) — it is orthogonal to where the port sits on the node. The default validator uses `Flow` to reject `Input`-to-`Input` and `Output`-to-`Output` pairs. `Position` is node-local and derived; when you need canvas / world coordinates, use `AbsolutePosition`.
 
 ## Connection
 

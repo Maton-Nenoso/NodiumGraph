@@ -27,12 +27,12 @@ To fully round-trip a graph, you need **these fields, and only these fields**:
 - `Id` — stable identifier. The default constructor assigns a GUID; if you persist, you want to control this yourself so the same logical node gets the same id across saves.
 - `Title`, `X`, `Y` — base fields users can see and move.
 - Any properties added by your own subclass (`Description`, `Formula`, `Value`, whatever). These are the reason you subclassed `Node` in the first place.
-- The node's `PortProvider` — specifically, which ports it has, at which positions, with which `PortFlow`, `Label`, and `DataType`.
+- The node's `PortProvider` — specifically, which ports it has, each port's `PortAnchor` (`Edge` + `Fraction`), `PortFlow`, `Label`, and `DataType`.
 
 You do **not** need to persist:
 - `Width` / `Height` — set by the canvas after it measures the template. Restoring a node re-measures it.
 - `ShowHeader`, `IsCollapsed`, `Style` — only persist these if your UX lets the user toggle them.
-- `AbsolutePosition` on ports — derived from the node.
+- `Port.Position` or `Port.AbsolutePosition` — both are derived from the anchor and the node's current geometry. Persist `Anchor.Edge` + `Anchor.Fraction` instead.
 
 **Per `Connection`:**
 - `Id`
@@ -58,9 +58,9 @@ A deliberately minimal JSON shape:
       "x": 120, "y": 200,
       "description": "a + b",
       "ports": [
-        { "id": "in-a", "flow": "Input", "x": 0, "y": 20, "label": "a", "dataType": "number" },
-        { "id": "in-b", "flow": "Input", "x": 0, "y": 60, "label": "b", "dataType": "number" },
-        { "id": "out",  "flow": "Output", "x": 180, "y": 40, "label": "result", "dataType": "number" }
+        { "id": "in-a",  "flow": "Input",  "anchor": { "edge": "Left",  "fraction": 0.25 }, "label": "a",      "dataType": "number" },
+        { "id": "in-b",  "flow": "Input",  "anchor": { "edge": "Left",  "fraction": 0.75 }, "label": "b",      "dataType": "number" },
+        { "id": "out",   "flow": "Output", "anchor": { "edge": "Right", "fraction": 0.5  }, "label": "result", "dataType": "number" }
       ]
     }
   ],
@@ -75,11 +75,12 @@ A few deliberate choices:
 - **Explicit `version`.** The format will grow; start versioned on day one.
 - **`kind` discriminator on nodes.** Serialization needs to know which `Node` subclass to instantiate on load. A plain string is enough.
 - **Ids on ports are node-local.** Port ids only need to be unique within their owning node — connections reference them as a `(nodeId, portId)` pair. This keeps node-level refactors from rippling into connection data.
-- **World coordinates, not screen coordinates.** `X`, `Y`, and port positions are world units — the same units you pass to constructors. Do not store `ViewportZoom`-scaled values.
+- **Persist `anchor`, not `x`/`y`.** `Port.Position` and `Port.AbsolutePosition` are derived values — they change when a node resizes. The `anchor` (`edge` + `fraction`) is the stable, size-independent declaration. On load, pass it directly to the `Port` constructor and the library recomputes the pixel position after measure.
+- **Node `x`/`y` are world coordinates.** Do not store `ViewportZoom`-scaled screen values for those — they are world units, same as you pass to the `Node` constructor.
 
 ### 4. Write the serializer
 
-Walk `graph.Nodes` and `graph.Connections` and project each into your DTO. For `PortProvider`, the easy case is a `FixedPortProvider` — copy its `Ports` list as-is. `DynamicPortProvider` is trickier: decide whether you persist the resolved ports or only the configuration and let the provider recreate them on load.
+Walk `graph.Nodes` and `graph.Connections` and project each into your DTO. For `PortProvider`, the easy case is a `FixedPortProvider` — iterate `Ports` and record each port's `Anchor.Edge`, `Anchor.Fraction`, `Flow`, `Label`, `DataType`, and `Id`. `DynamicPortProvider` is trickier: decide whether you persist the resolved ports (using the same anchor fields) or only the provider configuration and let the provider recreate ports on the first connection attempt after load.
 
 ```csharp
 public static GraphDto ToDto(Graph graph, NodiumGraphCanvas canvas)
@@ -146,7 +147,7 @@ public static Graph FromDto(GraphDto dto)
 }
 ```
 
-`CreateNode` is yours — a plain `switch` on `Kind` that news up the right subclass and attaches a `FixedPortProvider` populated from the DTO.
+`CreateNode` is yours — a plain `switch` on `Kind` that news up the right subclass and attaches a `FixedPortProvider` populated from the DTO. For each port DTO, reconstruct the anchor as `new PortAnchor(Enum.Parse<PortEdge>(dto.Edge), dto.Fraction)` and pass it to `new Port(node, dto.Id, Enum.Parse<PortFlow>(dto.Flow), anchor)`. The canvas recomputes `Position` and `AbsolutePosition` after measuring the node template — no world-unit coordinates needed at load time.
 
 ### 6. Wire loading into the canvas
 

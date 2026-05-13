@@ -121,13 +121,13 @@ private static MathNode CreateMathNode(string title, string description, double 
         Y = y,
     };
 
-    var provider = new FixedPortProvider(layoutAware: true);
-    provider.AddPort(new Port(node, "in", PortFlow.Input, new Point(0, 40))
+    var provider = new FixedPortProvider();
+    provider.AddPort(new Port(node, "in", PortFlow.Input, PortAnchor.Left(0.5))
     {
         Label = "in",
         DataType = "number",
     });
-    provider.AddPort(new Port(node, "out", PortFlow.Output, new Point(180, 40))
+    provider.AddPort(new Port(node, "out", PortFlow.Output, PortAnchor.Right(0.5))
     {
         Label = "out",
         DataType = "number",
@@ -140,11 +140,11 @@ private static MathNode CreateMathNode(string title, string description, double 
 
 Notes:
 
-- `new FixedPortProvider(layoutAware: true)` snaps each port's position to the node's measured boundary, so rough coordinates like `(0, 40)` (left edge, roughly middle) and `(180, 40)` (right edge) work without knowing the node's final width.
+- `PortAnchor.Left(0.5)` places the port on the left edge, halfway down. `PortAnchor.Right(0.5)` places it on the right edge at the same fraction. The fraction is `0.0` = top/left end, `1.0` = bottom/right end. Exact world-unit coordinates are derived from the anchor whenever the node is measured — you never need to know the node's pixel dimensions up front.
 - Each port has a `Name` unique within the provider (`"in"`, `"out"`). The `Label` is the text rendered next to the port.
 - `DataType = "number"` is an opaque token. Matching values connect; mismatched values are rejected by the default validator.
 
-> **Gotcha:** `Port.Position` is **node-local**, not world-space. Use `Port.AbsolutePosition` when you need world coordinates — it is computed on demand from the owning node.
+> **Gotcha:** `Port.Position` is **node-local** and **derived** from `Port.Anchor` combined with the owner node's current size and shape. Use `Port.AbsolutePosition` when you need world coordinates — it adds the owner's `X`/`Y` to `Position`.
 
 ## 5. Write the node DataTemplate
 

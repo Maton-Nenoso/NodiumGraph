@@ -87,7 +87,7 @@ If you want a completely different look — no header bar, unusual shape, embedd
 </DataTemplate>
 ```
 
-The canvas measures the template's root control to determine `Node.Width` and `Node.Height`, so ports declared with `layoutAware: true` on a `FixedPortProvider` automatically land on the correct edge. You do not need to hardcode node dimensions.
+The canvas measures the template's root control to determine `Node.Width` and `Node.Height`, then recomputes every port's `Position` from its `PortAnchor`. You do not need to hardcode node dimensions — declare anchors by edge and fraction and let the library compute the pixel coordinates after measure.
 
 ### 5. Per-node variants
 
