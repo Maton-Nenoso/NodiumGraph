@@ -160,9 +160,9 @@ public class Node : INotifyPropertyChanged
 
 | Method | At `width <= 0` or `height <= 0` |
 |---|---|
-| `GetEdgePoint(edge, fraction, w, h)`         | Returns `(0, 0)` (natural degeneration of all three shapes' formulas). |
-| `GetEdgeOutwardNormal(edge, fraction, w, h)` | Returns the **cardinal unit vector for `edge`** (`Left → (-1, 0)`, etc.). Aspect-aware formulas degenerate at zero size; cardinal is a stable fallback consistent with the edge identity and what routers expect. |
-| `InferAnchor(boundaryLocal, w, h)`           | Throws `InvalidOperationException` — there is no meaningful inverse at zero size. Callers (only `DynamicPortProvider`) already guard `_owner.Width <= 0 || _owner.Height <= 0` and return null; the throw is a safety net, not a normal control-flow path. |
+| `GetEdgePoint(anchor, w, h)`         | Returns `(0, 0)` (natural degeneration of all three shapes' formulas). |
+| `GetEdgeOutwardNormal(anchor, w, h)` | Returns the **cardinal unit vector for `anchor.Edge`** (`Left → (-1, 0)`, etc.). Aspect-aware formulas degenerate at zero size; cardinal is a stable fallback consistent with the edge identity and what routers expect. |
+| `InferAnchor(boundaryLocal, w, h)`   | Throws `InvalidOperationException` — there is no meaningful inverse at zero size. Callers (only `DynamicPortProvider`) already guard `_owner.Width <= 0 || _owner.Height <= 0` and return null; the throw is a safety net, not a normal control-flow path. |
 
 Implementers must honor this contract on every shape; tests assert it per shape.
 
@@ -423,7 +423,8 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 | `BezierRouterTests` / `StepRouterTests` | **Adapt.** Replace any `PortEmissionDirection.Resolve` references with `port.EmissionDirection`. Add at least one ellipse-node emission case to lock non-cardinal aspect-aware behavior. |
 | Canvas integration tests | **Adapt.** Anything referencing `ILayoutAwarePortProvider` or `LayoutInvalidated` removed. Add coverage for `Width`/`Height`/`Shape` → port `Position` invalidation → connection geometry invalidation → `InvalidateVisual` (the chain that replaces `LayoutInvalidated`). |
 | Sample apps | **Update.** Port construction sites switch to anchor form. Provides realistic-shape exercise. |
-| User guide pages | **Update.** Remove `layoutAware`, `ILayoutAwarePortProvider`, `PortEmissionDirection` references. Switch port-construction examples to anchor form in: `1-tutorial/getting-started.md`, `2-how-to/custom-port-provider.md`, `2-how-to/custom-node-template.md`, `2-how-to/style-ports.md`, `3-reference/strategies.md`. |
+| User guide pages | **Update.** Remove `layoutAware`, `ILayoutAwarePortProvider`, `PortEmissionDirection` references. Switch port-construction examples and the model-reference signatures to anchor form in: `1-tutorial/getting-started.md`, `2-how-to/custom-port-provider.md`, `2-how-to/custom-node-template.md`, `2-how-to/style-ports.md`, `3-reference/strategies.md`, `3-reference/model.md` (the `Port` constructor block at lines 100–101 currently documents the deleted point-based constructors). |
+| All existing test suites using point-based port construction | **Migrate (broad-touch).** 22 files use `new Port(...)` with a `Point` today: `GraphTests`, `ConnectionTests`, `ConnectionRendererTests`, `ConnectionHitTesterTests`, `BezierRouterTests`, `StraightRouterTests`, `StepRouterTests`, `PortStyleTests`, `DefaultConnectionValidatorTests`, `ISelectionHandlerTests`, all `NodiumGraphCanvas*Tests`, plus the `PortTests` / `FixedPortProviderTests` / `DynamicPortProviderTests` rows above. Replace point-based construction with anchor-based — introduce a small test helper (e.g. `TestNodes.WithPorts(...)`) to keep the migration mechanical and reduce per-test churn. |
 
 ## Done criteria
 
@@ -432,7 +433,7 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 3. New ellipse aspect-aware outward-normal test passes (200×100 ellipse and 100×100 circle return different normals at `(Right, 0.0)`).
 4. New canvas test passes: `Node.Width`/`Height`/`Shape` change → connection geometry invalidates → ports reposition → canvas visual invalidates.
 5. Sample apps build and run; no visible regression in port placement vs. current `main`.
-6. User guide pages listed above are updated; no remaining references to `layoutAware`, `ILayoutAwarePortProvider`, or `PortEmissionDirection`.
+6. User guide pages listed above are updated (including `3-reference/model.md`'s `Port` constructor block); no remaining references to `layoutAware`, `ILayoutAwarePortProvider`, or `PortEmissionDirection` anywhere under `docs/userguide/`.
 7. `dotnet build` clean, no new warnings.
 8. AOT-compatibility preserved (no reflection introduced).
 
