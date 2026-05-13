@@ -65,10 +65,10 @@ Stateless strategy. Gains three methods; the existing `GetNearestBoundaryPoint` 
 ```csharp
 public interface INodeShape
 {
-    Point  GetNearestBoundaryPoint(Point centerRelative, double width, double height);  // existing
-    Point  GetEdgePoint(PortEdge edge, double fraction, double width, double height);   // new
-    Vector GetEdgeEmissionDirection(PortEdge edge, double fraction);                    // new
-    PortAnchor InferAnchor(Point boundaryLocal, double width, double height);           // new
+    Point  GetNearestBoundaryPoint(Point centerRelative, double width, double height);    // existing
+    Point  GetEdgePoint(PortEdge edge, double fraction, double width, double height);     // new
+    Vector GetEdgeOutwardNormal(PortEdge edge, double fraction, double width, double height); // new
+    PortAnchor InferAnchor(Point boundaryLocal, double width, double height);             // new
 }
 ```
 
@@ -76,9 +76,20 @@ Coordinate conventions:
 
 - `GetEdgePoint`, `InferAnchor` use **node-local** coordinates (top-left origin), matching `Port.Position`.
 - `GetNearestBoundaryPoint` keeps its **center-relative** convention (internal to providers, unchanged).
-- `GetEdgeEmissionDirection` returns a unit-ish outward `Vector` (rectangles return exactly unit cardinals; ellipses return outward radial normals).
+- `GetEdgeOutwardNormal` returns a unit outward `Vector`. The method takes `(width, height)` because non-square boundary geometry produces aspect-dependent normals — for an ellipse `x²/a² + y²/b² = 1` with `a = w/2`, `b = h/2`, the outward normal at the parameterized point is **not** a unit-circle direction.
 
-**Round-trip contract** (the most important invariant): for any `(edge, fraction)` produced by `InferAnchor(p, w, h)`, calling `GetEdgePoint(edge, fraction, w, h)` returns `p` within float epsilon. Each shape implementation must honor this for any on-boundary point.
+**Boundary parameterization — full coverage per shape.** Each shape's four `PortEdge` values partition its boundary; the union of the four edges' addressable points is the entire boundary at the current `(w, h)`. Per-shape rules:
+
+- `RectangleShape` — each edge runs along its corresponding side. Trivial partition.
+- `EllipseShape` — each `PortEdge` maps to a 90° quadrant arc (`Right` = `-π/4..π/4`, etc.); the four quadrants cover the ellipse perimeter.
+- `RoundedRectangleShape` — each `PortEdge` covers half of each adjacent corner arc plus the flat segment between them. The corner arc between `Top` and `Right` is split at its midpoint (45° from the corner center); the first half belongs to `Top`, the second to `Right`. Edge fraction is parameterized by arc length over the combined region (`π·r + edgeLength − 2·r`), continuous and monotonic from corner-midpoint to corner-midpoint.
+
+**Round-trip contract** — two directions, both hold unconditionally:
+
+1. **Anchor → point → anchor.** For any well-formed `PortAnchor a`, `InferAnchor(GetEdgePoint(a, w, h), w, h) == a` within float epsilon.
+2. **Boundary point → anchor → boundary point.** For any point `p` lying on the boundary of the shape at `(w, h)`, `GetEdgePoint(InferAnchor(p, w, h), w, h) == p` within float epsilon.
+
+The second direction is what makes `DynamicPortProvider` predictable: a port created at a boundary hit point lands exactly where the user clicked, including on rounded corners.
 
 #### `Node` dispatch
 
@@ -94,8 +105,8 @@ public class Node : INotifyPropertyChanged
     public Point GetEdgePoint(PortEdge edge, double fraction) =>
         Shape.GetEdgePoint(edge, fraction, Width, Height);
 
-    public Vector GetEdgeEmissionDirection(PortEdge edge, double fraction) =>
-        Shape.GetEdgeEmissionDirection(edge, fraction);
+    public Vector GetEdgeOutwardNormal(PortEdge edge, double fraction) =>
+        Shape.GetEdgeOutwardNormal(edge, fraction, Width, Height);
 
     public PortAnchor InferAnchor(Point boundaryLocal) =>
         Shape.InferAnchor(boundaryLocal, Width, Height);
@@ -150,9 +161,11 @@ public class Port : INotifyPropertyChanged
     public Point AbsolutePosition { /* existing pattern: Owner.X + Position.X, Owner.Y + Position.Y, cached */ }
 
     public Vector EmissionDirection
-        => Owner.GetEdgeEmissionDirection(Anchor.Edge, Anchor.Fraction);
+        => Owner.GetEdgeOutwardNormal(Anchor.Edge, Anchor.Fraction);
 }
 ```
+
+The consumer-facing name on `Port` stays `EmissionDirection` (router-side vocabulary). It forwards to `Node.GetEdgeOutwardNormal`, which is the geometric primitive.
 
 #### Invalidation chain
 
@@ -250,7 +263,33 @@ public Port? ResolvePort(Point worldPos, bool preview)
 
 #### `ILayoutAwarePortProvider` removal
 
-Single implementer (`FixedPortProvider`) no longer needs layout callbacks. Pre-1.0, no consumer implementers exist. The interface, its `UpdateLayout` and `LayoutInvalidated` members, and the canvas's `OnLayoutAwareProviderInvalidated` subscribe/detach wiring in `AttachProvider`/`DetachProvider` are all removed. Resize-driven repaint flows through `Node.PropertyChanged` on `Width`/`Height` (which the canvas already needs for connection invalidation).
+Single implementer (`FixedPortProvider`) no longer needs layout callbacks. Pre-1.0, no consumer implementers exist. The interface, its `UpdateLayout` and `LayoutInvalidated` members, and the canvas's `OnLayoutAwareProviderInvalidated` subscribe/detach wiring in `AttachProvider`/`DetachProvider` are all removed.
+
+#### Canvas invalidation chain — resize and shape swap
+
+`LayoutInvalidated` is what handles resize/shape-change repaint in current code. Removing it without replacing the path leaves stale visuals. The current `OnNodePropertyChanged` handler (at `NodiumGraphCanvas.cs:1912`) handles `X`, `Y`, `IsSelected`, `ShowHeader`, `IsCollapsed`, `IsCollapsible`, `PortProvider`, `Style` — **no `Width`, `Height`, or `Shape`**. Three cases must be added.
+
+End-to-end chain for a resize or shape swap:
+
+1. `Node.Width` / `Node.Height` / `Node.Shape` setter fires `PropertyChanged` for the changed property.
+2. Each `Port` of that node receives it (via its existing `Owner.PropertyChanged` subscription, extended per Section B), invalidates `_positionDirty` + `_absolutePositionDirty`, and raises `PropertyChanged(Position)` + `PropertyChanged(AbsolutePosition)`.
+3. Canvas's existing `SubscribeToPort` wiring sees `AbsolutePosition` change → invalidates per-connection geometry cache + `ConnectionHitTester` cache for every connection touching that port. (This path already exists for `Node.X/Y` moves; no new code.)
+4. Canvas's `OnNodePropertyChanged` gains a new case:
+
+```csharp
+else if (e.PropertyName is nameof(Node.Width) or nameof(Node.Height) or nameof(Node.Shape))
+{
+    InvalidatePortAdornments(node);   // node's NodeAdornmentLayer
+    InvalidateVisual();                // grid/connections/minimap repaint
+}
+```
+
+5. `NodeAdornmentLayer` re-measures + redraws ports at their new `Position` values on the next render pass.
+
+Notes:
+- The `Width`/`Height` cases catch *both* user-resize (consumer mutating `Node.Width`) and the library's own measurement output (`internal set` from auto-sizing). Both paths flow through the same INPC notification.
+- `Shape` swap is a rare consumer action; covered by the same case for free.
+- No new event types or interfaces; the chain rides existing `INotifyPropertyChanged` plumbing.
 
 ### Section D — Routing integration
 
@@ -258,20 +297,23 @@ Single implementer (`FixedPortProvider`) no longer needs layout callbacks. Pre-1
 
 ```csharp
 public Vector EmissionDirection
-    => Owner.GetEdgeEmissionDirection(Anchor.Edge, Anchor.Fraction);
+    => Owner.GetEdgeOutwardNormal(Anchor.Edge, Anchor.Fraction);
 ```
 
 Router call sites change from `PortEmissionDirection.Resolve(port)` to `port.EmissionDirection`. Affected files identified during the plan phase via grep on `PortEmissionDirection.Resolve`.
 
-Shape implementations of `GetEdgeEmissionDirection`:
+Shape implementations of `GetEdgeOutwardNormal`:
 
-- **`RectangleShape`** — cardinal unit vector per edge. Identical output to today's `Resolve` for any on-boundary or near-boundary port.
-- **`EllipseShape`** — each `PortEdge` maps to a 90° arc; `fraction` parameterizes position on it. Returns the outward radial normal at that arc point. Realizes the non-cardinal emission case called out in the round-node memory note.
-- **`RoundedRectangleShape`** — flat-edge regions return cardinal vectors (matching `RectangleShape`). Corner regions don't appear as emission inputs because `InferAnchor` snaps corner round-off points to the nearest flat edge.
+- **`RectangleShape`** — cardinal unit vector per edge, dimensions ignored. Identical output to today's `Resolve` for any on-boundary or near-boundary port.
+- **`EllipseShape`** — at the parameterized arc point `(a·cosθ + a, b·sinθ + b)` with `a = w/2`, `b = h/2`, the outward unit normal is `(b·cosθ, a·sinθ)` normalized. **Aspect-ratio aware** — a 200×100 ellipse and a circle return different normals at the same `(edge, fraction)`.
+- **`RoundedRectangleShape`** — piecewise per the full-coverage parameterization in Section A:
+  - **Flat-segment region** of the edge → cardinal unit vector (same as `RectangleShape`).
+  - **Corner-arc region** (the half-arc portion of an edge) → outward radial normal from the corner's arc center to the parameterized point on the arc. This is the right geometric answer for connection emission off rounded corners; a connection from a port near a rounded corner heads outward at the corner's tangent direction, not the adjacent edge's cardinal.
 
 Behavior summary:
 - Rectangle nodes — no observable change.
-- Ellipse nodes — ports at non-midpoint fractions emit along the smooth radial normal (e.g. `(Right, 0.0)` emits at -45°). Existing ellipse-router tests that asserted cardinal-only behavior, if any, are updated to the new (correct) values.
+- Ellipse nodes — ports at non-midpoint fractions emit along the aspect-correct radial normal. Existing ellipse-router tests that asserted cardinal-only behavior, if any, are updated to the new (correct) values.
+- Rounded-rectangle nodes — flat-region ports emit cardinally (unchanged); corner-arc ports (only reachable via `DynamicPortProvider` boundary hit) emit along the arc normal.
 - Interior/outside-bounds ports — unreachable. The defensive negative-distance code in current `Resolve` is deleted.
 
 ### Section E — Breaking changes summary
@@ -279,13 +321,15 @@ Behavior summary:
 Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 
 **`Port`**
-- `Port(Node, Point)` constructor — deleted. Replaced by `Port(Node, string name, PortFlow, PortAnchor)`.
+- `Port(Node, string name, PortFlow, Point position)` constructor — deleted.
+- `Port(Node, Point)` convenience constructor — deleted.
+- Both replaced by `Port(Node, string name, PortFlow, PortAnchor anchor)`.
 - `Position` — `internal set` removed; get-only.
 - `Anchor` — new immutable property.
 - `EmissionDirection` — new derived property.
 
 **`INodeShape`**
-- +3 methods: `GetEdgePoint`, `GetEdgeEmissionDirection`, `InferAnchor`.
+- +3 methods: `GetEdgePoint`, `GetEdgeOutwardNormal`, `InferAnchor`.
 
 **`Node`**
 - +4 forwarding wrappers.
@@ -311,25 +355,28 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 | Area | Action |
 |---|---|
 | `PortAnchorTests` | **New.** Construction validation (NaN / negative / >1 throws), value equality, hash, static helpers. |
-| `RectangleShapeTests` | **Extend.** Cover `GetEdgePoint`, `GetEdgeEmissionDirection`, `InferAnchor`. |
+| `RectangleShapeTests` | **Extend.** Cover `GetEdgePoint`, `GetEdgeOutwardNormal`, `InferAnchor`. |
 | `EllipseShapeTests` | **Extend.** Same three. Lock non-cardinal emission at non-midpoint fractions. |
 | `RoundedRectangleShapeTests` | **Extend.** Same three. Corner-snap behavior for `InferAnchor`. |
 | Round-trip property tests | **New per shape.** `GetEdgePoint → InferAnchor` returns the same anchor (float epsilon); `InferAnchor → GetEdgePoint` returns the same boundary point. |
-| `PortTests` | **Rewrite.** Anchor-based ctor, `Position` updates on Width/Height/Shape change with INPC, `EmissionDirection` matches `Owner.GetEdgeEmissionDirection`. |
+| `PortTests` | **Rewrite.** Anchor-based ctor, `Position` updates on Width/Height/Shape change with INPC, `EmissionDirection` matches `Owner.GetEdgeOutwardNormal`. |
 | `FixedPortProviderTests` | **Trim.** Delete `Implements_ILayoutAwarePortProvider`, all `UpdateLayout`/snap tests. |
 | `DynamicPortProviderTests` | **Extend.** Created port's anchor round-trips to the hit point. Reuse-threshold unchanged. |
-| `BezierRouterTests` / `StepRouterTests` | **Adapt.** Replace any `PortEmissionDirection.Resolve` references with `port.EmissionDirection`. Add at least one ellipse-node emission case to lock non-cardinal behavior. |
-| Canvas integration tests | **Adapt.** Anything referencing `ILayoutAwarePortProvider` or `LayoutInvalidated` removed. |
+| `BezierRouterTests` / `StepRouterTests` | **Adapt.** Replace any `PortEmissionDirection.Resolve` references with `port.EmissionDirection`. Add at least one ellipse-node emission case to lock non-cardinal aspect-aware behavior. |
+| Canvas integration tests | **Adapt.** Anything referencing `ILayoutAwarePortProvider` or `LayoutInvalidated` removed. Add coverage for `Width`/`Height`/`Shape` → port `Position` invalidation → connection geometry invalidation → `InvalidateVisual` (the chain that replaces `LayoutInvalidated`). |
 | Sample apps | **Update.** Port construction sites switch to anchor form. Provides realistic-shape exercise. |
+| User guide pages | **Update.** Remove `layoutAware`, `ILayoutAwarePortProvider`, `PortEmissionDirection` references. Switch port-construction examples to anchor form in: `1-tutorial/getting-started.md`, `2-how-to/custom-port-provider.md`, `2-how-to/custom-node-template.md`, `2-how-to/style-ports.md`, `3-reference/strategies.md`. |
 
 ## Done criteria
 
 1. All existing tests pass after migration.
-2. New `PortAnchorTests` + per-shape round-trip tests pass.
-3. New ellipse non-cardinal emission test passes.
-4. Sample apps build and run; no visible regression in port placement vs. current `main`.
-5. `dotnet build` clean, no new warnings.
-6. AOT-compatibility preserved (no reflection introduced).
+2. New `PortAnchorTests` + per-shape round-trip tests pass (both directions: anchor→point→anchor and boundary-point→anchor→boundary-point, on each of `RectangleShape`, `EllipseShape`, `RoundedRectangleShape`).
+3. New ellipse aspect-aware outward-normal test passes (200×100 ellipse and 100×100 circle return different normals at `(Right, 0.0)`).
+4. New canvas test passes: `Node.Width`/`Height`/`Shape` change → connection geometry invalidates → ports reposition → canvas visual invalidates.
+5. Sample apps build and run; no visible regression in port placement vs. current `main`.
+6. User guide pages listed above are updated; no remaining references to `layoutAware`, `ILayoutAwarePortProvider`, or `PortEmissionDirection`.
+7. `dotnet build` clean, no new warnings.
+8. AOT-compatibility preserved (no reflection introduced).
 
 ## Source documents
 
