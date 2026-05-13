@@ -285,10 +285,12 @@ public class NodiumGraphCanvasSelectionTests
         var nodeB = new Node { X = targetPos.X, Y = targetPos.Y };
         nodeB.Width = 20;
         nodeB.Height = 20;
-        // Port at (10, 10) relative → middle of node. Emission direction is stable
-        // (ties break horizontal-first to (-1, 0)) but StraightRouter ignores it.
-        var portOut = TestNodes.PortAt(nodeA, 10, 10);
-        var portIn = TestNodes.PortAt(nodeB, 10, 10);
+        // portOut on the Right edge midpoint of nodeA → AbsolutePosition (nodeA.X+20, nodeA.Y+10).
+        // portIn  on the Left  edge midpoint of nodeB → AbsolutePosition (nodeB.X,    nodeB.Y+10).
+        // With sourcePos=(100,100) and targetPos=(300,200) the straight route runs
+        // (120,110)→(300,210), midpoint (210,160). StraightRouter ignores emission direction.
+        var portOut = TestNodes.PortAt(nodeA, 20, 10);
+        var portIn  = TestNodes.PortAt(nodeB,  0, 10);
         graph.AddNode(nodeA);
         graph.AddNode(nodeB);
         var connection = new Connection(portOut, portIn);
@@ -322,7 +324,7 @@ public class NodiumGraphCanvasSelectionTests
         canvas.SelectionHandler = handler;
 
         // Midpoint of the straight route between the two port absolute positions
-        // (110,110) -> (310,210) is (210, 160).
+        // (120,110) -> (300,210) is (210, 160).
         var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
         var screenPoint = transform.WorldToScreen(new Point(210, 160));
 
@@ -393,7 +395,7 @@ public class NodiumGraphCanvasSelectionTests
         var (canvas, graph, _, _, conn) = BuildCanvasWithConnection(
             new Point(100, 100), new Point(300, 200));
 
-        // Far above the line segment from (110,110) -> (310,210), well outside
+        // Far above the line segment from (120,110) -> (300,210), well outside
         // the 8px worldTolerance band even after AABB inflation.
         var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
         var screenPoint = transform.WorldToScreen(new Point(600, 20));
@@ -445,15 +447,16 @@ public class NodiumGraphCanvasSelectionTests
         var (canvas, graph, _, _, conn) = BuildCanvasWithConnection(
             new Point(100, 100), new Point(300, 200));
 
-        // Straight route midpoint (210, 160). Place a node carrying a fixed
-        // port whose absolute position lands exactly on the stroke. Node C is
-        // positioned so (210, 160) is *outside* its rect — only the port
-        // (resolved via radius) should hit, not HitTestNode.
-        var nodeC = new Node { X = 400, Y = 400 };
+        // Stroke midpoint is (210, 160). Place nodeC one pixel to the right so (210, 160)
+        // is outside its rect: nodeC at (211, 150) 20×20 → rect (211..231, 150..170).
+        // Left-edge midpoint → AbsolutePosition (211, 160): 1 px off the click point,
+        // well within FixedPortProvider's default 20 px hit radius.
+        // HitTestNode(210, 160): 210 < Left=211 → null ✓.
+        var nodeC = new Node { X = 211, Y = 150 };
         nodeC.Width = 20;
         nodeC.Height = 20;
-        // Relative (-190, -240) + node origin (400, 400) = absolute (210, 160).
-        var floatingPort = TestNodes.PortAt(nodeC, -190, -240);
+        // Left-edge midpoint → AbsolutePosition (211+0, 150+10) = (211, 160).
+        var floatingPort = TestNodes.PortAt(nodeC, 0, 10);
         nodeC.PortProvider = new FixedPortProvider(new[] { floatingPort });
         graph.AddNode(nodeC);
 
@@ -530,7 +533,7 @@ public class NodiumGraphCanvasSelectionTests
         var handler = new RecordingSelectionHandler();
         canvas.SelectionHandler = handler;
 
-        // Straight route runs (110,110) -> (310,210). A tight marquee around
+        // Straight route runs (120,110) -> (300,210). A tight marquee around
         // the midpoint (210, 160) intersects the connection's world bbox.
         var transform = new ViewportTransform(canvas.ViewportZoom, canvas.ViewportOffset);
         var topLeft = transform.WorldToScreen(new Point(200, 150));
