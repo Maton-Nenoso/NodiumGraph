@@ -273,5 +273,31 @@ public class NodeTests
         Assert.True(node.ShowHeader);
     }
 
+    [Fact]
+    public void Shape_setter_throws_on_null()
+    {
+        var node = new Node();
+        Assert.Throws<ArgumentNullException>(() => node.Shape = null!);
+    }
+
+    [Fact]
+    public void Shape_setter_fires_PropertyChanged_on_change()
+    {
+        var node = new Node();
+        var fired = 0;
+        string? propertyName = null;
+        ((INotifyPropertyChanged)node).PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(Node.Shape))
+            {
+                fired++;
+                propertyName = e.PropertyName;
+            }
+        };
+        node.Shape = new EllipseShape();
+        Assert.Equal(1, fired);
+        Assert.Equal(nameof(Node.Shape), propertyName);
+    }
+
     private class TestNode : Node { }
 }

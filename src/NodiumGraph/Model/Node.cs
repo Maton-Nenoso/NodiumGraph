@@ -1,3 +1,4 @@
+using Avalonia;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -61,13 +62,41 @@ public class Node : INotifyPropertyChanged, IGraphElement
 
     /// <summary>
     /// Defines the geometric boundary shape used for angle-based port positioning.
-    /// Defaults to RectangleShape.
+    /// Defaults to RectangleShape. Throws ArgumentNullException if assigned null.
     /// </summary>
     public INodeShape Shape
     {
         get => _shape;
-        set => SetField(ref _shape, value);
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            SetField(ref _shape, value);
+        }
     }
+
+    /// <summary>
+    /// Returns the node-local boundary point for the anchor under the current Width/Height/Shape.
+    /// </summary>
+    public Point GetEdgePoint(PortAnchor anchor) =>
+        Shape.GetEdgePoint(anchor, Width, Height);
+
+    /// <summary>
+    /// Returns the outward unit normal at the boundary point addressed by the anchor.
+    /// </summary>
+    public Vector GetEdgeOutwardNormal(PortAnchor anchor) =>
+        Shape.GetEdgeOutwardNormal(anchor, Width, Height);
+
+    /// <summary>
+    /// Returns the canonical anchor for the given node-local boundary point.
+    /// </summary>
+    public PortAnchor InferAnchor(Point boundaryLocal) =>
+        Shape.InferAnchor(boundaryLocal, Width, Height);
+
+    /// <summary>
+    /// Returns the nearest point on the shape boundary, in center-relative coordinates.
+    /// </summary>
+    public Point GetNearestBoundaryPoint(Point centerRelative) =>
+        Shape.GetNearestBoundaryPoint(centerRelative, Width, Height);
 
     public string Title
     {

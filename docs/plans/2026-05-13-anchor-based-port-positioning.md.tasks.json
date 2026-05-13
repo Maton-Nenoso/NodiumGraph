@@ -4,7 +4,7 @@
     {
       "id": 8,
       "subject": "Task 1: PortEdge + PortAnchor",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Land foundational types with validation.\n\n**Files:**\n- Create: `src/NodiumGraph/Model/PortEdge.cs`\n- Create: `src/NodiumGraph/Model/PortAnchor.cs`\n- Create: `tests/NodiumGraph.Tests/PortAnchorTests.cs`\n\n**Verify:** `dotnet test --filter \"FullyQualifiedName~PortAnchorTests\"`\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Model/PortEdge.cs\",\"src/NodiumGraph/Model/PortAnchor.cs\",\"tests/NodiumGraph.Tests/PortAnchorTests.cs\"],\"verifyCommand\":\"dotnet test --filter \\\"FullyQualifiedName~PortAnchorTests\\\"\",\"acceptanceCriteria\":[\"PortEdge enum exists\",\"PortAnchor validates Edge\",\"PortAnchor validates Fraction\",\"Static helpers work\",\"Value equality works\"]}\n```"
     },
     {
@@ -77,5 +77,5 @@
       "description": "**Goal:** Update enumerated docs pages; sweep for stragglers.\n\n**Files:**\n- Modify: enumerated set under `docs/userguide/` (see plan)\n\n**Verify:** Manual review + `grep -rn` patterns return empty.\n\n```json:metadata\n{\"files\":[\"docs/userguide/\"],\"verifyCommand\":\"grep -rn \\\"layoutAware|ILayoutAwarePortProvider|PortEmissionDirection\\\" docs/userguide/\",\"acceptanceCriteria\":[\"No old-API references in userguide\",\"Persistence guide uses anchors\",\"Router doc invalidation accurate\",\"Model reference ctor updated\"]}\n```"
     }
   ],
-  "lastUpdated": "2026-05-13T17:32:00+02:00"
+  "lastUpdated": "2026-05-13T18:17:00+02:00"
 }
