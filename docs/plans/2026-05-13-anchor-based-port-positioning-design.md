@@ -38,9 +38,16 @@ public enum PortEdge { Left, Top, Right, Bottom }
 
 public readonly record struct PortAnchor(PortEdge Edge, double Fraction)
 {
-    public double Fraction { get; } = Validate(Fraction);
+    public PortEdge Edge { get; }     = ValidateEdge(Edge);
+    public double   Fraction { get; } = ValidateFraction(Fraction);
 
-    private static double Validate(double f)
+    private static PortEdge ValidateEdge(PortEdge edge) => edge switch
+    {
+        PortEdge.Left or PortEdge.Top or PortEdge.Right or PortEdge.Bottom => edge,
+        _ => throw new ArgumentOutOfRangeException(nameof(Edge), $"Invalid PortEdge value: {(int)edge}."),
+    };
+
+    private static double ValidateFraction(double f)
     {
         if (double.IsNaN(f) || f < 0.0 || f > 1.0)
             throw new ArgumentOutOfRangeException(nameof(Fraction), "Must be in [0, 1].");
@@ -55,7 +62,7 @@ public readonly record struct PortAnchor(PortEdge Edge, double Fraction)
 ```
 
 - `record struct` — value equality, hash, immutability, zero allocation, AOT-safe.
-- Fraction validated at construction; throws `ArgumentOutOfRangeException`, matching the library's existing validation style.
+- Both `Edge` and `Fraction` validated at construction; throws `ArgumentOutOfRangeException`. Edge validation prevents `(PortEdge)999` from leaking into shape `switch` dispatch at render/router time.
 - Static helpers per ergonomic convention.
 
 #### `INodeShape`
@@ -81,8 +88,20 @@ Coordinate conventions:
 **Boundary parameterization — full coverage per shape.** Each shape's four `PortEdge` values partition its boundary; the union of the four edges' addressable points is the entire boundary at the current `(w, h)`. Per-shape rules:
 
 - `RectangleShape` — each edge runs along its corresponding side. Trivial partition.
-- `EllipseShape` — each `PortEdge` maps to a 90° quadrant arc (`Right` = `-π/4..π/4`, etc.); the four quadrants cover the ellipse perimeter.
-- `RoundedRectangleShape` — each `PortEdge` covers half of each adjacent corner arc plus the flat segment between them. The corner arc between `Top` and `Right` is split at its midpoint (45° from the corner center); the first half belongs to `Top`, the second to `Right`. Edge fraction is parameterized by arc length over the combined region; each half-arc contributes `π·r / 4` (a quarter-circle is `π·r / 2`; half of that), the flat segment contributes `edgeLength − 2·r`, so total per-edge length is `(edgeLength − 2·r) + π·r / 2`. Continuous and monotonic from corner-midpoint to corner-midpoint.
+- `EllipseShape` — each `PortEdge` maps to a 90° quadrant arc in Avalonia screen coordinates (`+x` right, `+y` down). Parameterized clockwise; `Fraction = 0` is the start of the clockwise traversal, `Fraction = 1` is its end. With center at `(a, b)` and `a = w/2`, `b = h/2`, the point at parameter `θ` is `(a + a·cosθ, b + b·sinθ)`. Per-edge angle range:
+
+  | Edge | θ at `Fraction = 0` | θ at `Fraction = 1` | Formula |
+  |---|---|---|---|
+  | `Top`    | `-3π/4` (top-left corner-midpoint)     | `-π/4` (top-right corner-midpoint)     | `θ = -3π/4 + Fraction · π/2` |
+  | `Right`  | `-π/4` (top-right corner-midpoint)     | `π/4` (bottom-right corner-midpoint)   | `θ = -π/4  + Fraction · π/2` |
+  | `Bottom` | `π/4` (bottom-right corner-midpoint)   | `3π/4` (bottom-left corner-midpoint)   | `θ = π/4   + Fraction · π/2` |
+  | `Left`   | `3π/4` (bottom-left corner-midpoint)   | `5π/4` (top-left corner-midpoint, = -3π/4 mod 2π) | `θ = 3π/4  + Fraction · π/2` |
+
+  No wrap inside any single edge's range. Shared endpoints between adjacent edges land at the four 45° / 135° / etc. corner-midpoints and are governed by the canonical rule below.
+
+- `RoundedRectangleShape` — each `PortEdge` covers half of each adjacent corner arc plus the flat segment between them. The corner arc between `Top` and `Right` is split at its midpoint (45° from the corner center); the first half belongs to `Top`, the second to `Right`. Edge fraction is parameterized by arc length over the combined region; each half-arc contributes `π·r / 4` (a quarter-circle is `π·r / 2`; half of that), the flat segment contributes `max(0, edgeLength − 2·r)`, so total per-edge length is `max(0, edgeLength − 2·r) + π·r / 2`. Continuous and monotonic from corner-midpoint to corner-midpoint.
+
+  **Radius clamping.** The implementation uses an effective radius `rEff = min(r, w/2, h/2)`. When `r` equals or exceeds half the smaller dimension (capsule shape, or very small nodes), the flat segment is `0` and the entire edge is the two half-arcs — `Fraction = 0.5` lands at the boundary between them. Parameterization stays well-defined and the full boundary remains covered.
 
 **Canonical anchor at shared endpoints.** Adjacent edges share their boundary endpoint: `Top(1)` and `Right(0)` address the same top-right point; `Left(1)` and `Top(0)` address the top-left point; ellipse quadrants share the 45° / 135° / etc. points; rounded-rectangle edges meet at the corner-arc midpoints. To make `InferAnchor` deterministic, walk the boundary clockwise (`Top → Right → Bottom → Left → Top`) — **each edge owns its `Fraction = 0` endpoint and disclaims its `Fraction = 1` endpoint to the next edge**. Canonical anchors at shared corners:
 
@@ -124,7 +143,19 @@ public class Node : INotifyPropertyChanged
 }
 ```
 
-`Node.Shape` setter must raise `PropertyChanged(nameof(Shape))` — required to invalidate `Port.Position` cache when consumers swap a node's shape at runtime.
+`Node.Shape` setter must:
+- Reject `null` via `ArgumentNullException.ThrowIfNull(value)` — all forwarding methods dereference `Shape`; a null assignment would NRE on next read.
+- Raise `PropertyChanged(nameof(Shape))` after assignment — required to invalidate `Port.Position` cache when consumers swap a node's shape at runtime.
+
+**Zero-dimension behavior — contract for all three new shape methods.** Nodes default to `Width = Height = 0` until first measured; `Port.Position` and `Port.EmissionDirection` can be read in that interval. Each shape method has a defined behavior at zero dimensions:
+
+| Method | At `width <= 0` or `height <= 0` |
+|---|---|
+| `GetEdgePoint(edge, fraction, w, h)`         | Returns `(0, 0)` (natural degeneration of all three shapes' formulas). |
+| `GetEdgeOutwardNormal(edge, fraction, w, h)` | Returns the **cardinal unit vector for `edge`** (`Left → (-1, 0)`, etc.). Aspect-aware formulas degenerate at zero size; cardinal is a stable fallback consistent with the edge identity and what routers expect. |
+| `InferAnchor(boundaryLocal, w, h)`           | Throws `InvalidOperationException` — there is no meaningful inverse at zero size. Callers (only `DynamicPortProvider`) already guard `_owner.Width <= 0 || _owner.Height <= 0` and return null; the throw is a safety net, not a normal control-flow path. |
+
+Implementers must honor this contract on every shape; tests assert it per shape.
 
 ### Section B — `Port` wiring and invalidation chain
 
@@ -209,7 +240,7 @@ private void OnOwnerPropertyChanged(object? sender, PropertyChangedEventArgs e)
 
 `Detach()` continues to unsubscribe from `Owner.PropertyChanged`; existing call sites in `FixedPortProvider.RemovePort` / `DynamicPortProvider.CancelResolve` / `NotifyDisconnected` are unchanged.
 
-Edge case: nodes default to `Width = Height = 0` until measured. `Owner.GetEdgePoint(...)` returns `(0, 0)` on uninitialized dimensions — acceptable; `Position` becomes meaningful on first layout.
+Edge case: nodes default to `Width = Height = 0` until measured. Per the zero-dimension contract in Section A: `Position` returns `(0, 0)` and `EmissionDirection` returns the edge's cardinal unit vector. Both are stable and safe to read before first layout; values become geometrically meaningful once the node is measured.
 
 ### Section C — Provider changes
 
@@ -349,7 +380,7 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 
 **`Node`**
 - +4 forwarding wrappers.
-- `Shape` setter raises INPC (add if missing).
+- `Shape` setter raises INPC (add if missing) **and** rejects `null` via `ArgumentNullException.ThrowIfNull(value)`.
 
 **`FixedPortProvider`**
 - `bool layoutAware` ctor flag removed.
@@ -370,10 +401,12 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 
 | Area | Action |
 |---|---|
-| `PortAnchorTests` | **New.** Construction validation (NaN / negative / >1 throws), value equality, hash, static helpers. |
+| `PortAnchorTests` | **New.** Fraction validation (NaN / negative / >1 throws), `Edge` validation (`(PortEdge)999` and other out-of-range int casts throw `ArgumentOutOfRangeException`), value equality, hash, static helpers. |
+| `NodeTests` — `Shape` property | **New / extend.** Setter rejects `null` via `ArgumentNullException`; valid assignment raises `PropertyChanged(nameof(Shape))`. |
+| Zero-dimension contract | **New per shape.** `GetEdgePoint` returns `(0, 0)`; `GetEdgeOutwardNormal` returns the cardinal unit vector for the edge; `InferAnchor` throws `InvalidOperationException`. Cases for `width = 0`, `height = 0`, and both zero. |
 | `RectangleShapeTests` | **Extend.** Cover `GetEdgePoint`, `GetEdgeOutwardNormal`, `InferAnchor`. |
-| `EllipseShapeTests` | **Extend.** Same three. Lock non-cardinal emission at non-midpoint fractions. |
-| `RoundedRectangleShapeTests` | **Extend.** Same three. Corner-arc round-trip: a `boundary point` on a rounded corner round-trips exactly via `InferAnchor → GetEdgePoint`; outward normal on a corner-arc anchor is the radial vector from the corner center. |
+| `EllipseShapeTests` | **Extend.** Same three. Lock non-cardinal emission at non-midpoint fractions. Endpoint table from Section A: each edge's `Fraction = 0`/`1` lands at the documented angle (top-left corner-midpoint at `θ = -3π/4` for `Top(0)`, etc.); shared endpoints `Top(1) == Right(0)` produce the same boundary point. |
+| `RoundedRectangleShapeTests` | **Extend.** Same three. Corner-arc round-trip: a `boundary point` on a rounded corner round-trips exactly via `InferAnchor → GetEdgePoint`; outward normal on a corner-arc anchor is the radial vector from the corner center. **Capsule case** (`r >= min(w, h) / 2`): flat segment is 0; full edge is the two half-arcs; `Fraction = 0.5` lands at the arc-boundary midpoint. Parameterization stays well-defined. |
 | Round-trip property tests | **New per shape.** Three cases: (a) for canonical anchors (Fraction ∈ (0, 1) or canonical corner per Section A), `GetEdgePoint → InferAnchor` returns the same anchor within float epsilon; (b) for non-canonical shared-endpoint anchors (e.g. `Top(1)` at a corner that canonicalizes to the next edge's `Fraction = 0`), `GetEdgePoint → InferAnchor` returns the canonical equivalent — *same boundary point*, possibly different `(Edge, Fraction)`; (c) for any boundary point, `InferAnchor → GetEdgePoint` returns the same point unconditionally. |
 | `PortTests` | **Rewrite.** Anchor-based ctor, `Position` updates on Width/Height/Shape change with INPC, `EmissionDirection` matches `Owner.GetEdgeOutwardNormal` and fires INPC on Width/Height/Shape change (not on X/Y change). |
 | `FixedPortProviderTests` | **Trim.** Delete `Implements_ILayoutAwarePortProvider`, all `UpdateLayout`/snap tests. |
