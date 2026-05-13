@@ -4,6 +4,7 @@ using Avalonia.Headless.XUnit;
 using Avalonia.VisualTree;
 using NodiumGraph.Controls;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -130,8 +131,8 @@ public class NodiumGraphCanvasGraphBindingTests
         var graph = new Graph();
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 200, Y = 100 };
-        var portOut = new Port(nodeA, new Point(100, 25));
-        var portIn = new Port(nodeB, new Point(0, 25));
+        var portOut = TestNodes.PortAt(nodeA, 100, 25);
+        var portIn = TestNodes.PortAt(nodeB, 0, 25);
         graph.AddNode(nodeA);
         graph.AddNode(nodeB);
         canvas.Graph = graph;

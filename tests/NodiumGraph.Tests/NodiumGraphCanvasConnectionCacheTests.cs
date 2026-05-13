@@ -7,6 +7,7 @@ using Avalonia.Styling;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -29,8 +30,8 @@ public class NodiumGraphCanvasConnectionCacheTests
         var graph = new Graph();
         var nodeA = new Node { X = sourcePos.X, Y = sourcePos.Y };
         var nodeB = new Node { X = targetPos.X, Y = targetPos.Y };
-        var portOut = new Port(nodeA, new Point(0, 0));
-        var portIn = new Port(nodeB, new Point(0, 0));
+        var portOut = TestNodes.PortAt(nodeA, 0, 0);
+        var portIn = TestNodes.PortAt(nodeB, 0, 0);
         graph.AddNode(nodeA);
         graph.AddNode(nodeB);
         var connection = new Connection(portOut, portIn);
@@ -123,8 +124,8 @@ public class NodiumGraphCanvasConnectionCacheTests
         graph.AddNode(n1);
         graph.AddNode(n2);
         graph.AddNode(n3);
-        var c12 = new Connection(new Port(n1, new Point(0, 0)), new Port(n2, new Point(0, 0)));
-        var c13 = new Connection(new Port(n1, new Point(0, 0)), new Port(n3, new Point(0, 0)));
+        var c12 = new Connection(TestNodes.PortAt(n1, 0, 0), TestNodes.PortAt(n2, 0, 0));
+        var c13 = new Connection(TestNodes.PortAt(n1, 0, 0), TestNodes.PortAt(n3, 0, 0));
         graph.AddConnection(c12);
         graph.AddConnection(c13);
         canvas.Graph = graph;
@@ -165,8 +166,8 @@ public class NodiumGraphCanvasConnectionCacheTests
         graph.AddNode(n2);
         graph.AddNode(n3);
         graph.AddNode(n4);
-        var c12 = new Connection(new Port(n1, new Point(0, 0)), new Port(n2, new Point(0, 0)));
-        var c34 = new Connection(new Port(n3, new Point(0, 0)), new Port(n4, new Point(0, 0)));
+        var c12 = new Connection(TestNodes.PortAt(n1, 0, 0), TestNodes.PortAt(n2, 0, 0));
+        var c34 = new Connection(TestNodes.PortAt(n3, 0, 0), TestNodes.PortAt(n4, 0, 0));
         graph.AddConnection(c12);
         graph.AddConnection(c34);
         canvas.Graph = graph;
@@ -231,8 +232,8 @@ public class NodiumGraphCanvasConnectionCacheTests
         var graph = new Graph();
         var nodeA = new Node { X = 100, Y = 100 };
         var nodeB = new Node { X = 300, Y = 200 };
-        var portOut = new Port(nodeA, new Point(0, 0));
-        var portIn = new Port(nodeB, new Point(0, 0));
+        var portOut = TestNodes.PortAt(nodeA, 0, 0);
+        var portIn = TestNodes.PortAt(nodeB, 0, 0);
         graph.AddNode(nodeA);
         graph.AddNode(nodeB);
         var connection = new Connection(portOut, portIn);

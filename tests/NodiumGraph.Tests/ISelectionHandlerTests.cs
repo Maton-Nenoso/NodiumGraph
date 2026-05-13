@@ -1,6 +1,7 @@
 using Avalonia;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -24,8 +25,8 @@ public class ISelectionHandlerTests
         graph.AddNode(node1);
         graph.AddNode(node2);
 
-        var port1 = new Port(node1, new Point(0, 0));
-        var port2 = new Port(node2, new Point(0, 0));
+        var port1 = TestNodes.PortAt(node1, 0, 0);
+        var port2 = TestNodes.PortAt(node2, 0, 0);
         var connection = new Connection(port1, port2);
         graph.AddConnection(connection);
 

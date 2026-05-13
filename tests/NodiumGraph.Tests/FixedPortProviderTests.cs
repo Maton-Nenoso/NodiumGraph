@@ -1,5 +1,6 @@
 using NodiumGraph.Model;
 using Avalonia;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -12,8 +13,8 @@ public class FixedPortProviderTests
     public void Ports_returns_declared_ports()
     {
         var node = new Node();
-        var port1 = new Port(node, new Point(0, 0));
-        var port2 = new Port(node, new Point(100, 0));
+        var port1 = TestNodes.PortAt(node, 0, 0);
+        var port2 = TestNodes.PortAt(node, 100, 0);
         var provider = new FixedPortProvider(new[] { port1, port2 });
         Assert.Equal(2, provider.Ports.Count);
         Assert.Contains(port1, provider.Ports);
@@ -70,7 +71,7 @@ public class FixedPortProviderTests
     public void AddPort_adds_and_fires_event()
     {
         var node = new Node();
-        var port = new Port(node, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0);
         var provider = new FixedPortProvider();
 
         Port? received = null;
@@ -93,7 +94,7 @@ public class FixedPortProviderTests
     public void RemovePort_removes_fires_event_and_detaches()
     {
         var node = new Node();
-        var port = new Port(node, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0);
         var provider = new FixedPortProvider(new[] { port });
 
         Port? removed = null;
@@ -114,7 +115,7 @@ public class FixedPortProviderTests
     public void RemovePort_returns_false_for_absent_port()
     {
         var node = new Node();
-        var port = new Port(node, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0);
         var provider = new FixedPortProvider();
 
         var result = provider.RemovePort(port);
@@ -136,8 +137,8 @@ public class FixedPortProviderTests
     public void ResolvePort_preview_true_returns_nearest()
     {
         var node = new Node { X = 0, Y = 0 };
-        var port1 = new Port(node, new Point(0, 0));
-        var port2 = new Port(node, new Point(100, 0));
+        var port1 = TestNodes.PortAt(node, 0, 0);
+        var port2 = TestNodes.PortAt(node, 100, 0);
         var provider = new FixedPortProvider(new[] { port1, port2 });
 
         var resolved = provider.ResolvePort(new Point(5, 5), preview: true);
@@ -149,8 +150,8 @@ public class FixedPortProviderTests
     public void ResolvePort_preview_false_returns_nearest()
     {
         var node = new Node { X = 0, Y = 0 };
-        var port1 = new Port(node, new Point(0, 0));
-        var port2 = new Port(node, new Point(100, 0));
+        var port1 = TestNodes.PortAt(node, 0, 0);
+        var port2 = TestNodes.PortAt(node, 100, 0);
         var provider = new FixedPortProvider(new[] { port1, port2 });
 
         var resolved = provider.ResolvePort(new Point(5, 5), preview: false);
@@ -162,7 +163,7 @@ public class FixedPortProviderTests
     public void ResolvePort_returns_null_when_no_port_in_radius()
     {
         var node = new Node { X = 0, Y = 0 };
-        var port1 = new Port(node, new Point(0, 0));
+        var port1 = TestNodes.PortAt(node, 0, 0);
         var provider = new FixedPortProvider(new[] { port1 });
 
         var resolved = provider.ResolvePort(new Point(500, 500), preview: true);
@@ -174,8 +175,8 @@ public class FixedPortProviderTests
     public void ResolvePort_picks_closest_when_multiple_in_radius()
     {
         var node = new Node { X = 0, Y = 0 };
-        var port1 = new Port(node, new Point(0, 0));
-        var port2 = new Port(node, new Point(20, 0));
+        var port1 = TestNodes.PortAt(node, 0, 0);
+        var port2 = TestNodes.PortAt(node, 20, 0);
         var provider = new FixedPortProvider(new[] { port1, port2 });
 
         var resolved = provider.ResolvePort(new Point(18, 0), preview: true);
@@ -187,7 +188,7 @@ public class FixedPortProviderTests
     public void Custom_hit_radius_is_respected()
     {
         var node = new Node { X = 0, Y = 0 };
-        var port1 = new Port(node, new Point(0, 0));
+        var port1 = TestNodes.PortAt(node, 0, 0);
         var provider = new FixedPortProvider(new[] { port1 }, hitRadius: 5.0);
 
         Assert.NotNull(provider.ResolvePort(new Point(4, 0), preview: true));
@@ -218,7 +219,7 @@ public class FixedPortProviderTests
         // To get a predictable result, place port clearly near one edge.
         // Port at (0, 50) relative → center-relative (-50, 0) → on the left boundary already.
         var node = new Node { X = 0, Y = 0 };
-        var port = new Port(node, new Point(0, 50));  // left-center of a 100×100 node
+        var port = TestNodes.PortAt(node, 0, 50);  // left-center of a 100×100 node
         var provider = new FixedPortProvider(new[] { port }, layoutAware: true);
 
         bool layoutInvalidatedFired = false;
@@ -238,7 +239,7 @@ public class FixedPortProviderTests
         // Port at (50, 50) → center-relative (0, 0) in 100×100 node → snaps to nearest edge.
         // RectangleShape: distance to each edge is 50. It snaps to right edge (first minDist == distRight).
         var node = new Node { X = 0, Y = 0 };
-        var port = new Port(node, new Point(50, 50));  // center of a 100×100 node
+        var port = TestNodes.PortAt(node, 50, 50);  // center of a 100×100 node
         var provider = new FixedPortProvider(new[] { port }, layoutAware: true);
 
         provider.UpdateLayout(100, 100, null);
@@ -251,7 +252,7 @@ public class FixedPortProviderTests
     public void UpdateLayout_does_not_reposition_when_not_layout_aware()
     {
         var node = new Node { X = 0, Y = 0 };
-        var port = new Port(node, new Point(50, 50));
+        var port = TestNodes.PortAt(node, 50, 50);
         var provider = new FixedPortProvider(new[] { port }, layoutAware: false);
 
         bool layoutInvalidatedFired = false;
@@ -268,7 +269,7 @@ public class FixedPortProviderTests
     {
         // Use RectangleShape explicitly — same behavior, just verifying shape param is accepted
         var node = new Node { X = 0, Y = 0 };
-        var port = new Port(node, new Point(0, 50));
+        var port = TestNodes.PortAt(node, 0, 50);
         var provider = new FixedPortProvider(new[] { port }, layoutAware: true);
 
         provider.UpdateLayout(100, 100, new RectangleShape());

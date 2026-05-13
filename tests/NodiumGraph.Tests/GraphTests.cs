@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using NodiumGraph.Model;
 using Avalonia;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -45,8 +46,8 @@ public class GraphTests
         var graph = new Graph();
         var nodeA = new Node();
         var nodeB = new Node();
-        var portA = new Port(nodeA, new Point(0, 0));
-        var portB = new Port(nodeB, new Point(0, 0));
+        var portA = TestNodes.PortAt(nodeA, 0, 0);
+        var portB = TestNodes.PortAt(nodeB, 0, 0);
         var connection = new Connection(portA, portB);
 
         graph.AddNode(nodeA);
@@ -65,8 +66,8 @@ public class GraphTests
         var graph = new Graph();
         var node = new Node();
         graph.AddNode(node);
-        var source = new Port(node, new Point(0, 0));
-        var target = new Port(node, new Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var conn = new Connection(source, target);
         graph.AddConnection(conn);
         Assert.Single(graph.Connections);
@@ -78,8 +79,8 @@ public class GraphTests
         var graph = new Graph();
         var node = new Node();
         graph.AddNode(node);
-        var source = new Port(node, new Point(0, 0));
-        var target = new Port(node, new Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var conn = new Connection(source, target);
         graph.AddConnection(conn);
         graph.RemoveConnection(conn);
@@ -136,8 +137,8 @@ public class GraphTests
         var graph = new Graph();
         var node = new Node();
         graph.AddNode(node);
-        var source = new Port(node, new Avalonia.Point(0, 0));
-        var target = new Port(node, new Avalonia.Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var conn = new Connection(source, target);
         graph.AddConnection(conn);
         Assert.Throws<InvalidOperationException>(() => graph.AddConnection(conn));
@@ -176,8 +177,8 @@ public class GraphTests
         var graph = new Graph();
         var node = new Node();
         graph.AddNode(node);
-        var source = new Port(node, new Point(0, 0));
-        var target = new Port(node, new Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var conn = new Connection(source, target);
         graph.AddConnection(conn);
         graph.RemoveConnection(conn);
@@ -218,8 +219,8 @@ public class GraphTests
         var nodeA = new Node();
         var nodeB = new Node();
         graph.AddNode(nodeB); // only B in graph
-        var portA = new Port(nodeA, new Point(0, 0));
-        var portB = new Port(nodeB, new Point(0, 0));
+        var portA = TestNodes.PortAt(nodeA, 0, 0);
+        var portB = TestNodes.PortAt(nodeB, 0, 0);
 
         Assert.Throws<InvalidOperationException>(() =>
             graph.AddConnection(new Connection(portA, portB)));
@@ -232,8 +233,8 @@ public class GraphTests
         var nodeA = new Node();
         var nodeB = new Node();
         graph.AddNode(nodeA); // only A in graph
-        var portA = new Port(nodeA, new Point(0, 0));
-        var portB = new Port(nodeB, new Point(0, 0));
+        var portA = TestNodes.PortAt(nodeA, 0, 0);
+        var portB = TestNodes.PortAt(nodeB, 0, 0);
 
         Assert.Throws<InvalidOperationException>(() =>
             graph.AddConnection(new Connection(portA, portB)));
@@ -315,9 +316,9 @@ public class GraphTests
         var a = new Node { X = 0, Y = 0 };
         var b = new Node { X = 100, Y = 0 };
         var c = new Node { X = 200, Y = 0 };
-        a.PortProvider = new FixedPortProvider(new[] { new Port(a, new Point(50, 50)) });
-        b.PortProvider = new FixedPortProvider(new[] { new Port(b, new Point(0, 50)) });
-        c.PortProvider = new FixedPortProvider(new[] { new Port(c, new Point(0, 50)) });
+        a.PortProvider = new FixedPortProvider(new[] { TestNodes.PortAt(a, 50, 50) });
+        b.PortProvider = new FixedPortProvider(new[] { TestNodes.PortAt(b, 0, 50) });
+        c.PortProvider = new FixedPortProvider(new[] { TestNodes.PortAt(c, 0, 50) });
 
         graph.AddNode(a);
         graph.AddNode(b);
@@ -381,8 +382,8 @@ public class GraphTests
         var graph = new Graph();
         var node = new Node();
         graph.AddNode(node);
-        var source = new Port(node, new Point(0, 0));
-        var target = new Port(node, new Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var connection = new Connection(source, target);
         graph.AddConnection(connection);
 
@@ -398,8 +399,8 @@ public class GraphTests
         var graph = new Graph();
         var node = new Node();
         graph.AddNode(node);
-        var source = new Port(node, new Point(0, 0));
-        var target = new Port(node, new Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var connection = new Connection(source, target);
         graph.AddConnection(connection);
 
@@ -435,8 +436,8 @@ public class GraphTests
         var graph = new Graph();
         var node = new Node();
         graph.AddNode(node);
-        var source = new Port(node, new Point(0, 0));
-        var target = new Port(node, new Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var connection = new Connection(source, target);
         graph.AddConnection(connection);
 
@@ -457,8 +458,8 @@ public class GraphTests
         var graph = new Graph();
         var node = new Node();
         graph.AddNode(node);
-        var source = new Port(node, new Point(0, 0));
-        var target = new Port(node, new Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var connection = new Connection(source, target);
         graph.AddConnection(connection);
 
@@ -498,8 +499,8 @@ public class GraphTests
         var g2 = new Graph();
         var node = new Node();
         g2.AddNode(node);
-        var source = new Port(node, new Point(0, 0));
-        var target = new Port(node, new Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var foreignConnection = new Connection(source, target);
         g2.AddConnection(foreignConnection);
 
@@ -549,8 +550,8 @@ public class GraphTests
         var n2 = new Node();
         graph.AddNode(n1);
         graph.AddNode(n2);
-        var source = new Port(n1, new Point(0, 0));
-        var target = new Port(n2, new Point(0, 0));
+        var source = TestNodes.PortAt(n1, 0, 0);
+        var target = TestNodes.PortAt(n2, 0, 0);
         var conn = new Connection(source, target);
         graph.AddConnection(conn);
         graph.SelectedItems.Add(conn);
@@ -570,8 +571,8 @@ public class GraphTests
         var n2 = new Node();
         graph.AddNode(n1);
         graph.AddNode(n2);
-        var source = new Port(n1, new Point(0, 0));
-        var target = new Port(n2, new Point(0, 0));
+        var source = TestNodes.PortAt(n1, 0, 0);
+        var target = TestNodes.PortAt(n2, 0, 0);
         var conn = new Connection(source, target);
         graph.AddConnection(conn);
         graph.SelectedItems.Add(n1);
@@ -595,10 +596,10 @@ public class GraphTests
         graph.AddNode(n1);
         graph.AddNode(n2);
         graph.AddNode(n3);
-        var p1 = new Port(n1, new Point(0, 0));
-        var p2a = new Port(n2, new Point(0, 0));
-        var p2b = new Port(n2, new Point(10, 0));
-        var p3 = new Port(n3, new Point(0, 0));
+        var p1 = TestNodes.PortAt(n1, 0, 0);
+        var p2a = TestNodes.PortAt(n2, 0, 0);
+        var p2b = TestNodes.PortAt(n2, 10, 0);
+        var p3 = TestNodes.PortAt(n3, 0, 0);
         var conn12 = new Connection(p1, p2a);
         var conn23 = new Connection(p2b, p3);
         graph.AddConnection(conn12);
@@ -628,12 +629,12 @@ public class GraphTests
         graph.AddNode(n2);
         graph.AddNode(n3);
 
-        var p1a = new Port(n1, new Point(0, 0));
-        var p1b = new Port(n1, new Point(10, 0));
-        var p2a = new Port(n2, new Point(0, 0));
-        var p2b = new Port(n2, new Point(10, 0));
-        var p3a = new Port(n3, new Point(0, 0));
-        var p3b = new Port(n3, new Point(10, 0));
+        var p1a = TestNodes.PortAt(n1, 0, 0);
+        var p1b = TestNodes.PortAt(n1, 10, 0);
+        var p2a = TestNodes.PortAt(n2, 0, 0);
+        var p2b = TestNodes.PortAt(n2, 10, 0);
+        var p3a = TestNodes.PortAt(n3, 0, 0);
+        var p3b = TestNodes.PortAt(n3, 10, 0);
 
         var c1 = new Connection(p1a, p2a);
         var c2 = new Connection(p2b, p3a);
@@ -670,8 +671,8 @@ public class GraphTests
         var n2 = new Node();
         graph.AddNode(n1);
         graph.AddNode(n2);
-        var source = new Port(n1, new Point(0, 0));
-        var target = new Port(n2, new Point(0, 0));
+        var source = TestNodes.PortAt(n1, 0, 0);
+        var target = TestNodes.PortAt(n2, 0, 0);
         var conn = new Connection(source, target);
         graph.AddConnection(conn);
         graph.SelectedItems.Add(n1);

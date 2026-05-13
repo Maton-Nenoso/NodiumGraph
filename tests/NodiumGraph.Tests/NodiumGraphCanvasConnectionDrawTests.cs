@@ -4,6 +4,7 @@ using NodiumGraph;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -18,7 +19,7 @@ public class NodiumGraphCanvasConnectionDrawTests
         var node = new Node { X = 100, Y = 100 };
         node.Width = 200;
         node.Height = 100;
-        var port = new Port(node, "Out", PortFlow.Output, new Point(200, 50));
+        var port = TestNodes.PortAt(node, 200, 50, "Out", PortFlow.Output);
         node.PortProvider = new FixedPortProvider(new[] { port });
         graph.AddNode(node);
         canvas.Graph = graph;
@@ -36,7 +37,7 @@ public class NodiumGraphCanvasConnectionDrawTests
         var node = new Node { X = 100, Y = 100 };
         node.Width = 200;
         node.Height = 100;
-        var port = new Port(node, "Out", PortFlow.Output, new Point(200, 50));
+        var port = TestNodes.PortAt(node, 200, 50, "Out", PortFlow.Output);
         node.PortProvider = new FixedPortProvider(new[] { port });
         graph.AddNode(node);
         canvas.Graph = graph;
@@ -61,13 +62,13 @@ public class NodiumGraphCanvasConnectionDrawTests
         var nodeA = new Node { X = 0, Y = 0 };
         nodeA.Width = 100;
         nodeA.Height = 60;
-        var portOut = new Port(nodeA, "Out", PortFlow.Output, new Point(100, 30));
+        var portOut = TestNodes.PortAt(nodeA, 100, 30, "Out", PortFlow.Output);
         nodeA.PortProvider = new FixedPortProvider(new[] { portOut });
 
         var nodeB = new Node { X = 300, Y = 0 };
         nodeB.Width = 100;
         nodeB.Height = 60;
-        var portIn = new Port(nodeB, "In", PortFlow.Input, new Point(0, 30));
+        var portIn = TestNodes.PortAt(nodeB, 0, 30, "In", PortFlow.Input);
         nodeB.PortProvider = new FixedPortProvider(new[] { portIn });
 
         graph.AddNode(nodeA);
@@ -101,8 +102,8 @@ public class NodiumGraphCanvasConnectionDrawTests
         var graph = new Graph();
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 200, Y = 0 };
-        var portOut = new Port(nodeA, "Out", PortFlow.Output, new Point(100, 30));
-        var portIn = new Port(nodeB, "In", PortFlow.Input, new Point(0, 30));
+        var portOut = TestNodes.PortAt(nodeA, 100, 30, "Out", PortFlow.Output);
+        var portIn = TestNodes.PortAt(nodeB, 0, 30, "In", PortFlow.Input);
         nodeA.PortProvider = new FixedPortProvider(new[] { portOut });
         nodeB.PortProvider = new FixedPortProvider(new[] { portIn });
         graph.AddNode(nodeA);
@@ -171,7 +172,7 @@ public class NodiumGraphCanvasConnectionDrawTests
         var node = new Node { X = 0, Y = 0 };
         node.Width = 100;
         node.Height = 100;
-        node.PortProvider = new FixedPortProvider(new[] { new Port(node, "Out", PortFlow.Output, new Point(100, 50)) });
+        node.PortProvider = new FixedPortProvider(new[] { TestNodes.PortAt(node, 100, 50, "Out", PortFlow.Output) });
         graph.AddNode(node);
         canvas.Graph = graph;
 

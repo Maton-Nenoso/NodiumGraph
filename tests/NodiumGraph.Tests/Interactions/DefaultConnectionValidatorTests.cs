@@ -1,6 +1,7 @@
 using Avalonia;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests.Interactions;
@@ -15,7 +16,7 @@ public class DefaultConnectionValidatorTests
     public void Rejects_SamePort()
     {
         var node = NewNode();
-        var port = new Port(node, "out", PortFlow.Output, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0, "out", PortFlow.Output);
         Assert.False(DefaultConnectionValidator.Instance.CanConnect(port, port));
     }
 
@@ -23,8 +24,8 @@ public class DefaultConnectionValidatorTests
     public void Rejects_SameOwner()
     {
         var node = NewNode();
-        var output = new Port(node, "out", PortFlow.Output, new Point(0, 0));
-        var input = new Port(node, "in", PortFlow.Input, new Point(10, 0));
+        var output = TestNodes.PortAt(node, 0, 0, "out", PortFlow.Output);
+        var input = TestNodes.PortAt(node, 10, 0, "in", PortFlow.Input);
         Assert.False(DefaultConnectionValidator.Instance.CanConnect(output, input));
     }
 
@@ -33,8 +34,8 @@ public class DefaultConnectionValidatorTests
     {
         var nodeA = NewNode();
         var nodeB = NewNode();
-        var a = new Port(nodeA, "out", PortFlow.Output, new Point(0, 0));
-        var b = new Port(nodeB, "out", PortFlow.Output, new Point(0, 0));
+        var a = TestNodes.PortAt(nodeA, 0, 0, "out", PortFlow.Output);
+        var b = TestNodes.PortAt(nodeB, 0, 0, "out", PortFlow.Output);
         Assert.False(DefaultConnectionValidator.Instance.CanConnect(a, b));
     }
 
@@ -43,8 +44,8 @@ public class DefaultConnectionValidatorTests
     {
         var nodeA = NewNode();
         var nodeB = NewNode();
-        var a = new Port(nodeA, "in", PortFlow.Input, new Point(0, 0));
-        var b = new Port(nodeB, "in", PortFlow.Input, new Point(0, 0));
+        var a = TestNodes.PortAt(nodeA, 0, 0, "in", PortFlow.Input);
+        var b = TestNodes.PortAt(nodeB, 0, 0, "in", PortFlow.Input);
         Assert.False(DefaultConnectionValidator.Instance.CanConnect(a, b));
     }
 
@@ -53,8 +54,8 @@ public class DefaultConnectionValidatorTests
     {
         var nodeA = NewNode();
         var nodeB = NewNode();
-        var source = new Port(nodeA, "out", PortFlow.Output, new Point(0, 0));
-        var target = new Port(nodeB, "in", PortFlow.Input, new Point(0, 0));
+        var source = TestNodes.PortAt(nodeA, 0, 0, "out", PortFlow.Output);
+        var target = TestNodes.PortAt(nodeB, 0, 0, "in", PortFlow.Input);
         Assert.True(DefaultConnectionValidator.Instance.CanConnect(source, target));
     }
 
@@ -63,8 +64,10 @@ public class DefaultConnectionValidatorTests
     {
         var nodeA = NewNode();
         var nodeB = NewNode();
-        var source = new Port(nodeA, "out", PortFlow.Output, new Point(0, 0)) { DataType = "number" };
-        var target = new Port(nodeB, "in", PortFlow.Input, new Point(0, 0)) { DataType = "number" };
+        var source = TestNodes.PortAt(nodeA, 0, 0, "out", PortFlow.Output);
+        source.DataType = "number";
+        var target = TestNodes.PortAt(nodeB, 0, 0, "in", PortFlow.Input);
+        target.DataType = "number";
         Assert.True(DefaultConnectionValidator.Instance.CanConnect(source, target));
     }
 
@@ -73,8 +76,10 @@ public class DefaultConnectionValidatorTests
     {
         var nodeA = NewNode();
         var nodeB = NewNode();
-        var source = new Port(nodeA, "out", PortFlow.Output, new Point(0, 0)) { DataType = SampleKind.Number };
-        var target = new Port(nodeB, "in", PortFlow.Input, new Point(0, 0)) { DataType = SampleKind.Number };
+        var source = TestNodes.PortAt(nodeA, 0, 0, "out", PortFlow.Output);
+        source.DataType = SampleKind.Number;
+        var target = TestNodes.PortAt(nodeB, 0, 0, "in", PortFlow.Input);
+        target.DataType = SampleKind.Number;
         Assert.True(DefaultConnectionValidator.Instance.CanConnect(source, target));
     }
 
@@ -83,8 +88,10 @@ public class DefaultConnectionValidatorTests
     {
         var nodeA = NewNode();
         var nodeB = NewNode();
-        var source = new Port(nodeA, "out", PortFlow.Output, new Point(0, 0)) { DataType = typeof(int) };
-        var target = new Port(nodeB, "in", PortFlow.Input, new Point(0, 0)) { DataType = typeof(int) };
+        var source = TestNodes.PortAt(nodeA, 0, 0, "out", PortFlow.Output);
+        source.DataType = typeof(int);
+        var target = TestNodes.PortAt(nodeB, 0, 0, "in", PortFlow.Input);
+        target.DataType = typeof(int);
         Assert.True(DefaultConnectionValidator.Instance.CanConnect(source, target));
     }
 
@@ -93,8 +100,10 @@ public class DefaultConnectionValidatorTests
     {
         var nodeA = NewNode();
         var nodeB = NewNode();
-        var source = new Port(nodeA, "out", PortFlow.Output, new Point(0, 0)) { DataType = "number" };
-        var target = new Port(nodeB, "in", PortFlow.Input, new Point(0, 0)) { DataType = "string" };
+        var source = TestNodes.PortAt(nodeA, 0, 0, "out", PortFlow.Output);
+        source.DataType = "number";
+        var target = TestNodes.PortAt(nodeB, 0, 0, "in", PortFlow.Input);
+        target.DataType = "string";
         Assert.False(DefaultConnectionValidator.Instance.CanConnect(source, target));
     }
 
@@ -103,8 +112,9 @@ public class DefaultConnectionValidatorTests
     {
         var nodeA = NewNode();
         var nodeB = NewNode();
-        var source = new Port(nodeA, "out", PortFlow.Output, new Point(0, 0));
-        var target = new Port(nodeB, "in", PortFlow.Input, new Point(0, 0)) { DataType = "number" };
+        var source = TestNodes.PortAt(nodeA, 0, 0, "out", PortFlow.Output);
+        var target = TestNodes.PortAt(nodeB, 0, 0, "in", PortFlow.Input);
+        target.DataType = "number";
         Assert.False(DefaultConnectionValidator.Instance.CanConnect(source, target));
     }
 }

@@ -1,6 +1,7 @@
 using Avalonia;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -13,8 +14,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 200, Y = 100 };
-        var source = new Port(nodeA, new Point(100, 25));
-        var target = new Port(nodeB, new Point(0, 25));
+        var source = TestNodes.PortAt(nodeA, 100, 25);
+        var target = TestNodes.PortAt(nodeB, 0, 25);
 
         var points = router.Route(source, target);
 
@@ -36,8 +37,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 200, Y = 0 };
-        var source = new Port(nodeA, new Point(100, 25));
-        var target = new Port(nodeB, new Point(0, 25));
+        var source = TestNodes.PortAt(nodeA, 100, 25);
+        var target = TestNodes.PortAt(nodeB, 0, 25);
 
         var points = router.Route(source, target);
 
@@ -50,8 +51,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 100, Y = 50 };
         var nodeB = new Node { X = 100, Y = 200 };
-        var source = new Port(nodeA, new Point(0, 0));  // AbsolutePosition = (100, 50)
-        var target = new Port(nodeB, new Point(0, 0));  // AbsolutePosition = (100, 200)
+        var source = TestNodes.PortAt(nodeA, 0, 0);  // AbsolutePosition = (100, 50)
+        var target = TestNodes.PortAt(nodeB, 0, 0);  // AbsolutePosition = (100, 200)
         var points = router.Route(source, target);
 
         Assert.Equal(2, points.Count);
@@ -65,8 +66,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 300, Y = 100, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(100, 25));  // right edge → H
-        var target = new Port(nodeB, new Point(0, 25));    // left edge  → H
+        var source = TestNodes.PortAt(nodeA, 100, 25);  // right edge → H
+        var target = TestNodes.PortAt(nodeB, 0, 25);    // left edge  → H
 
         var points = router.Route(source, target);
 
@@ -83,8 +84,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 300, Y = 0, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(100, 25));  // right edge → H
-        var target = new Port(nodeB, new Point(0, 25));    // left edge  → H
+        var source = TestNodes.PortAt(nodeA, 100, 25);  // right edge → H
+        var target = TestNodes.PortAt(nodeB, 0, 25);    // left edge  → H
 
         var points = router.Route(source, target);
 
@@ -99,8 +100,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 200, Y = 300, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V (down)
-        var target = new Port(nodeB, new Point(50, 0));     // top edge    → V (up)
+        var source = TestNodes.PortAt(nodeA, 50, 50);    // bottom edge → V (down)
+        var target = TestNodes.PortAt(nodeB, 50, 0);     // top edge    → V (up)
 
         var points = router.Route(source, target);
 
@@ -117,8 +118,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 0, Y = 300, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V
-        var target = new Port(nodeB, new Point(50, 0));     // top edge    → V
+        var source = TestNodes.PortAt(nodeA, 50, 50);    // bottom edge → V
+        var target = TestNodes.PortAt(nodeB, 50, 0);     // top edge    → V
 
         var points = router.Route(source, target);
 
@@ -133,8 +134,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 300, Y = 200, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(100, 25));   // right edge → H
-        var target = new Port(nodeB, new Point(50, 0));     // top edge   → V (up)
+        var source = TestNodes.PortAt(nodeA, 100, 25);   // right edge → H
+        var target = TestNodes.PortAt(nodeB, 50, 0);     // top edge   → V (up)
 
         var points = router.Route(source, target);
 
@@ -150,8 +151,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 300, Y = 200, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V (down)
-        var target = new Port(nodeB, new Point(0, 25));     // left edge   → H
+        var source = TestNodes.PortAt(nodeA, 50, 50);    // bottom edge → V (down)
+        var target = TestNodes.PortAt(nodeB, 0, 25);     // left edge   → H
 
         var points = router.Route(source, target);
 
@@ -168,8 +169,8 @@ public class StepRouterTests
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         // Place nodeB so that target.AbsolutePosition.Y == source.AbsolutePosition.Y (aligned row).
         var nodeB = new Node { X = 300, Y = 25, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(100, 25));   // right edge → H; absolute = (100, 25)
-        var target = new Port(nodeB, new Point(50, 0));     // top edge   → V; absolute = (350, 25)
+        var source = TestNodes.PortAt(nodeA, 100, 25);   // right edge → H; absolute = (100, 25)
+        var target = TestNodes.PortAt(nodeB, 50, 0);     // top edge   → V; absolute = (350, 25)
 
         var points = router.Route(source, target);
 
@@ -186,8 +187,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 50, Y = 300, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V; absolute = (50, 50)
-        var target = new Port(nodeB, new Point(0, 25));     // left edge   → H; absolute = (50, 325)
+        var source = TestNodes.PortAt(nodeA, 50, 50);    // bottom edge → V; absolute = (50, 50)
+        var target = TestNodes.PortAt(nodeB, 0, 25);     // left edge   → H; absolute = (50, 325)
 
         var points = router.Route(source, target);
 
@@ -207,8 +208,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 400, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 0, Y = 200, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(100, 25));   // right edge → H
-        var target = new Port(nodeB, new Point(100, 25));   // right edge → H
+        var source = TestNodes.PortAt(nodeA, 100, 25);   // right edge → H
+        var target = TestNodes.PortAt(nodeB, 100, 25);   // right edge → H
 
         var points = router.Route(source, target);
 
@@ -225,8 +226,8 @@ public class StepRouterTests
         var router = new StepRouter();
         var nodeA = new Node { X = 0, Y = 400, Width = 100, Height = 50 };
         var nodeB = new Node { X = 200, Y = 0, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(50, 50));    // bottom edge → V (down)
-        var target = new Port(nodeB, new Point(50, 50));    // bottom edge → V (down)
+        var source = TestNodes.PortAt(nodeA, 50, 50);    // bottom edge → V (down)
+        var target = TestNodes.PortAt(nodeB, 50, 50);    // bottom edge → V (down)
 
         var points = router.Route(source, target);
 

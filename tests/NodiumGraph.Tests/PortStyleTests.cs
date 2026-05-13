@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Avalonia;
 using Avalonia.Media;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -123,7 +124,7 @@ public class PortStyleTests
     public void Port_Style_property_defaults_to_null()
     {
         var node = new Node();
-        var port = new Port(node, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0);
         Assert.Null(port.Style);
     }
 
@@ -131,7 +132,7 @@ public class PortStyleTests
     public void Port_Style_set_and_get()
     {
         var node = new Node();
-        var port = new Port(node, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0);
         var style = new PortStyle { Fill = Brushes.Red };
         port.Style = style;
         Assert.Same(style, port.Style);
@@ -141,7 +142,7 @@ public class PortStyleTests
     public void Port_Style_fires_PropertyChanged()
     {
         var node = new Node();
-        var port = new Port(node, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0);
         var fired = false;
         ((INotifyPropertyChanged)port).PropertyChanged += (_, e) =>
         {
@@ -156,7 +157,7 @@ public class PortStyleTests
     public void Port_implements_INotifyPropertyChanged()
     {
         var node = new Node();
-        var port = new Port(node, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0);
         Assert.IsAssignableFrom<INotifyPropertyChanged>(port);
     }
 
@@ -164,7 +165,7 @@ public class PortStyleTests
     public void Port_Position_change_fires_PropertyChanged()
     {
         var node = new Node();
-        var port = new Port(node, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0);
         var fired = false;
         ((INotifyPropertyChanged)port).PropertyChanged += (_, e) =>
         {
@@ -179,7 +180,7 @@ public class PortStyleTests
     public void Port_Position_same_value_does_not_fire()
     {
         var node = new Node();
-        var port = new Port(node, new Point(5, 10));
+        var port = TestNodes.PortAt(node, 5, 10);
         var fired = false;
         ((INotifyPropertyChanged)port).PropertyChanged += (_, _) => fired = true;
 
@@ -200,7 +201,7 @@ public class PortStyleTests
     public void Setting_same_Style_does_not_fire_PropertyChanged()
     {
         var node = new Node();
-        var port = new Port(node, new Point(0, 0));
+        var port = TestNodes.PortAt(node, 0, 0);
         var style = new PortStyle();
         port.Style = style;
 

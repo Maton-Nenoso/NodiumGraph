@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -17,8 +18,8 @@ public class ConnectionHitTesterTests
     {
         var nodeA = new Node { X = ax, Y = ay };
         var nodeB = new Node { X = bx, Y = by };
-        var source = new Port(nodeA, sourceLocal ?? new Point(0, 0));
-        var target = new Port(nodeB, targetLocal ?? new Point(0, 0));
+        var source = TestNodes.PortAt(nodeA, sourceLocal ?? new Point(0, 0));
+        var target = TestNodes.PortAt(nodeB, targetLocal ?? new Point(0, 0));
         return new Connection(source, target);
     }
 

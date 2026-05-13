@@ -7,6 +7,7 @@ using Avalonia.Platform;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 using Size = Avalonia.Size;
 
@@ -286,8 +287,8 @@ public class NodiumGraphCanvasSelectionTests
         nodeB.Height = 20;
         // Port at (10, 10) relative → middle of node. Emission direction is stable
         // (ties break horizontal-first to (-1, 0)) but StraightRouter ignores it.
-        var portOut = new Port(nodeA, new Point(10, 10));
-        var portIn = new Port(nodeB, new Point(10, 10));
+        var portOut = TestNodes.PortAt(nodeA, 10, 10);
+        var portIn = TestNodes.PortAt(nodeB, 10, 10);
         graph.AddNode(nodeA);
         graph.AddNode(nodeB);
         var connection = new Connection(portOut, portIn);
@@ -452,7 +453,7 @@ public class NodiumGraphCanvasSelectionTests
         nodeC.Width = 20;
         nodeC.Height = 20;
         // Relative (-190, -240) + node origin (400, 400) = absolute (210, 160).
-        var floatingPort = new Port(nodeC, new Point(-190, -240));
+        var floatingPort = TestNodes.PortAt(nodeC, -190, -240);
         nodeC.PortProvider = new FixedPortProvider(new[] { floatingPort });
         graph.AddNode(nodeC);
 

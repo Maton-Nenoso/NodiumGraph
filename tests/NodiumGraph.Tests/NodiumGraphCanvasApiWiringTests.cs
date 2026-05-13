@@ -4,6 +4,7 @@ using Avalonia.Input;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -38,7 +39,7 @@ public class NodiumGraphCanvasApiWiringTests
         var canvas = new NodiumGraphCanvas();
         var graph = new Graph();
         var node = new Node { X = 50, Y = 50 };
-        var port = new Port(node, "Out", PortFlow.Output, new Point(100, 30));
+        var port = TestNodes.PortAt(node, 100, 30, "Out", PortFlow.Output);
         node.PortProvider = new FixedPortProvider(new[] { port });
         graph.AddNode(node);
         canvas.Graph = graph;

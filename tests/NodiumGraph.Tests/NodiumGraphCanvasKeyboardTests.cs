@@ -5,6 +5,7 @@ using Avalonia.Headless.XUnit;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -87,8 +88,8 @@ public class NodiumGraphCanvasKeyboardTests
         var nodeB = new Node();
         graph.AddNode(nodeA);
         graph.AddNode(nodeB);
-        var source = new Port(nodeA, new Point(100, 25));
-        var target = new Port(nodeB, new Point(0, 25));
+        var source = TestNodes.PortAt(nodeA, 100, 25);
+        var target = TestNodes.PortAt(nodeB, 0, 25);
         var connection = new Connection(source, target);
         graph.AddConnection(connection);
         canvas.Graph = graph;

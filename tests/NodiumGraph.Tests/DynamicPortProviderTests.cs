@@ -1,5 +1,6 @@
 using NodiumGraph.Model;
 using Avalonia;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -190,7 +191,7 @@ public class DynamicPortProviderTests
 
         // Connect port1 to a port on another node, leave port2 unconnected
         var other = MakeNode(x: 300);
-        var otherPort = new Port(other, new Point(0, 25));
+        var otherPort = TestNodes.PortAt(other, 0, 25);
         graph.AddNode(other);
         graph.AddConnection(new Connection(port1, otherPort));
 

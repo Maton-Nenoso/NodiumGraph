@@ -4,6 +4,7 @@ using Avalonia.Media;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -14,8 +15,8 @@ public class ConnectionRendererTests
     {
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = bx, Y = by };
-        var source = new Port(nodeA, new Point(100, 25));
-        var target = new Port(nodeB, new Point(0, 25));
+        var source = TestNodes.PortAt(nodeA, 100, 25);
+        var target = TestNodes.PortAt(nodeB, 0, 25);
         return new Connection(source, target);
     }
 
@@ -28,8 +29,8 @@ public class ConnectionRendererTests
         // the viewport push so the cached geometry stays stable across pan/zoom.
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 200, Y = 100 };
-        var source = new Port(nodeA, new Point(100, 25));
-        var target = new Port(nodeB, new Point(0, 25));
+        var source = TestNodes.PortAt(nodeA, 100, 25);
+        var target = TestNodes.PortAt(nodeB, 0, 25);
         var connection = new Connection(source, target);
         var router = new StraightRouter();
         var style = new ConnectionStyle();
@@ -193,8 +194,8 @@ public class ConnectionRendererTests
         // and must leave the stroke using the original points.
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 10, Y = 0 };
-        var source = new Port(nodeA, new Point(0, 0));
-        var target = new Port(nodeB, new Point(0, 0));
+        var source = TestNodes.PortAt(nodeA, 0, 0);
+        var target = TestNodes.PortAt(nodeB, 0, 0);
         var connection = new Connection(source, target);
         var router = new StraightRouter();
         var style = new ConnectionStyle(targetEndpoint: new ArrowEndpoint(size: 20, filled: true));
@@ -214,8 +215,8 @@ public class ConnectionRendererTests
         // Polyline with coincident p0==p1 — source tangent is degenerate, source endpoint must be skipped.
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 20, Y = 0 };
-        var source = new Port(nodeA, new Point(5, 5));
-        var target = new Port(nodeB, new Point(0, 5));
+        var source = TestNodes.PortAt(nodeA, 5, 5);
+        var target = TestNodes.PortAt(nodeB, 0, 5);
         var connection = new Connection(source, target);
         var router = new DegenerateFirstSegmentRouter();
         var style = new ConnectionStyle(
@@ -242,8 +243,8 @@ public class ConnectionRendererTests
         // endpoint distance is ~224, but the guard must look at per-segment lengths (100).
         var nodeA = new Node { X = 0, Y = 0 };
         var nodeB = new Node { X = 200, Y = 100 };
-        var source = new Port(nodeA, new Point(0, 0));
-        var target = new Port(nodeB, new Point(0, 0));
+        var source = TestNodes.PortAt(nodeA, 0, 0);
+        var target = TestNodes.PortAt(nodeB, 0, 0);
         var connection = new Connection(source, target);
         var router = new FixedZigZagRouter();
         var style = new ConnectionStyle(targetEndpoint: new ArrowEndpoint(size: 5, filled: true));

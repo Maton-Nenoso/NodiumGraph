@@ -3,6 +3,7 @@ using Avalonia.Headless.XUnit;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -61,8 +62,8 @@ public class NodiumGraphCanvasCuttingTests
         nodeA.Width = 100; nodeA.Height = 60;
         var nodeB = new Node { X = 200, Y = 100 };
         nodeB.Width = 100; nodeB.Height = 60;
-        var portOut = new Port(nodeA, new Point(100, 30));
-        var portIn = new Port(nodeB, new Point(0, 30));
+        var portOut = TestNodes.PortAt(nodeA, 100, 30);
+        var portIn = TestNodes.PortAt(nodeB, 0, 30);
         nodeA.PortProvider = new FixedPortProvider(new[] { portOut });
         nodeB.PortProvider = new FixedPortProvider(new[] { portIn });
         graph.AddNode(nodeA);

@@ -1,6 +1,7 @@
 using Avalonia;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -13,8 +14,8 @@ public class BezierRouterTests
         var router = new BezierRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 300, Y = 0, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(100, 25));  // right edge
-        var target = new Port(nodeB, new Point(0, 25));    // left edge
+        var source = TestNodes.PortAt(nodeA, 100, 25);  // right edge
+        var target = TestNodes.PortAt(nodeB, 0, 25);    // left edge
 
         var points = router.Route(source, target);
 
@@ -29,8 +30,8 @@ public class BezierRouterTests
         var router = new BezierRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 300, Y = 0, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(100, 25));  // right edge
-        var target = new Port(nodeB, new Point(0, 25));    // left edge
+        var source = TestNodes.PortAt(nodeA, 100, 25);  // right edge
+        var target = TestNodes.PortAt(nodeB, 0, 25);    // left edge
 
         var points = router.Route(source, target);
 
@@ -45,13 +46,13 @@ public class BezierRouterTests
     {
         var router = new BezierRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(100, 25));  // right edge
+        var source = TestNodes.PortAt(nodeA, 100, 25);  // right edge
 
         var nodeNear = new Node { X = 200, Y = 0, Width = 100, Height = 50 };
-        var targetNear = new Port(nodeNear, new Point(0, 25));  // left edge
+        var targetNear = TestNodes.PortAt(nodeNear, 0, 25);  // left edge
 
         var nodeFar = new Node { X = 600, Y = 0, Width = 100, Height = 50 };
-        var targetFar = new Port(nodeFar, new Point(0, 25));    // left edge
+        var targetFar = TestNodes.PortAt(nodeFar, 0, 25);    // left edge
 
         var nearPoints = router.Route(source, targetNear);
         var farPoints = router.Route(source, targetFar);
@@ -68,8 +69,8 @@ public class BezierRouterTests
         var router = new BezierRouter();
         var nodeA = new Node { X = 300, Y = 0, Width = 100, Height = 100 };
         var nodeB = new Node { X = 100, Y = 0, Width = 100, Height = 100 };
-        var source = new Port(nodeA, new Point(0, 50));    // left edge of nodeA
-        var target = new Port(nodeB, new Point(100, 50));  // right edge of nodeB
+        var source = TestNodes.PortAt(nodeA, 0, 50);    // left edge of nodeA
+        var target = TestNodes.PortAt(nodeB, 100, 50);  // right edge of nodeB
 
         var points = router.Route(source, target);
 
@@ -88,8 +89,8 @@ public class BezierRouterTests
         var router = new BezierRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 0, Y = 200, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(50, 50));   // bottom edge of nodeA
-        var target = new Port(nodeB, new Point(50, 0));    // top edge of nodeB
+        var source = TestNodes.PortAt(nodeA, 50, 50);   // bottom edge of nodeA
+        var target = TestNodes.PortAt(nodeB, 50, 0);    // top edge of nodeB
 
         var points = router.Route(source, target);
         var start = points[0];
@@ -111,8 +112,8 @@ public class BezierRouterTests
         var router = new BezierRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 200, Y = 0, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(50, 0));  // top edge
-        var target = new Port(nodeB, new Point(50, 0));  // top edge
+        var source = TestNodes.PortAt(nodeA, 50, 0);  // top edge
+        var target = TestNodes.PortAt(nodeB, 50, 0);  // top edge
 
         var points = router.Route(source, target);
         var start = points[0];
@@ -133,8 +134,8 @@ public class BezierRouterTests
         var router = new BezierRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 300, Y = 200, Width = 100, Height = 50 };
-        var source = new Port(nodeA, new Point(100, 25));  // right edge → (+1, 0)
-        var target = new Port(nodeB, new Point(50, 0));    // top edge   → (0, -1)
+        var source = TestNodes.PortAt(nodeA, 100, 25);  // right edge → (+1, 0)
+        var target = TestNodes.PortAt(nodeB, 50, 0);    // top edge   → (0, -1)
 
         var points = router.Route(source, target);
         var start = points[0];
@@ -157,8 +158,8 @@ public class BezierRouterTests
         var router = new BezierRouter();
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 100 };
         var nodeB = new Node { X = 300, Y = 300, Width = 100, Height = 100 };
-        var source = new Port(nodeA, new Point(0, 0));  // top-left corner
-        var target = new Port(nodeB, new Point(0, 0));  // top-left corner
+        var source = TestNodes.PortAt(nodeA, 0, 0);  // top-left corner
+        var target = TestNodes.PortAt(nodeB, 0, 0);  // top-left corner
 
         var points = router.Route(source, target);
         var start = points[0];
@@ -181,8 +182,8 @@ public class BezierRouterTests
         var router = new BezierRouter();
         var nodeA = new Node { X = 0, Y = 0 };    // Width = Height = 0
         var nodeB = new Node { X = 200, Y = 0 };  // Width = Height = 0
-        var source = new Port(nodeA, new Point(0, 0));
-        var target = new Port(nodeB, new Point(0, 0));
+        var source = TestNodes.PortAt(nodeA, 0, 0);
+        var target = TestNodes.PortAt(nodeB, 0, 0);
 
         var points = router.Route(source, target);
 
@@ -206,8 +207,8 @@ public class BezierRouterTests
         var nodeA = new Node { X = 0, Y = 0, Width = 100, Height = 50 };
         var nodeB = new Node { X = 300, Y = 0, Width = 100, Height = 50 };
         // Source sits 10px to the left of nodeA's left edge — negative leftDist wins Min.
-        var source = new Port(nodeA, new Point(-10, 25));
-        var target = new Port(nodeB, new Point(0, 25));  // left edge
+        var source = TestNodes.PortAt(nodeA, -10, 25);
+        var target = TestNodes.PortAt(nodeB, 0, 25);  // left edge
 
         var points = router.Route(source, target);
         var start = points[0];
