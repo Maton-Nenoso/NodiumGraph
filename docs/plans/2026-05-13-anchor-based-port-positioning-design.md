@@ -374,7 +374,7 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 | `RectangleShapeTests` | **Extend.** Cover `GetEdgePoint`, `GetEdgeOutwardNormal`, `InferAnchor`. |
 | `EllipseShapeTests` | **Extend.** Same three. Lock non-cardinal emission at non-midpoint fractions. |
 | `RoundedRectangleShapeTests` | **Extend.** Same three. Corner-arc round-trip: a `boundary point` on a rounded corner round-trips exactly via `InferAnchor → GetEdgePoint`; outward normal on a corner-arc anchor is the radial vector from the corner center. |
-| Round-trip property tests | **New per shape.** `GetEdgePoint → InferAnchor` returns the same anchor (float epsilon); `InferAnchor → GetEdgePoint` returns the same boundary point. |
+| Round-trip property tests | **New per shape.** Three cases: (a) for canonical anchors (Fraction ∈ (0, 1) or canonical corner per Section A), `GetEdgePoint → InferAnchor` returns the same anchor within float epsilon; (b) for non-canonical shared-endpoint anchors (e.g. `Top(1)` at a corner that canonicalizes to the next edge's `Fraction = 0`), `GetEdgePoint → InferAnchor` returns the canonical equivalent — *same boundary point*, possibly different `(Edge, Fraction)`; (c) for any boundary point, `InferAnchor → GetEdgePoint` returns the same point unconditionally. |
 | `PortTests` | **Rewrite.** Anchor-based ctor, `Position` updates on Width/Height/Shape change with INPC, `EmissionDirection` matches `Owner.GetEdgeOutwardNormal` and fires INPC on Width/Height/Shape change (not on X/Y change). |
 | `FixedPortProviderTests` | **Trim.** Delete `Implements_ILayoutAwarePortProvider`, all `UpdateLayout`/snap tests. |
 | `DynamicPortProviderTests` | **Extend.** Created port's anchor round-trips to the hit point. Reuse-threshold unchanged. |
@@ -386,7 +386,7 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 ## Done criteria
 
 1. All existing tests pass after migration.
-2. New `PortAnchorTests` + per-shape round-trip tests pass (both directions: anchor→point→anchor and boundary-point→anchor→boundary-point, on each of `RectangleShape`, `EllipseShape`, `RoundedRectangleShape`).
+2. New `PortAnchorTests` + per-shape round-trip tests pass on each of `RectangleShape`, `EllipseShape`, `RoundedRectangleShape`: (a) canonical anchors round-trip exactly via `GetEdgePoint → InferAnchor`; (b) non-canonical `Fraction = 1` shared-endpoint anchors round-trip to their canonical equivalent (same boundary point); (c) `InferAnchor → GetEdgePoint` preserves any boundary point unconditionally.
 3. New ellipse aspect-aware outward-normal test passes (200×100 ellipse and 100×100 circle return different normals at `(Right, 0.0)`).
 4. New canvas test passes: `Node.Width`/`Height`/`Shape` change → connection geometry invalidates → ports reposition → canvas visual invalidates.
 5. Sample apps build and run; no visible regression in port placement vs. current `main`.
