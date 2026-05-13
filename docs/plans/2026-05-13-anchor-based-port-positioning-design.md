@@ -82,7 +82,7 @@ Coordinate conventions:
 
 - `RectangleShape` — each edge runs along its corresponding side. Trivial partition.
 - `EllipseShape` — each `PortEdge` maps to a 90° quadrant arc (`Right` = `-π/4..π/4`, etc.); the four quadrants cover the ellipse perimeter.
-- `RoundedRectangleShape` — each `PortEdge` covers half of each adjacent corner arc plus the flat segment between them. The corner arc between `Top` and `Right` is split at its midpoint (45° from the corner center); the first half belongs to `Top`, the second to `Right`. Edge fraction is parameterized by arc length over the combined region (`π·r + edgeLength − 2·r`), continuous and monotonic from corner-midpoint to corner-midpoint.
+- `RoundedRectangleShape` — each `PortEdge` covers half of each adjacent corner arc plus the flat segment between them. The corner arc between `Top` and `Right` is split at its midpoint (45° from the corner center); the first half belongs to `Top`, the second to `Right`. Edge fraction is parameterized by arc length over the combined region; each half-arc contributes `π·r / 4` (a quarter-circle is `π·r / 2`; half of that), the flat segment contributes `edgeLength − 2·r`, so total per-edge length is `(edgeLength − 2·r) + π·r / 2`. Continuous and monotonic from corner-midpoint to corner-midpoint.
 
 **Round-trip contract** — two directions, both hold unconditionally:
 
@@ -273,23 +273,28 @@ End-to-end chain for a resize or shape swap:
 
 1. `Node.Width` / `Node.Height` / `Node.Shape` setter fires `PropertyChanged` for the changed property.
 2. Each `Port` of that node receives it (via its existing `Owner.PropertyChanged` subscription, extended per Section B), invalidates `_positionDirty` + `_absolutePositionDirty`, and raises `PropertyChanged(Position)` + `PropertyChanged(AbsolutePosition)`.
-3. Canvas's existing `SubscribeToPort` wiring sees `AbsolutePosition` change → invalidates per-connection geometry cache + `ConnectionHitTester` cache for every connection touching that port. (This path already exists for `Node.X/Y` moves; no new code.)
-4. Canvas's `OnNodePropertyChanged` gains a new case:
+3. Canvas's `OnPortPropertyChanged` already invalidates per-node adornments for `AbsolutePosition` (line 1898) — but it **does not** invalidate connection geometry today. The connection-geometry cache `_connectionGeometryCache` (which also backs `ConnectionHitTester.HitTest`) becomes stale unless we add the invalidation.
+4. Canvas's `OnNodePropertyChanged` gains a new case **and** calls `InvalidateConnectionGeometryForNode` explicitly — single call site, fires once per resize event regardless of port count (cleaner than per-port invalidation on every `AbsolutePosition` change):
 
 ```csharp
 else if (e.PropertyName is nameof(Node.Width) or nameof(Node.Height) or nameof(Node.Shape))
 {
-    InvalidatePortAdornments(node);   // node's NodeAdornmentLayer
-    InvalidateVisual();                // grid/connections/minimap repaint
+    if (sender is Node node)
+    {
+        InvalidateConnectionGeometryForNode(node);  // drops cached geometry for every connection touching node — also backs ConnectionHitTester
+        InvalidateNodeAdornments(node);             // node's NodeAdornmentLayer (existing helper)
+        InvalidateVisual();                          // grid/connections/minimap repaint
+    }
 }
 ```
 
-5. `NodeAdornmentLayer` re-measures + redraws ports at their new `Position` values on the next render pass.
+5. `NodeAdornmentLayer` re-measures + redraws ports at their new `Position` values on the next render pass; connection geometry is recomputed lazily from fresh `Port.AbsolutePosition` values on the next paint.
 
 Notes:
 - The `Width`/`Height` cases catch *both* user-resize (consumer mutating `Node.Width`) and the library's own measurement output (`internal set` from auto-sizing). Both paths flow through the same INPC notification.
 - `Shape` swap is a rare consumer action; covered by the same case for free.
-- No new event types or interfaces; the chain rides existing `INotifyPropertyChanged` plumbing.
+- No new event types or interfaces; the chain rides existing `INotifyPropertyChanged` plumbing and the existing `InvalidateConnectionGeometryForNode` / `InvalidateNodeAdornments` helpers.
+- `ConnectionHitTester` consumes `_connectionGeometryCache` directly — there is no separate hit-tester cache, so the single `InvalidateConnectionGeometryForNode` call covers hit-testing too.
 
 ### Section D — Routing integration
 
@@ -313,7 +318,7 @@ Shape implementations of `GetEdgeOutwardNormal`:
 Behavior summary:
 - Rectangle nodes — no observable change.
 - Ellipse nodes — ports at non-midpoint fractions emit along the aspect-correct radial normal. Existing ellipse-router tests that asserted cardinal-only behavior, if any, are updated to the new (correct) values.
-- Rounded-rectangle nodes — flat-region ports emit cardinally (unchanged); corner-arc ports (only reachable via `DynamicPortProvider` boundary hit) emit along the arc normal.
+- Rounded-rectangle nodes — flat-region ports emit cardinally (unchanged); corner-arc ports emit along the arc normal. Corner-arc ports are reachable both via `DynamicPortProvider` boundary hits *and* via consumer-supplied fixed anchors that land in a corner region under the new parameterization (e.g. `PortAnchor.Top(0.0)` on a `RoundedRectangleShape` lands at the corner-midpoint of the top-left arc).
 - Interior/outside-bounds ports — unreachable. The defensive negative-distance code in current `Resolve` is deleted.
 
 ### Section E — Breaking changes summary
@@ -357,7 +362,7 @@ Per `CLAUDE.md`'s pre-1.0 policy, no shims, no deprecation wrappers.
 | `PortAnchorTests` | **New.** Construction validation (NaN / negative / >1 throws), value equality, hash, static helpers. |
 | `RectangleShapeTests` | **Extend.** Cover `GetEdgePoint`, `GetEdgeOutwardNormal`, `InferAnchor`. |
 | `EllipseShapeTests` | **Extend.** Same three. Lock non-cardinal emission at non-midpoint fractions. |
-| `RoundedRectangleShapeTests` | **Extend.** Same three. Corner-snap behavior for `InferAnchor`. |
+| `RoundedRectangleShapeTests` | **Extend.** Same three. Corner-arc round-trip: a `boundary point` on a rounded corner round-trips exactly via `InferAnchor → GetEdgePoint`; outward normal on a corner-arc anchor is the radial vector from the corner center. |
 | Round-trip property tests | **New per shape.** `GetEdgePoint → InferAnchor` returns the same anchor (float epsilon); `InferAnchor → GetEdgePoint` returns the same boundary point. |
 | `PortTests` | **Rewrite.** Anchor-based ctor, `Position` updates on Width/Height/Shape change with INPC, `EmissionDirection` matches `Owner.GetEdgeOutwardNormal`. |
 | `FixedPortProviderTests` | **Trim.** Delete `Implements_ILayoutAwarePortProvider`, all `UpdateLayout`/snap tests. |
