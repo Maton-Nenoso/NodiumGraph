@@ -145,3 +145,89 @@ public class EllipseShapeTests
             $"Iterative result distance {distToResult:F4} should be ≤ naive angular distance {distNaive:F4}");
     }
 }
+
+public class EllipseShapeAnchorTests
+{
+    private static readonly EllipseShape Shape = new();
+
+    [Theory]
+    // Per-edge corner-midpoint endpoints, 200×100 ellipse:
+    [InlineData(PortEdge.Top,    0.0, 200, 100,  29.289, 14.645)]  // θ=-3π/4 → (100 + 100·cos(-3π/4), 50 + 50·sin(-3π/4))
+    [InlineData(PortEdge.Right,  0.0, 200, 100, 170.711, 14.645)]  // θ=-π/4
+    [InlineData(PortEdge.Bottom, 0.0, 200, 100, 170.711, 85.355)]  // θ=π/4
+    [InlineData(PortEdge.Left,   0.0, 200, 100,  29.289, 85.355)]  // θ=3π/4
+    // Edge midpoints:
+    [InlineData(PortEdge.Top,    0.5, 200, 100, 100.0,   0.0)]
+    [InlineData(PortEdge.Right,  0.5, 200, 100, 200.0,  50.0)]
+    [InlineData(PortEdge.Bottom, 0.5, 200, 100, 100.0, 100.0)]
+    [InlineData(PortEdge.Left,   0.5, 200, 100,   0.0,  50.0)]
+    public void GetEdgePoint_matches_angle_table(PortEdge edge, double f, double w, double h, double expectedX, double expectedY)
+    {
+        var p = Shape.GetEdgePoint(new PortAnchor(edge, f), w, h);
+        Assert.Equal(expectedX, p.X, 3);
+        Assert.Equal(expectedY, p.Y, 3);
+    }
+
+    [Fact]
+    public void Aspect_aware_outward_normal_differs_from_circle()
+    {
+        var ellipse = Shape.GetEdgeOutwardNormal(new PortAnchor(PortEdge.Right, 0.0), 200, 100);
+        var circle  = Shape.GetEdgeOutwardNormal(new PortAnchor(PortEdge.Right, 0.0), 100, 100);
+        Assert.Equal(0.447, ellipse.X, 3);
+        Assert.Equal(-0.894, ellipse.Y, 3);
+        Assert.Equal(0.707, circle.X, 3);
+        Assert.Equal(-0.707, circle.Y, 3);
+    }
+
+    [Theory]
+    [InlineData(PortEdge.Top,    0.25)]
+    [InlineData(PortEdge.Right,  0.5)]
+    [InlineData(PortEdge.Bottom, 0.75)]
+    [InlineData(PortEdge.Left,   0.3)]
+    public void Roundtrip_for_canonical_anchors(PortEdge edge, double f)
+    {
+        var a = new PortAnchor(edge, f);
+        var p = Shape.GetEdgePoint(a, 200, 100);
+        var back = Shape.InferAnchor(p, 200, 100);
+        Assert.Equal(a, back);
+    }
+
+    [Fact]
+    public void Shared_corner_canonicalizes_to_next_edge_start()
+    {
+        var pTop1   = Shape.GetEdgePoint(new PortAnchor(PortEdge.Top,   1.0), 200, 100);
+        var pRight0 = Shape.GetEdgePoint(new PortAnchor(PortEdge.Right, 0.0), 200, 100);
+        Assert.Equal(pTop1.X, pRight0.X, 9);
+        Assert.Equal(pTop1.Y, pRight0.Y, 9);
+
+        var canonical = Shape.InferAnchor(pTop1, 200, 100);
+        Assert.Equal(PortEdge.Right, canonical.Edge);
+        Assert.Equal(0.0, canonical.Fraction, 9);
+    }
+
+    [Fact]
+    public void GetEdgePoint_at_zero_size_returns_origin()
+    {
+        var p = Shape.GetEdgePoint(PortAnchor.Right(0.5), 0, 0);
+        Assert.Equal(0, p.X);
+        Assert.Equal(0, p.Y);
+    }
+
+    [Theory]
+    [InlineData(PortEdge.Left,   -1.0,  0.0)]
+    [InlineData(PortEdge.Top,     0.0, -1.0)]
+    [InlineData(PortEdge.Right,   1.0,  0.0)]
+    [InlineData(PortEdge.Bottom,  0.0,  1.0)]
+    public void GetEdgeOutwardNormal_at_zero_size_returns_cardinal(PortEdge edge, double nx, double ny)
+    {
+        var n = Shape.GetEdgeOutwardNormal(new PortAnchor(edge, 0.5), 0, 0);
+        Assert.Equal(nx, n.X);
+        Assert.Equal(ny, n.Y);
+    }
+
+    [Fact]
+    public void InferAnchor_at_zero_size_throws()
+    {
+        Assert.Throws<InvalidOperationException>(() => Shape.InferAnchor(new Point(0, 0), 0, 0));
+    }
+}
