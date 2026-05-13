@@ -2,9 +2,9 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using NodiumGraph.Model;
 using Avalonia;
-using NodiumGraph.Tests.Helpers;
 using Xunit;
 
+using NodiumGraph.Tests.Helpers;
 namespace NodiumGraph.Tests;
 
 public class GraphTests

@@ -1,20 +1,25 @@
+using Avalonia;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Avalonia;
 
 namespace NodiumGraph.Model;
 
 /// <summary>
-/// A connection endpoint on a node. Position is relative to the node's top-left corner.
+/// A connection endpoint on a node. Position is derived from the immutable Anchor
+/// and the owner's current geometry (Width, Height, Shape).
 /// </summary>
 public class Port : INotifyPropertyChanged
 {
-    private Point _position;
     private PortStyle? _style;
     private string? _label;
     private uint? _maxConnections;
     private object? _dataType;
+
+    private Point _cachedPosition;
     private Point _cachedAbsolutePosition;
+    private bool _positionDirty = true;
     private bool _absolutePositionDirty = true;
     private bool _isDetached;
 
@@ -22,23 +27,35 @@ public class Port : INotifyPropertyChanged
     public Node Owner { get; }
     public string Name { get; }
     public PortFlow Flow { get; }
+    public PortAnchor Anchor { get; }
 
+    public Port(Node owner, string name, PortFlow flow, PortAnchor anchor)
+    {
+        Owner  = owner ?? throw new ArgumentNullException(nameof(owner));
+        Name   = name  ?? throw new ArgumentNullException(nameof(name));
+        Flow   = flow;
+        Anchor = anchor;
+        Owner.PropertyChanged += OnOwnerPropertyChanged;
+    }
+
+    /// <summary>
+    /// Node-local boundary point derived from Anchor + Owner geometry. Cached; invalidates on owner Width/Height/Shape change.
+    /// </summary>
     public Point Position
     {
-        get => _position;
-        internal set
+        get
         {
-            if (SetField(ref _position, value))
+            if (_positionDirty)
             {
-                _absolutePositionDirty = true;
-                OnPropertyChanged(nameof(AbsolutePosition));
+                _cachedPosition = Owner.GetEdgePoint(Anchor);
+                _positionDirty = false;
             }
+            return _cachedPosition;
         }
     }
 
     /// <summary>
-    /// World-space position computed from the owner node's location and this port's relative position.
-    /// Cached and invalidated when the owner node moves or the port's relative position changes.
+    /// World-space position = Owner.X/Y + Position. Cached; invalidates on owner X/Y/Width/Height/Shape change.
     /// </summary>
     public Point AbsolutePosition
     {
@@ -46,12 +63,18 @@ public class Port : INotifyPropertyChanged
         {
             if (_absolutePositionDirty)
             {
-                _cachedAbsolutePosition = new Point(Owner.X + Position.X, Owner.Y + Position.Y);
+                var local = Position;
+                _cachedAbsolutePosition = new Point(Owner.X + local.X, Owner.Y + local.Y);
                 _absolutePositionDirty = false;
             }
             return _cachedAbsolutePosition;
         }
     }
+
+    /// <summary>
+    /// Outward unit normal at the port's boundary point — used by routers for connection emission direction.
+    /// </summary>
+    public Vector EmissionDirection => Owner.GetEdgeOutwardNormal(Anchor);
 
     /// <summary>
     /// Per-instance visual overrides. Null properties fall through to theme, then default.
@@ -94,17 +117,6 @@ public class Port : INotifyPropertyChanged
         set => SetField(ref _dataType, value);
     }
 
-    public Port(Node owner, string name, PortFlow flow, Point position)
-    {
-        Owner = owner ?? throw new ArgumentNullException(nameof(owner));
-        Name = name ?? throw new ArgumentNullException(nameof(name));
-        Flow = flow;
-        _position = position;
-        Owner.PropertyChanged += OnOwnerPropertyChanged;
-    }
-
-    public Port(Node owner, Point position) : this(owner, string.Empty, PortFlow.Input, position) { }
-
     /// <summary>
     /// Unsubscribes from the owner node's PropertyChanged event.
     /// Call when removing this port from its provider to prevent memory leaks.
@@ -118,7 +130,16 @@ public class Port : INotifyPropertyChanged
 
     private void OnOwnerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(Node.X) or nameof(Node.Y))
+        var name = e.PropertyName;
+        if (name is nameof(Node.Width) or nameof(Node.Height) or nameof(Node.Shape))
+        {
+            _positionDirty = true;
+            _absolutePositionDirty = true;
+            OnPropertyChanged(nameof(Position));
+            OnPropertyChanged(nameof(AbsolutePosition));
+            OnPropertyChanged(nameof(EmissionDirection));
+        }
+        else if (name is nameof(Node.X) or nameof(Node.Y))
         {
             _absolutePositionDirty = true;
             OnPropertyChanged(nameof(AbsolutePosition));
@@ -128,14 +149,11 @@ public class Port : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
+        => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
     protected virtual bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-            return false;
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
         field = value;
         OnPropertyChanged(propertyName);
         return true;

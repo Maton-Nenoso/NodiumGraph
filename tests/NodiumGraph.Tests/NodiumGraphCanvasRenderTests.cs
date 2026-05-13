@@ -4,9 +4,9 @@ using Avalonia.Headless.XUnit;
 using Avalonia.Media;
 using NodiumGraph.Controls;
 using NodiumGraph.Model;
-using NodiumGraph.Tests.Helpers;
 using Xunit;
 
+using NodiumGraph.Tests.Helpers;
 namespace NodiumGraph.Tests;
 
 public class NodiumGraphCanvasRenderTests

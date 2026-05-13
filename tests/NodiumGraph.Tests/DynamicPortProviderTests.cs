@@ -1,6 +1,6 @@
 using NodiumGraph.Model;
-using Avalonia;
 using NodiumGraph.Tests.Helpers;
+using Avalonia;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -250,5 +250,17 @@ public class DynamicPortProviderTests
         // Original port must still be there
         Assert.Single(provider.Ports);
         Assert.Same(port, provider.Ports[0]);
+    }
+
+    [Fact]
+    public void ResolvePort_creates_port_whose_anchor_roundtrips_to_hit_point()
+    {
+        var node = new Node { Width = 200, Height = 100 };
+        var provider = new DynamicPortProvider(node);
+        var hit = new Point(node.X + 150, node.Y + 100); // bottom edge, world coords
+        var port = provider.ResolvePort(hit, preview: false);
+        Assert.NotNull(port);
+        var localBoundary = new Point(port!.AbsolutePosition.X - node.X, port.AbsolutePosition.Y - node.Y);
+        Assert.Equal(localBoundary, node.GetEdgePoint(port.Anchor));
     }
 }

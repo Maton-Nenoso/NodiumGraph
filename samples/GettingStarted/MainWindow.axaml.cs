@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Avalonia;
 using Avalonia.Controls;
 using NodiumGraph;
 using NodiumGraph.Interactions;
@@ -47,17 +46,11 @@ public partial class MainWindow : Window
             Y = y,
         };
 
-        var provider = new FixedPortProvider(layoutAware: true);
-        provider.AddPort(new Port(node, "in", PortFlow.Input, new Point(0, 40))
-        {
-            Label = "in",
-            DataType = "number",
-        });
-        provider.AddPort(new Port(node, "out", PortFlow.Output, new Point(180, 40))
-        {
-            Label = "out",
-            DataType = "number",
-        });
+        var provider = new FixedPortProvider();
+        var portIn = new Port(node, "in", PortFlow.Input, PortAnchor.Left(0.5)) { Label = "in", DataType = "number" };
+        var portOut = new Port(node, "out", PortFlow.Output, PortAnchor.Right(0.5)) { Label = "out", DataType = "number" };
+        provider.AddPort(portIn);
+        provider.AddPort(portOut);
 
         node.PortProvider = provider;
         return node;

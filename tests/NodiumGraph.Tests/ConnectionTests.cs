@@ -1,8 +1,8 @@
 using NodiumGraph.Model;
 using Avalonia;
-using NodiumGraph.Tests.Helpers;
 using Xunit;
 
+using NodiumGraph.Tests.Helpers;
 namespace NodiumGraph.Tests;
 
 public class ConnectionTests

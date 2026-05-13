@@ -162,33 +162,6 @@ public class PortStyleTests
     }
 
     [Fact]
-    public void Port_Position_change_fires_PropertyChanged()
-    {
-        var node = new Node();
-        var port = TestNodes.PortAt(node, 0, 0);
-        var fired = false;
-        ((INotifyPropertyChanged)port).PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(Port.Position)) fired = true;
-        };
-
-        port.Position = new Point(10, 20);
-        Assert.True(fired);
-    }
-
-    [Fact]
-    public void Port_Position_same_value_does_not_fire()
-    {
-        var node = new Node();
-        var port = TestNodes.PortAt(node, 5, 10);
-        var fired = false;
-        ((INotifyPropertyChanged)port).PropertyChanged += (_, _) => fired = true;
-
-        port.Position = new Point(5, 10);
-        Assert.False(fired);
-    }
-
-    [Fact]
     public void PortShape_enum_has_expected_values()
     {
         Assert.Equal(0, (int)PortShape.Circle);

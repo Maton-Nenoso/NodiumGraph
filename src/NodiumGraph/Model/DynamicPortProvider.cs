@@ -64,7 +64,8 @@ public class DynamicPortProvider : IPortProvider
 
         // Create new port
         var relative = new Point(boundary.Value.X - _owner.X, boundary.Value.Y - _owner.Y);
-        var port = new Port(_owner, relative);
+        var anchor = _owner.InferAnchor(relative);
+        var port = new Port(_owner, string.Empty, PortFlow.Input, anchor);
         _ports.Add(port);
         _lastCreated = port;
         PortAdded?.Invoke(port);

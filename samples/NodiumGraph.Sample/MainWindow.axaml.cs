@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using Avalonia;
 using Avalonia.Controls;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
@@ -24,8 +23,8 @@ public partial class MainWindow : Window
             X = 100,
             Y = 200,
         };
-        var inputProvider = new FixedPortProvider(layoutAware: true);
-        var inputOut = new Port(inputNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out", DataType = "number" };
+        var inputProvider = new FixedPortProvider();
+        var inputOut = new Port(inputNode, "out", PortFlow.Output, PortAnchor.Right(0.5)) { Label = "out", DataType = "number" };
         inputProvider.AddPort(inputOut);
         inputNode.PortProvider = inputProvider;
 
@@ -41,10 +40,10 @@ public partial class MainWindow : Window
             Shape = new RoundedRectangleShape(8),
         };
         var diamondStyle = new PortStyle { Shape = PortShape.Diamond };
-        var transformProvider = new FixedPortProvider(layoutAware: true);
-        var transformIn = new Port(transformNode, "in", PortFlow.Input, new Point(0, 30)) { Label = "in", DataType = "number" };
-        var transformOut1 = new Port(transformNode, "out1", PortFlow.Output, new Point(120, 15)) { Label = "out1", Style = diamondStyle, DataType = "number" };
-        var transformOut2 = new Port(transformNode, "out2", PortFlow.Output, new Point(120, 45)) { Label = "out2", Style = diamondStyle, DataType = "number" };
+        var transformProvider = new FixedPortProvider();
+        var transformIn   = new Port(transformNode, "in",   PortFlow.Input,  PortAnchor.Left(0.5))  { Label = "in",   DataType = "number" };
+        var transformOut1 = new Port(transformNode, "out1", PortFlow.Output, PortAnchor.Right(0.3)) { Label = "out1", Style = diamondStyle, DataType = "number" };
+        var transformOut2 = new Port(transformNode, "out2", PortFlow.Output, PortAnchor.Right(0.7)) { Label = "out2", Style = diamondStyle, DataType = "number" };
         transformProvider.AddPort(transformIn);
         transformProvider.AddPort(transformOut1);
         transformProvider.AddPort(transformOut2);
@@ -60,10 +59,10 @@ public partial class MainWindow : Window
             IsCollapsible = true,
             Shape = new EllipseShape(),
         };
-        var filterProvider = new FixedPortProvider(layoutAware: true);
+        var filterProvider = new FixedPortProvider();
         // DataType intentionally differs from upstream — default validator will reject the drag
-        var filterIn = new Port(filterNode, "in", PortFlow.Input, new Point(0, 30)) { Label = "in", DataType = "string" };
-        var filterOut = new Port(filterNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out", DataType = "string" };
+        var filterIn  = new Port(filterNode, "in",  PortFlow.Input,  PortAnchor.Left(0.5))  { Label = "in",  DataType = "string" };
+        var filterOut = new Port(filterNode, "out", PortFlow.Output, PortAnchor.Right(0.5)) { Label = "out", DataType = "string" };
         filterProvider.AddPort(filterIn);
         filterProvider.AddPort(filterOut);
         filterNode.PortProvider = filterProvider;
@@ -78,10 +77,10 @@ public partial class MainWindow : Window
             Y = 250,
             ShowHeader = false,
         };
-        var mergeProvider = new FixedPortProvider(layoutAware: true);
-        var mergeIn1 = new Port(mergeNode, "input1", PortFlow.Input, new Point(0, 15)) { Label = "input1", DataType = "number" };
-        var mergeIn2 = new Port(mergeNode, "input2", PortFlow.Input, new Point(0, 45)) { Label = "input2", DataType = "number" };
-        var mergeOut = new Port(mergeNode, "out", PortFlow.Output, new Point(120, 30)) { Label = "out", DataType = "number" };
+        var mergeProvider = new FixedPortProvider();
+        var mergeIn1 = new Port(mergeNode, "input1", PortFlow.Input,  PortAnchor.Left(0.3))  { Label = "input1", DataType = "number" };
+        var mergeIn2 = new Port(mergeNode, "input2", PortFlow.Input,  PortAnchor.Left(0.7))  { Label = "input2", DataType = "number" };
+        var mergeOut = new Port(mergeNode, "out",    PortFlow.Output, PortAnchor.Right(0.5)) { Label = "out",    DataType = "number" };
         mergeProvider.AddPort(mergeIn1);
         mergeProvider.AddPort(mergeIn2);
         mergeProvider.AddPort(mergeOut);
@@ -96,7 +95,7 @@ public partial class MainWindow : Window
             Y = 250,
             IsCollapsible = true,
         };
-        var outputIn = new Port(outputNode, "in", PortFlow.Input, new Point(0, 15)) { Label = "in", DataType = "number" };
+        var outputIn = new Port(outputNode, "in", PortFlow.Input, PortAnchor.Left(0.5)) { Label = "in", DataType = "number" };
         outputNode.PortProvider = new FixedPortProvider(new[] { outputIn });
 
         // -- 6. Comment --

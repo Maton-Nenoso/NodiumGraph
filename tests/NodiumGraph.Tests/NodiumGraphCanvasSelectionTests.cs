@@ -7,10 +7,10 @@ using Avalonia.Platform;
 using NodiumGraph.Controls;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
-using NodiumGraph.Tests.Helpers;
 using Xunit;
 using Size = Avalonia.Size;
 
+using NodiumGraph.Tests.Helpers;
 namespace NodiumGraph.Tests;
 
 public class NodiumGraphCanvasSelectionTests

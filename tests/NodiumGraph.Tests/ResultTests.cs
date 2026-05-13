@@ -1,4 +1,5 @@
 using NodiumGraph;
+using NodiumGraph.Tests.Helpers;
 using Xunit;
 
 namespace NodiumGraph.Tests;
@@ -87,8 +88,8 @@ public class ResultOfTTests
     public void Implicit_conversion_from_connection_creates_success()
     {
         var node = new Model.Node();
-        var source = new Model.Port(node, new Avalonia.Point(0, 0));
-        var target = new Model.Port(node, new Avalonia.Point(10, 0));
+        var source = TestNodes.PortAt(node, 0, 0);
+        var target = TestNodes.PortAt(node, 10, 0);
         var connection = new Model.Connection(source, target);
 
         Result<Model.Connection> result = connection;

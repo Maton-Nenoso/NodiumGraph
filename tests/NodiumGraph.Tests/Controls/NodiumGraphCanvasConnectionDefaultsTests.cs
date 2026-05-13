@@ -1,4 +1,3 @@
-using Avalonia;
 using Avalonia.Headless.XUnit;
 using NodiumGraph.Controls;
 using NodiumGraph.Model;

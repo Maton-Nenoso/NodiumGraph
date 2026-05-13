@@ -1,9 +1,9 @@
 using Avalonia;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
-using NodiumGraph.Tests.Helpers;
 using Xunit;
 
+using NodiumGraph.Tests.Helpers;
 namespace NodiumGraph.Tests;
 
 public class ISelectionHandlerTests

@@ -1,4 +1,3 @@
-using Avalonia;
 using NodiumGraph.Interactions;
 using NodiumGraph.Model;
 using NodiumGraph.Tests.Helpers;
