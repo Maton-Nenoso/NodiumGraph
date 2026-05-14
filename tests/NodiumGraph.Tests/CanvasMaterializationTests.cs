@@ -32,8 +32,10 @@ public class CanvasMaterializationTests
 
         var provider = node.PortProvider!;
 
-        // Public `event Action<Port>? PortAdded;` compiles to a private backing field
-        // with the same name. Inspect it to count subscribers.
+        // Fragile probe: relies on the compiler-generated backing field for the field-like
+        // event `event Action<Port>? PortAdded;`. If PortAdded gains an explicit add/remove
+        // accessor, the field disappears and this probe must be replaced (e.g. by exposing
+        // an internal subscriber-count property on FixedPortProvider).
         var backing = typeof(FixedPortProvider).GetField("PortAdded",
             BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(backing);
