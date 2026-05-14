@@ -68,11 +68,16 @@ public sealed class NodeTemplate : IDataTemplate, ISupportInitialize
     [TemplateContent(TemplateResultType = typeof(Control))]
     public object? Content { get; set; }       // the visual tree (e.g. <ng:NodePresenter>...)
 
-    public bool Match(object? data) => DataType?.IsInstanceOfType(data) ?? false;
+    public bool Match(object? data) => data != null && DataType == data.GetType();
     public Control? Build(object? param) => TemplateContent.Load<Control>(Content)?.Result;
 
     void ISupportInitialize.BeginInit() { }
-    void ISupportInitialize.EndInit() => NodePortRegistry.Register(this);
+    void ISupportInitialize.EndInit()
+    {
+        if (DataType is null) return;       // unusable as a template; nothing to register
+        if (Ports.Count == 0) return;       // visual-only: behaves like a plain <DataTemplate>
+        NodePortRegistry.Register(DataType, Ports);
+    }
 }
 ```
 
@@ -95,6 +100,8 @@ XAML usage:
 Notes:
 - `NodeTemplate` is a drop-in replacement for `DataTemplate` for any node type that wants AXAML-declared ports. Existing `<DataTemplate DataType="...">` declarations keep working — they just don't carry port metadata.
 - The visual is the `[Content]` slot, so the XAML reads naturally with the visual inline; `Ports` lives in a property element.
+- `Match` uses **exact type matching** (`DataType == data.GetType()`), not Avalonia's default `IsInstanceOfType`. This is deliberate: it aligns the visual selection with the registry's exact-type lookup so port topology and visual never diverge based on Avalonia's template ordering. Consumers who want a single shared visual across a hierarchy keep using plain `<DataTemplate>` (and wire ports in code) — `<ng:NodeTemplate>` is the opt-in exact-type surface.
+- A `<ng:NodeTemplate>` with no `<NodeTemplate.Ports>` element (or with an empty list) does **not** register — `EnsureMaterialized` then leaves `PortProvider` null for that type, same as if no template existed.
 - The exact XAML hook for registration is `ISupportInitialize.EndInit`, which Avalonia invokes after all properties are set during XAML load. If implementation discovers EndInit isn't reliably invoked on nested elements, fall back to registering on first `Match`/`Build` call.
 
 ### `NodePortRegistry`
@@ -113,13 +120,14 @@ public static class NodePortRegistry
 }
 ```
 
-#### Lookup: most-specific match wins
+#### Lookup: exact type only
 
-`TryGet(t)` walks `t`, `t.BaseType`, `t.BaseType.BaseType`, … until either a registered entry is found or the chain bottoms out. The first hit wins. This means:
+`TryGet(t)` does a single `_store.TryGetValue(t, …)` — exact-type match, no walk-up. This pairs with `NodeTemplate.Match` (also exact-type) so the visual selection and the port topology are picked by the same predicate. Two consequences:
 
-- Registering `<ng:NodeTemplate DataType="local:AbstractDataNode">` applies its ports to every derived type that doesn't have its own registration.
-- A more specific registration on a derived type fully replaces (does not merge) the base type's ports for that derived type.
-- This mirrors Avalonia's `NodeTemplate.Match` semantics (`DataType?.IsInstanceOfType(data)`), so the visual and the ports stay consistent across the type hierarchy.
+- A `<ng:NodeTemplate>` registered for a base type does **not** apply to derived types. Each concrete type that needs declared ports gets its own `<ng:NodeTemplate>`.
+- Consumers who want a shared visual across a hierarchy use a plain `<DataTemplate>` (which keeps `IsInstanceOfType` matching) and wire ports in code, or declare one `<ng:NodeTemplate>` per concrete type with the same `<NodeTemplate.Content>`.
+
+This is intentional: trying to reconcile registry walk-up with Avalonia's order-dependent template selection leaves visual/port pairs that can drift apart based on declaration order. Exact-type-everywhere is the only consistent answer that doesn't introduce ordering footguns.
 
 #### Validation at `Register` time
 
@@ -127,18 +135,23 @@ public static class NodePortRegistry
 - Each `PortDefinition.Name` must be non-null and non-empty.
 - All `Name` values must be unique within the registered list.
 - Each `Fraction` must be in `[0, 1]`; each `Edge` must be a defined `PortEdge` value. (Already enforced by `PortAnchor`, but surfaced at registration so structural AXAML errors fail at parse time, not lazily on first node construction.)
+- Each `DataType` must be `null`, a `string`, a `System.Type`, or a value type. Reference-typed `DataType` values (other than `string`/`Type`) are rejected because the registry stores them in shallow snapshots — mutation post-registration could change conflict-check outcomes or what a future materialization sees. Consumers who need a class-typed `DataType` token bypass the registry entirely and assign `Node.PortProvider` in code.
 
 #### Immutable snapshot at register time
 
-The registry stores immutable snapshots of each registered definition list, not references to `PortDefinition` instances. Internally:
+The registry stores immutable snapshots of each registered definition list, not references to `PortDefinition` instances. The snapshot element type is public so consumers can introspect the registry directly:
 
 ```csharp
-internal readonly record struct PortSpec(
+namespace NodiumGraph;
+
+public readonly record struct PortSpec(
     string Name, PortFlow Flow, PortEdge Edge, double Fraction,
     string? Label, uint? MaxConnections, object? DataType);
 ```
 
 `Register(Type, IEnumerable<PortDefinition>)` validates, then projects each `PortDefinition` into a `PortSpec` and stores an `IReadOnlyList<PortSpec>`. Subsequent mutations to the original `PortDefinition` instances or to the `NodeTemplate.Ports` collection do not affect the registry. `TryGet` returns the snapshot.
+
+The snapshot is shallow only at `DataType` (which is `object?`). The validation rule above limits `DataType` to `null`/`string`/`Type`/value-typed values, all of which are themselves immutable or value-copied — so a registered `PortSpec` is effectively fully immutable in practice.
 
 #### Conflict policy
 
@@ -146,7 +159,7 @@ Re-registration for the same `nodeType`:
 - If the new definition list is **structurally identical** to the existing one → silent no-op.
 - Otherwise → throw `InvalidOperationException` with both lists in the message.
 
-Structural equality compares: list length, then per entry `Name`, `Flow`, `Edge`, `Fraction`, `Label`, `MaxConnections`, `DataType`, in order. `DataType` (`object?`) uses `EqualityComparer<object?>.Default`. This is exact for strings, `Type`, primitives, and any custom type implementing `Equals` by value. Reference-typed `DataType` values without value-equality semantics fall back to reference equality and may cause a false conflict throw if a consumer somehow registers two distinct instances — the fix is either to use a value-typed `DataType` (recommended: a `string` or `Type` token) or to register the affected node type in code instead of AXAML.
+Structural equality compares: list length, then per entry `Name`, `Flow`, `Edge`, `Fraction`, `Label`, `MaxConnections`, `DataType`, in order. `DataType` uses `EqualityComparer<object?>.Default`. Because `DataType` is restricted at register time to `null`/`string`/`Type`/value-typed values (see the Validation section), equality is well-defined: strings, `Type`, and value types all have correct `Equals` semantics. The reference-equality footgun for arbitrary class instances is moot — those are rejected at registration.
 
 This rule is forgiving for benign duplication (the same XAML loaded twice across windows) and loud for real bugs (two declarations disagreeing on topology). `Clear()` exists for tests and any consumer that genuinely wants to swap registrations at runtime.
 
@@ -304,10 +317,11 @@ The practical takeaway for app authors: construct nodes after `InitializeCompone
 |---|------------|--------|
 | Anchor syntax | Two attributes (`Edge`, `Fraction`) | Discoverability; mirrors `PortAnchor` record shape; converter is a clean later addition. |
 | Materialization point | Model, lazy on both `Node.Ports` and `Node.PortProvider` getters | Existing `node.PortProvider!.Ports` pattern keeps working; topology is a model concern; lazy hides the order-of-operations question for the common path. |
-| Conflict policy | Identical → no-op, different → throw | Forgiving for benign duplication, loud for real bugs. `DataType` equality uses `EqualityComparer<object?>.Default`; reference-typed `DataType` may false-throw — recommend string/Type tokens. |
+| Conflict policy | Identical → no-op, different → throw | Forgiving for benign duplication, loud for real bugs. `DataType` is restricted to `null`/`string`/`Type`/value types at registration, so structural equality is well-defined. |
 | Bindings on `PortDefinition` | POCO, literal-only | Anchor identity isn't safely mutable; promoting to `AvaloniaObject` later is source-compatible in the intended literal-attribute usage. |
 | `DynamicPortProvider` in AXAML | Punt | Imperative by nature; trivial to add later. |
-| Type-hierarchy lookup | Walk up `Type.BaseType`, most-specific match wins | Matches `NodeTemplate.Match` semantics (`IsInstanceOfType`); consistent visual + ports inheritance; a derived registration fully replaces the base's ports (no merging). |
+| Type-hierarchy lookup | Exact type only, in both `NodeTemplate.Match` and `NodePortRegistry.TryGet` | Walk-up + `IsInstanceOfType` can't be reconciled with Avalonia's order-dependent template selection — visual/ports would drift. Exact-type-everywhere is the only consistent answer. Shared-visual hierarchies use plain `<DataTemplate>` + code-side ports. |
+| `DataType` allowed values in registry | `null`, `string`, `Type`, or any value type | Snapshot is shallow at `DataType`; the restriction makes the snapshot effectively immutable in practice. Class-typed tokens require code-side `PortProvider` assignment that bypasses the registry. |
 | Name uniqueness | Enforced at `Register` time (declarative path); `FixedPortProvider` unchanged | Name-based lookup is the consumer's primary use case for declared ports; silent duplicates are a footgun. |
 | Thread safety | `ConcurrentDictionary` store, lock-free reads, atomic Register/Clear; tests in non-parallel xUnit collection | Static state + parallel xUnit needs an explicit contract. |
 
@@ -324,10 +338,11 @@ All tests that mutate the registry live in xUnit collection `[Collection("NodePo
 - Empty `Name` → throws at `Register`.
 - Duplicate `Name` → throws at `Register`.
 - Out-of-range `Fraction` → throws at `Register`.
-- `TryGet` for a derived type with no entry but a registered base → returns the base's snapshot. (walk-up)
-- `TryGet` for a derived type with its own entry → returns the derived snapshot, not the base's. (most-specific wins)
-- `TryGet` for a type whose chain has no entries → returns false.
-- `DataType` value equality: two registrations with `DataType = "x"` (string) → identical, no throw. Two registrations with `DataType = typeof(int)` → identical, no throw. Two registrations with distinct `new object()` values → throws (documents the ref-equality footgun).
+- `TryGet` for a registered exact type → returns the snapshot.
+- `TryGet` for a derived type with no entry, even when its base is registered → returns false. (exact-type only; no walk-up)
+- `TryGet` for an unregistered type → returns false.
+- `DataType` validation: registering with `null`, `"x"` (string), `typeof(int)`, an enum value, or a primitive → succeeds. Registering with a `new object()`, a custom class instance, or any non-`string`/`Type` reference type → throws `ArgumentException` at `Register`.
+- `DataType` value equality (within the allowed set): two registrations with `DataType = "x"` → identical, no throw. Two registrations with `DataType = typeof(int)` → identical, no throw. Two registrations with the same enum value → identical, no throw.
 - **Snapshot immutability:** register a `PortDefinition`, then mutate its `Name`/`Fraction`/etc. after the fact and re-call `TryGet` → returned snapshot reflects the original values, not the mutated ones. Also: mutate or clear the original `IList<PortDefinition>` after register → registry state is unaffected.
 - **Concurrent Register:** two threads racing `Register` for the same type with different defs → one wins, the other throws `InvalidOperationException`. Two threads with identical defs → both succeed (one inserts, one no-ops).
 - `Clear()` empties the registry; existing materialized nodes unaffected (covered in materialization tests).
@@ -349,7 +364,11 @@ All tests that mutate the registry live in xUnit collection `[Collection("NodePo
 - Construct a node of the templated type → `.Ports` is populated.
 - Bind a graph to a canvas in that window; node renders with the declared ports (canvas-level integration: the canvas attaches the materialized provider, ports hit-test, drag-to-connect resolves to the declared ports).
 - **No canvas double-attach:** add a node whose registry entry causes lazy materialization during `AddNodeContainer`; assert `provider.PortAdded` has exactly one subscriber after attach (counts handlers via the `_providerAddedHandlers` snapshot or via `Delegate.GetInvocationList()` on a probe).
+- **Visual-only `<ng:NodeTemplate>` (no `<NodeTemplate.Ports>` element):** load → registry has no entry for that type, node's `PortProvider` stays null, the visual still renders.
+- **Empty `<NodeTemplate.Ports>` element:** loaded the same as visual-only — no registration.
+- **Exact-type Match:** declare `<ng:NodeTemplate DataType="local:BaseNode">` only; render a `local:DerivedNode` → Avalonia does NOT pick this template (`Match` returns false); a fallback `<DataTemplate>` or `DefaultTemplates.NodeTemplate` renders the derived instance instead.
 - Invalid `PortDefinition` (bad `Fraction`) in XAML → window load surfaces the exception cleanly.
+- Invalid `DataType` (a class instance) in XAML → window load surfaces the exception cleanly.
 
 ## Documentation impact
 
@@ -363,6 +382,7 @@ All tests that mutate the registry live in xUnit collection `[Collection("NodePo
 - Markup-extension form for terse anchors (`Anchor="Left:0.5"`) — additive.
 - `PortDefinition : AvaloniaObject` with `StyledProperty` for `Label`/`DataType` to allow bindings — additive.
 - A `<ng:NodeTemplate.PortProvider>` content slot to declare any `IPortProvider` (including `DynamicPortProvider`) — additive.
+- Type-hierarchy lookup (walk-up registry + `IsInstanceOfType` Match) — additive, but only if a clear story emerges for keeping visual selection and port topology aligned under Avalonia's order-dependent template walk. Not pursued in v1.
 - Source-generator-backed registration (parse XAML at build time, emit static registration) — eliminates the runtime `EndInit` dependency; not needed for v1.
 
 ## Public surface delta
