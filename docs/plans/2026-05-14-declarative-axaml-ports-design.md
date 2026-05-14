@@ -149,7 +149,7 @@ public readonly record struct PortSpec(
     string? Label, uint? MaxConnections, object? DataType);
 ```
 
-`Register(Type, IEnumerable<PortDefinition>)` validates, then projects each `PortDefinition` into a `PortSpec` and stores an `IReadOnlyList<PortSpec>`. Subsequent mutations to the original `PortDefinition` instances or to the `NodeTemplate.Ports` collection do not affect the registry. `TryGet` returns the snapshot.
+`Register(Type, IEnumerable<PortDefinition>)` validates, then projects each `PortDefinition` into a `PortSpec` and stores the result as a `ReadOnlyCollection<PortSpec>` (or `ImmutableArray<PortSpec>`) over a private backing array. Returning a non-downcastable wrapper is deliberate: an `IReadOnlyList<PortSpec>` exposed by `TryGet` cannot be cast to `List<PortSpec>` to mutate the registry's view through the back door. Subsequent mutations to the original `PortDefinition` instances or to the `NodeTemplate.Ports` collection have no effect on the registry either — projection takes a value copy.
 
 The snapshot is shallow only at `DataType` (which is `object?`). The validation rule above limits `DataType` to `null`/`string`/`Type`/value-typed values, all of which are themselves immutable or value-copied — so a registered `PortSpec` is effectively fully immutable in practice.
 
@@ -192,16 +192,17 @@ public static void Clear()
 
 public static bool TryGet(Type t, out IReadOnlyList<PortSpec> snapshot)
 {
-    for (Type? cur = t; cur != null; cur = cur.BaseType)
-        if (_store.TryGetValue(cur, out snapshot)) return true;
+    if (_store.TryGetValue(t, out snapshot)) return true;
     snapshot = Array.Empty<PortSpec>();
     return false;
 }
 ```
 
-`TryGet` is lock-free (single-key reads on `ConcurrentDictionary` are atomic and lock-free; the walk-up is a sequence of independent lock-free reads). `Register` and `Clear` serialize through `_writeLock` so the "read existing → compare → throw or accept" sequence is atomic against other writers. Readers see either the pre-state or the post-state on any given key, never a torn intermediate.
+`TryGet` is lock-free (single-key reads on `ConcurrentDictionary` are atomic and lock-free) and exact-type — no walk-up, consistent with `NodeTemplate.Match`. `Register` and `Clear` serialize through `_writeLock` so the "read existing → compare → throw or accept" sequence is atomic against other writers. Readers see either the pre-state or the post-state on any given key, never a torn intermediate.
 
-Tests that mutate the registry (call `Register` or `Clear`) run inside a non-parallel xUnit collection (`[Collection("NodePortRegistry")]`) so they don't interleave with one another. Tests that only read are unaffected.
+Storage immutability: the stored snapshots are wrapped in `ReadOnlyCollection<PortSpec>` (or returned as `ImmutableArray<PortSpec>`) over a private backing array, so a consumer cannot downcast `IReadOnlyList<PortSpec>` to `List<PortSpec>` and mutate the registry's view through the back door.
+
+Any test that **observes** registry state — whether reading or writing — runs inside the non-parallel xUnit collection `[Collection("NodePortRegistry")]`. Read-only tests that depend on a specific registry state would otherwise race against another test's `Clear()` or `Register()`. Tests that touch the registry only as a side-effect of unrelated code (and don't assert on its contents) are unaffected.
 
 ### `Node.Ports` (new), `Node.PortProvider` (lazy), and materialization
 
@@ -307,7 +308,7 @@ The materializer runs at **first `Ports`/`PortProvider` access**, not at constru
 | `PortProvider` assigned in code at any point | Subsequent accesses early-out; the registry is never consulted again for that node. Code wins. |
 | `NodePortRegistry.Clear()` then new node constructed and accessed | New node sees an empty registry; materializer no-ops (and a later `Register` will be picked up on a later access, as above). |
 | `NodePortRegistry.Clear()` while an existing node already has a materialized provider | Existing node keeps its provider. The clear has no effect on already-materialized nodes. |
-| Hot-reload swapping XAML | New nodes use the new registration; existing nodes are unaffected. Consumers who want a refresh re-create the affected nodes. |
+| Hot-reload swapping XAML | The conflict policy throws if a re-parsed `NodeTemplate` registers a different list for an already-registered type. Hot-reload tooling must call `NodePortRegistry.Clear()` (or the targeted Remove call, if added later) before re-parsing the affected window. After `Clear()`, new nodes use the new registration; existing nodes keep their already-materialized providers. |
 
 The practical takeaway for app authors: construct nodes after `InitializeComponent()` returns and the rule is simply "AXAML declares, code uses." For tests and code-only paths, the registry stays empty and ports are wired imperatively, as today.
 
@@ -344,6 +345,7 @@ All tests that mutate the registry live in xUnit collection `[Collection("NodePo
 - `DataType` validation: registering with `null`, `"x"` (string), `typeof(int)`, an enum value, or a primitive → succeeds. Registering with a `new object()`, a custom class instance, or any non-`string`/`Type` reference type → throws `ArgumentException` at `Register`.
 - `DataType` value equality (within the allowed set): two registrations with `DataType = "x"` → identical, no throw. Two registrations with `DataType = typeof(int)` → identical, no throw. Two registrations with the same enum value → identical, no throw.
 - **Snapshot immutability:** register a `PortDefinition`, then mutate its `Name`/`Fraction`/etc. after the fact and re-call `TryGet` → returned snapshot reflects the original values, not the mutated ones. Also: mutate or clear the original `IList<PortDefinition>` after register → registry state is unaffected.
+- **Snapshot non-downcastable:** call `TryGet` → assert the returned `IReadOnlyList<PortSpec>` is **not** castable to `List<PortSpec>` (or, if cast succeeds via some adapter, that the cast target is itself read-only and `Add`/`Clear` throw). Guards against mutating the registry's internal storage through `IReadOnlyList`.
 - **Concurrent Register:** two threads racing `Register` for the same type with different defs → one wins, the other throws `InvalidOperationException`. Two threads with identical defs → both succeed (one inserts, one no-ops).
 - `Clear()` empties the registry; existing materialized nodes unaffected (covered in materialization tests).
 
