@@ -8,28 +8,31 @@ updated: 2026-05-14
 
 # Declarative AXAML port definitions
 
-Today, ports are declared in C# only: a consumer instantiates `Port(node, name, flow, anchor)` and wraps them in a `FixedPortProvider` assigned to `Node.PortProvider`. The DataTemplate side of NodiumGraph already drives node *visuals* via `<ng:NodePresenter>`, but the port topology must be wired separately in code-behind. This design lets a consumer declare a fixed port set inline in the DataTemplate, next to where the node's chrome is themed.
+Today, ports are declared in C# only: a consumer instantiates `Port(node, name, flow, anchor)` and wraps them in a `FixedPortProvider` assigned to `Node.PortProvider`. The DataTemplate side of NodiumGraph already drives node *visuals* per CLR type via `<ng:NodePresenter>`, but the port topology must be wired separately in code-behind. This design lets a consumer declare a fixed port set inline in a custom data template, accessible to code immediately after `InitializeComponent()` returns.
+
+The mental model: **port topology is a per-type fact**, expressed alongside the per-type visual template. The DataTemplate is the per-type artifact; a custom `NodeTemplate` carries the port definitions alongside the visual. A static `NodePortRegistry` carries the definitions from XAML-parse time to model-construction time so code can use them.
 
 ## Goals
 
-- Declare a node's fixed port set in AXAML, on the same `NodePresenter` that themes the node body.
-- Materialization is one-time and idempotent: re-applying the same template to the same `Node` does not stack ports.
-- **Code wins**: if the consumer assigns `Node.PortProvider` in code, the AXAML declaration is silently ignored.
-- No new model surface. `Port`, `PortAnchor`, `FixedPortProvider`, and `Node.PortProvider` are unchanged.
+- Declare a node's fixed port set in AXAML, on the same per-type artifact that themes the node body.
+- Once `InitializeComponent()` returns, `new MyNode().Ports.First(p => p.Name == "out")` works without any UI realization — connections can be built in code from declared ports.
+- Materialization lives on the model (`Node`), not the view. View realization is unaffected.
+- **Code wins**: if `Node.PortProvider` is already set, registry defaults do nothing.
+- No model semantics change. `Port`, `PortAnchor`, `FixedPortProvider`, `Node.PortProvider` are unchanged.
 
 ## Non-goals
 
 - **Bindings on port fields.** `PortDefinition` is literal-only. `Edge`/`Fraction` carry anchor identity — binding-driven changes would force port recreation and detach live connections. Static covers the realistic use case.
-- **Runtime port mutation through the AXAML pipeline.** Add/remove/relabel after materialization stays imperative against the model.
-- **DynamicPortProvider in AXAML.** Its purpose is "create a port at the hit point on drag," which is imperative. Setting a `DynamicPortProvider` from code remains the answer.
-- **Port set swap on template change.** Once a `PortProvider` exists on a node, AXAML re-evaluation is a no-op. Swapping port topology at runtime is a code-side concern.
-- **Default template port declarations.** AXAML declaration only takes effect when the consumer supplies a custom DataTemplate; the built-in `DefaultTemplates.NodeTemplate` does not expose ports declaratively. (Consumers who want ports without a custom template still set `PortProvider` in code.)
+- **Runtime port mutation through the AXAML pipeline.** Add/remove/relabel after materialization stays imperative against the model. Re-parsing or hot-reloading the XAML after a node has materialized its ports does **not** rewrite the model.
+- **Type-hierarchy lookup.** The registry is keyed by exact CLR type. A subclass does **not** inherit a base type's registered ports; if you want inherited ports, register them on the subclass as well.
+- **`DynamicPortProvider` in AXAML.** Its purpose is imperative ("create a port at the hit point on drag"). Setting a `DynamicPortProvider` from code remains the answer.
+- **Pre-`InitializeComponent` access.** Code that constructs a node before its `NodeTemplate` is parsed sees an empty registry and gets no auto-materialization. That code wires ports imperatively, as today.
 
 ## Design
 
 ### `PortDefinition`
 
-Lightweight POCO. Lives in `NodiumGraph.Controls` because it is tightly coupled to `NodePresenter`; it carries no model state and is only a construction recipe.
+Lightweight POCO. Lives in `NodiumGraph.Controls` because it's strictly a XAML-side construction recipe and carries no model state.
 
 ```csharp
 namespace NodiumGraph.Controls;
@@ -47,106 +50,191 @@ public sealed class PortDefinition
 }
 ```
 
-- Two attributes for the anchor (`Edge`, `Fraction`) — matches `PortAnchor(Edge, Fraction)` one-for-one and gives Avalonia XAML completion for the `PortEdge` enum values. No type converter; a converter is a clean, non-breaking addition later if terseness demands it.
-- `Name` is required at materialization time (empty string is allowed but discouraged; `FixedPortProvider` does not enforce uniqueness today and this design does not change that).
+- Two attributes for the anchor (`Edge`, `Fraction`) — matches `PortAnchor(Edge, Fraction)` one-for-one and gives Avalonia XAML completion for the `PortEdge` enum values. No type converter; a converter is a clean later addition if terseness demands it.
 - All other fields map directly to `Port` properties or constructor arguments.
 
-### `NodePresenter.Ports`
+### `NodeTemplate`
 
-A read-only CLR collection property on `NodePresenter`. Not a `StyledProperty` — the list is read once at attach time and never observed for changes.
+A new `IDataTemplate` implementation that pairs port definitions with the visual template for a given node CLR type.
 
 ```csharp
-public IList<PortDefinition> Ports { get; } = new List<PortDefinition>();
+namespace NodiumGraph.Controls;
+
+public sealed class NodeTemplate : IDataTemplate, ISupportInitialize
+{
+    public Type? DataType { get; set; }
+
+    public IList<PortDefinition> Ports { get; } = new List<PortDefinition>();
+
+    [Content]
+    [TemplateContent(TemplateResultType = typeof(Control))]
+    public object? Content { get; set; }       // the visual tree (e.g. <ng:NodePresenter>...)
+
+    public bool Match(object? data) => DataType?.IsInstanceOfType(data) ?? false;
+    public Control? Build(object? param) => TemplateContent.Load<Control>(Content)?.Result;
+
+    void ISupportInitialize.BeginInit() { }
+    void ISupportInitialize.EndInit() => NodePortRegistry.Register(this);
+}
 ```
 
 XAML usage:
 
 ```xml
-<DataTemplate DataType="local:InputSourceNode">
-  <ng:NodePresenter HeaderBackground="#10B981">
-    <ng:NodePresenter.Ports>
-      <ng:PortDefinition Name="in"  Flow="Input"  Edge="Left"  Fraction="0.5" />
-      <ng:PortDefinition Name="out" Flow="Output" Edge="Right" Fraction="0.5" Label="result" />
-    </ng:NodePresenter.Ports>
-    <TextBlock Text="..." />
-  </ng:NodePresenter>
-</DataTemplate>
+<Window.DataTemplates>
+  <ng:NodeTemplate DataType="local:InputSourceNode">
+    <ng:NodeTemplate.Ports>
+      <ng:PortDefinition Name="out" Flow="Output" Edge="Right" Fraction="0.5"/>
+    </ng:NodeTemplate.Ports>
+
+    <ng:NodePresenter HeaderBackground="#10B981">
+      <TextBlock Text="Reads data..." />
+    </ng:NodePresenter>
+  </ng:NodeTemplate>
+</Window.DataTemplates>
 ```
 
-### Materialization
+Notes:
+- `NodeTemplate` is a drop-in replacement for `DataTemplate` for any node type that wants AXAML-declared ports. Existing `<DataTemplate DataType="...">` declarations keep working — they just don't carry port metadata.
+- The visual is the `[Content]` slot, so the XAML reads naturally with the visual inline; `Ports` lives in a property element.
+- The exact XAML hook for registration is `ISupportInitialize.EndInit`, which Avalonia invokes after all properties are set during XAML load. If implementation discovers EndInit isn't reliably invoked on nested elements, fall back to registering on first `Match`/`Build` call.
 
-Hook: `NodePresenter.OnAttachedToVisualTree`.
+### `NodePortRegistry`
 
-```text
-on attached:
-    if DataContext is not Node node: return
-    if node.PortProvider is not null: return            // code wins
-    if Ports.Count == 0: return                          // empty list ≡ no AXAML declaration
-    var ports = Ports.Select(d => new Port(node, d.Name, d.Flow,
-                                           new PortAnchor(d.Edge, d.Fraction))
-                              {
-                                  Label = d.Label,
-                                  MaxConnections = d.MaxConnections,
-                                  DataType = d.DataType,
-                              }).ToList();
-    node.PortProvider = new FixedPortProvider(ports);
+Static, process-wide. Populated by `NodeTemplate` during XAML parse; consulted by `Node` on first port access.
+
+```csharp
+namespace NodiumGraph;
+
+public static class NodePortRegistry
+{
+    public static void Register(NodeTemplate template);
+    public static void Register(Type nodeType, IEnumerable<PortDefinition> definitions);
+    public static bool TryGet(Type nodeType, out IReadOnlyList<PortDefinition> definitions);
+    public static void Clear();   // for tests / hot-reload scenarios
+}
+```
+
+Validation at `Register` time (applies to both overloads):
+- `nodeType` must be non-null and assignable to `Node`.
+- Each `PortDefinition.Name` must be non-null and non-empty.
+- All `Name` values must be unique within the registered list.
+- Each `Fraction` must be in `[0, 1]`; each `Edge` must be a defined `PortEdge` value. (Already enforced by `PortAnchor`, but surfaced at registration so structural AXAML errors fail at parse time, not lazily on first node construction.)
+
+Conflict policy (re-registration for the same `nodeType`):
+- If the new definition list is **structurally identical** (same length, same `Name`/`Flow`/`Edge`/`Fraction`/`Label`/`MaxConnections`/`DataType` per entry, same order) → silent no-op.
+- Otherwise → throw `InvalidOperationException` with both lists in the message.
+
+This rule is forgiving for benign duplication (the same XAML loaded twice across windows) and loud for real bugs (two declarations disagreeing on topology). `Clear()` exists for tests and any consumer that genuinely wants to swap registrations at runtime.
+
+### `Node.Ports` (new) and materialization
+
+A new convenience property on `Node` that gives code consumers direct access to the port list and triggers lazy materialization from the registry.
+
+```csharp
+public IReadOnlyList<Port> Ports
+{
+    get
+    {
+        if (_portProvider == null && NodePortRegistry.TryGet(GetType(), out var defs))
+        {
+            var ports = defs.Select(d => new Port(this, d.Name, d.Flow,
+                                                  new PortAnchor(d.Edge, d.Fraction))
+            {
+                Label = d.Label,
+                MaxConnections = d.MaxConnections,
+                DataType = d.DataType,
+            }).ToList();
+            PortProvider = new FixedPortProvider(ports);   // setter raises notify
+        }
+        return _portProvider?.Ports ?? Array.Empty<Port>();
+    }
+}
 ```
 
 Properties of this rule:
+- **Lazy and idempotent.** First access materializes once; subsequent accesses return the existing `PortProvider.Ports`.
+- **Code wins.** If a consumer has assigned `PortProvider` (in a ctor, in code-behind, anywhere), the registry is never consulted.
+- **No live updates.** Re-parsing AXAML or calling `NodePortRegistry.Clear()`/`Register()` after a node has materialized leaves the existing node's ports untouched. New nodes constructed afterward see the new registry state.
+- **Side effect on getter is bounded.** At most one PortProvider assignment per node instance.
 
-- **Idempotent per node.** Once `PortProvider` is set, any subsequent `NodePresenter` attached to the same `Node` (re-template, second presenter in a minimap, etc.) sees a non-null provider and no-ops.
-- **Code wins.** A consumer who has assigned `PortProvider` in code retains it. The AXAML declaration becomes a silent fallback, never an override.
-- **No detach action.** Unsubscribing on detach would create a lifecycle leak between view and model. The provider lives on the model and stays there for as long as the node lives.
-- **Empty list ≡ omission.** Consumers who genuinely want no ports just leave `<ng:NodePresenter.Ports>` out. The empty-list case is treated the same: no provider is created, leaving the node with no PortProvider (the existing default).
+#### Canvas-side materialization trigger
 
-### Error handling
+To keep view rendering deterministic, the canvas also touches `node.Ports` when a node enters the graph. In `NodiumGraphCanvas.OnNodesCollectionChanged` (or its existing `AttachProvider` path), the canvas calls `_ = node.Ports;` before subscribing to `PortProvider` changes. This guarantees the provider exists (if the registry has an entry) before the first port-render frame, without coupling the canvas to the registry directly.
 
-- `PortAnchor(Edge, Fraction)` already validates both fields at construction; out-of-range `Fraction` or undefined `PortEdge` throws `ArgumentOutOfRangeException` at materialization. Surfaced as an unhandled exception during the first attach — a hard fail by design, since AXAML errors should not be silently swallowed.
-- Null `Name` is rejected by `Port(Node, string, ...)` and propagates the same way.
-- Duplicate names are accepted (matches current `FixedPortProvider` behavior).
+### Registration timing — the rule, plainly
+
+| When | What's true |
+|------|-------------|
+| Before `InitializeComponent()` returns | Registry is empty unless populated manually. Nodes constructed here get no auto-materialization. |
+| After `InitializeComponent()` returns | All `NodeTemplate`s in the parsed XAML tree have registered. Nodes constructed from here on auto-materialize on first `Ports` access. |
+| After `NodePortRegistry.Clear()` | New nodes get nothing; existing nodes keep their already-materialized providers. |
+| Hot-reload swapping XAML | New nodes use the new registration; existing nodes are unaffected. Consumers who want to force a refresh re-create the affected nodes. |
 
 ## Open question resolutions
 
 | Q | Resolution | Reason |
 |---|------------|--------|
-| Anchor syntax | Two attributes (`Edge`, `Fraction`) | Discoverability; mirrors `PortAnchor` record shape; converter is a non-breaking add later. |
-| Re-template behavior | Ignore (provider exists → AXAML silent) | Matches "code wins"; avoids hidden state markers; protects live connections. |
-| Bindings on `PortDefinition` | POCO, literal-only | `Edge`/`Fraction` carry identity and can't be safely mutated; runtime label changes happen in code against `port.Label`; promoting to `AvaloniaObject` later is non-breaking. |
-| `DynamicPortProvider` in AXAML | Punt | Imperative by nature; trivial to add later if requested. |
+| Anchor syntax | Two attributes (`Edge`, `Fraction`) | Discoverability; mirrors `PortAnchor` record shape; converter is a clean later addition. |
+| Materialization point | Model, lazy on `Node.Ports` | Topology is a model concern; lazy hides the order-of-operations question for the common path. |
+| Conflict policy | Identical → no-op, different → throw | Forgiving for benign duplication, loud for real bugs. Quoted plainly in error message. |
+| Bindings on `PortDefinition` | POCO, literal-only | Anchor identity isn't safely mutable; promoting to `AvaloniaObject` later is source-compatible in the intended literal-attribute usage. |
+| `DynamicPortProvider` in AXAML | Punt | Imperative by nature; trivial to add later. |
+| Type-hierarchy lookup | Exact type only | Predictable. Inheritance is explicit re-registration. |
+| Name uniqueness | Enforced at `Register` time (declarative path); `FixedPortProvider` unchanged | Name-based lookup is the consumer's primary use case for declared ports; silent duplicates are a footgun. |
 
 ## Testing
 
-xUnit v3 + Avalonia headless. New file `tests/NodiumGraph.Tests/DeclarativePortsTests.cs`:
+xUnit v3 + Avalonia headless. Three test files:
 
-- **Materialize once on first attach.** Attach `NodePresenter` with two `PortDefinition`s to a node whose `PortProvider` is null → provider becomes a `FixedPortProvider` with two ports whose `Anchor.Edge`/`Anchor.Fraction`/`Name`/`Flow` match.
-- **Optional fields propagate.** `Label`, `MaxConnections`, `DataType` flow through to the materialized `Port`.
-- **Code wins.** Pre-assign `node.PortProvider = …` before attach → attach is a no-op; the pre-existing provider is the one observed.
-- **Empty list is a no-op.** Attach with `Ports.Count == 0` → `node.PortProvider` stays null.
-- **Re-attach is a no-op.** Attach, detach, re-attach the same `NodePresenter` to the same node → port count remains 2; the provider reference is the same instance.
-- **Second presenter on same node.** Construct two `NodePresenter`s with different `Ports` lists, both bound to the same node → only the first list materializes; the second is silently dropped.
-- **Invalid `Fraction` throws.** `Fraction = 1.5` → attach throws `ArgumentOutOfRangeException` (propagated from `PortAnchor`).
+**`NodePortRegistryTests.cs`** (pure model, no Avalonia):
+- Register valid definitions → `TryGet` returns them.
+- Re-register structurally identical list → no-op, no throw.
+- Re-register with any difference → throws `InvalidOperationException`.
+- Empty `Name` → throws at `Register`.
+- Duplicate `Name` → throws at `Register`.
+- Out-of-range `Fraction` → throws at `Register`.
+- `Clear()` empties the registry; existing materialized nodes unaffected.
 
-Integration test against the live canvas is not required for this surface: the materialization happens on the presenter, and existing canvas tests already cover provider-driven port rendering and hit-testing.
+**`NodeRegistryMaterializationTests.cs`** (pure model):
+- Register defs for `TypeA`. Construct `new TypeA()`. Access `.Ports` → returns ports matching the defs, `PortProvider` is a `FixedPortProvider`.
+- Same as above but pre-assign `node.PortProvider = …` before accessing `.Ports` → registry is never consulted; existing provider wins.
+- No registration for `TypeB`. Construct `new TypeB()`. Access `.Ports` → returns empty; `PortProvider` stays null.
+- Optional fields (`Label`, `MaxConnections`, `DataType`) propagate to the materialized `Port`.
+- Repeated `.Ports` access returns the same list reference; no re-materialization.
+- `Node` of two different types each materialize independently from their own registry entries.
+
+**`DeclarativeNodeTemplateTests.cs`** (Avalonia headless):
+- Load a `Window` whose XAML has `<ng:NodeTemplate>` with `<ng:NodeTemplate.Ports>` → after `InitializeComponent`, registry contains the entries.
+- Construct a node of the templated type → `.Ports` is populated.
+- Bind a graph to a canvas in that window; node renders with the declared ports (canvas-level integration: the canvas attaches the materialized provider, ports hit-test, drag-to-connect resolves to the declared ports).
+- Invalid `PortDefinition` (bad `Fraction`) in XAML → window load surfaces the exception cleanly.
 
 ## Documentation impact
 
-- New how-to: `docs/userguide/2-how-to/declare-ports-in-axaml.md`. Covers the `<ng:NodePresenter.Ports>` form, the "code wins" rule, and one end-to-end example.
-- Update `docs/userguide/2-how-to/custom-node-template.md` to cross-reference the new how-to in a "Adding ports" section.
-- Update `docs/userguide/2-how-to/custom-port-provider.md` to note that for fixed sets, AXAML declaration is now the recommended path; the code-side `FixedPortProvider` example remains as the override / dynamic-construction path.
-- No reference-doc additions for `NodePresenter` until a `node-presenter.md` reference page exists (out of scope for this spec; tracked separately).
+- New how-to: `docs/userguide/2-how-to/declare-ports-in-axaml.md`. Covers the `<ng:NodeTemplate>` form, the registration-timing rule (after `InitializeComponent`), and one end-to-end example with a code-side `Connection` referencing AXAML-declared ports by name.
+- Update `docs/userguide/2-how-to/custom-node-template.md` to cross-reference the new how-to and to clarify that `<DataTemplate>` and `<ng:NodeTemplate>` are both supported; the latter adds port metadata.
+- Update `docs/userguide/2-how-to/custom-port-provider.md` to note that for fixed port sets, AXAML declaration via `<ng:NodeTemplate>` is now the recommended path; the code-side `FixedPortProvider` example remains as the override / dynamic-construction path.
+- Update `docs/userguide/3-reference/strategies.md` with a short paragraph on `NodePortRegistry` and the registration-timing rule.
 
 ## Out of scope / future
 
 - Markup-extension form for terse anchors (`Anchor="Left:0.5"`) — additive.
 - `PortDefinition : AvaloniaObject` with `StyledProperty` for `Label`/`DataType` to allow bindings — additive.
-- `<ng:NodePresenter.PortProvider>` content slot to declare any `IPortProvider` (including `DynamicPortProvider`) — additive.
-- A default template variant that surfaces `Ports` so consumers can declare ports without writing their own `<ng:NodePresenter>` — additive; needs UX thought on where ports render when there is no body.
+- A `<ng:NodeTemplate.PortProvider>` content slot to declare any `IPortProvider` (including `DynamicPortProvider`) — additive.
+- Type-hierarchy lookup in `NodePortRegistry` — additive if consumer demand emerges.
+- Source-generator-backed registration (parse XAML at build time, emit static registration) — eliminates the runtime `EndInit` dependency; not needed for v1.
 
 ## Public surface delta
 
-Added (single namespace, `NodiumGraph.Controls`):
-
+Added in `NodiumGraph.Controls`:
 - `PortDefinition` (POCO).
-- `NodePresenter.Ports` (`IList<PortDefinition>`).
+- `NodeTemplate` (`IDataTemplate, ISupportInitialize`).
 
-No other public surface changes. No model changes. No new dependencies.
+Added in `NodiumGraph`:
+- `NodePortRegistry` (static).
+
+Added on `NodiumGraph.Model.Node`:
+- `Ports` (`IReadOnlyList<Port>`, lazy-materializing read-only property).
+
+No removals. No changes to `Port`, `PortAnchor`, `FixedPortProvider`, `Node.PortProvider`, or any handler/strategy interface.
