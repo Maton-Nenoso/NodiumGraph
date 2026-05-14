@@ -10,69 +10,69 @@
     {
       "id": 9,
       "subject": "Task 2: INodeShape extensions + Node forwarders + Shape null-guard",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [8],
       "description": "**Goal:** Extend interface contract (default-throwing impls). Add Node forwarders, null-reject Shape setter.\n\n**Files:**\n- Modify: `src/NodiumGraph/Model/INodeShape.cs`\n- Modify: `src/NodiumGraph/Model/Node.cs`\n- Modify: `tests/NodiumGraph.Tests/NodeTests.cs`\n\n**Verify:** `dotnet build && dotnet test --filter \"FullyQualifiedName~NodeTests\"`\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Model/INodeShape.cs\",\"src/NodiumGraph/Model/Node.cs\",\"tests/NodiumGraph.Tests/NodeTests.cs\"],\"verifyCommand\":\"dotnet build && dotnet test --filter \\\"FullyQualifiedName~NodeTests\\\"\",\"acceptanceCriteria\":[\"INodeShape gets 3 methods with default throwers\",\"Node has 4 forwarders\",\"Shape setter rejects null and fires INPC\"]}\n```"
     },
     {
       "id": 10,
       "subject": "Task 3: RectangleShape anchor impl + tests",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [9],
       "description": "**Goal:** Implement anchor methods on `RectangleShape` per Section A's per-edge table.\n\n**Files:**\n- Modify: `src/NodiumGraph/Model/RectangleShape.cs`\n- Modify: `tests/NodiumGraph.Tests/RectangleShapeTests.cs`\n\n**Verify:** `dotnet test --filter \"FullyQualifiedName~RectangleShapeTests\"`\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Model/RectangleShape.cs\",\"tests/NodiumGraph.Tests/RectangleShapeTests.cs\"],\"verifyCommand\":\"dotnet test --filter \\\"FullyQualifiedName~RectangleShapeTests\\\"\",\"acceptanceCriteria\":[\"GetEdgePoint matches per-edge table\",\"Cardinal normals\",\"Canonical-corner InferAnchor\",\"Round-trip\",\"Zero-dim contract\"]}\n```"
     },
     {
       "id": 11,
       "subject": "Task 4: EllipseShape anchor impl + tests",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [9],
       "description": "**Goal:** Implement aspect-aware ellipse anchor methods.\n\n**Files:**\n- Modify: `src/NodiumGraph/Model/EllipseShape.cs`\n- Modify: `tests/NodiumGraph.Tests/EllipseShapeTests.cs`\n\n**Verify:** `dotnet test --filter \"FullyQualifiedName~EllipseShapeTests\"`\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Model/EllipseShape.cs\",\"tests/NodiumGraph.Tests/EllipseShapeTests.cs\"],\"verifyCommand\":\"dotnet test --filter \\\"FullyQualifiedName~EllipseShapeTests\\\"\",\"acceptanceCriteria\":[\"Angle table per edge\",\"Aspect-aware outward normal\",\"Round-trip\",\"Shared-corner canonicalization\",\"Zero-dim contract\"]}\n```"
     },
     {
       "id": 12,
       "subject": "Task 5: RoundedRectangleShape anchor impl + tests",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [9],
       "description": "**Goal:** Implement piecewise per-edge parameterization. Handle capsule cases per-edge.\n\n**Files:**\n- Modify: `src/NodiumGraph/Model/RoundedRectangleShape.cs`\n- Modify: `tests/NodiumGraph.Tests/RoundedRectangleShapeTests.cs`\n\n**Verify:** `dotnet test --filter \"FullyQualifiedName~RoundedRectangleShapeTests\"`\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Model/RoundedRectangleShape.cs\",\"tests/NodiumGraph.Tests/RoundedRectangleShapeTests.cs\"],\"verifyCommand\":\"dotnet test --filter \\\"FullyQualifiedName~RoundedRectangleShapeTests\\\"\",\"acceptanceCriteria\":[\"Per-edge flat = max(0, edgeLength - 2·rEff)\",\"Radial normals on corner arcs\",\"Corner-arc round-trip\",\"Capsule per-edge correct\",\"Zero-dim contract\"]}\n```"
     },
     {
       "id": 13,
       "subject": "Task 6: TestNodes helper + migrate 22 test files",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Helper that wraps port construction (currently old `Point` ctor; updated in Task 7).\n\n**Files:**\n- Create: `tests/NodiumGraph.Tests/Helpers/TestNodes.cs`\n- Modify: 22 test files (see plan)\n\n**Verify:** `dotnet test && grep -rn \"new Port(\" tests/ --include=\"*.cs\"` (only Helpers/TestNodes.cs)\n\n```json:metadata\n{\"files\":[\"tests/NodiumGraph.Tests/Helpers/TestNodes.cs\"],\"verifyCommand\":\"dotnet test\",\"acceptanceCriteria\":[\"TestNodes.PortAt exists\",\"No raw new Port outside helper\",\"All tests still pass\"]}\n```"
     },
     {
       "id": 14,
       "subject": "Task 7: Port + provider refactor (core API change)",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [10, 11, 12, 13],
       "description": "**Goal:** Anchor-based `Port`; simplify providers; update `TestNodes` helper.\n\n**Files:**\n- Modify: `src/NodiumGraph/Model/Port.cs`\n- Modify: `src/NodiumGraph/Model/FixedPortProvider.cs`\n- Modify: `src/NodiumGraph/Model/DynamicPortProvider.cs`\n- Modify: `tests/NodiumGraph.Tests/Helpers/TestNodes.cs`\n- Modify: `tests/NodiumGraph.Tests/PortTests.cs`\n- Modify: `tests/NodiumGraph.Tests/FixedPortProviderTests.cs`\n- Modify: `tests/NodiumGraph.Tests/DynamicPortProviderTests.cs`\n\n**Verify:** `dotnet test`\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Model/Port.cs\",\"src/NodiumGraph/Model/FixedPortProvider.cs\",\"src/NodiumGraph/Model/DynamicPortProvider.cs\",\"tests/NodiumGraph.Tests/Helpers/TestNodes.cs\",\"tests/NodiumGraph.Tests/PortTests.cs\",\"tests/NodiumGraph.Tests/FixedPortProviderTests.cs\",\"tests/NodiumGraph.Tests/DynamicPortProviderTests.cs\"],\"verifyCommand\":\"dotnet test\",\"acceptanceCriteria\":[\"Port has only anchor ctor\",\"Position derived\",\"EmissionDirection property\",\"INPC correct\",\"FixedPortProvider simplified\",\"DynamicPortProvider anchor-based\",\"TestNodes updated\"]}\n```"
     },
     {
       "id": 15,
       "subject": "Task 8: Delete PortEmissionDirection; routers use port.EmissionDirection",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [14],
       "description": "**Goal:** Remove static helper; switch routers; add ellipse-emission test.\n\n**Files:**\n- Delete: `src/NodiumGraph/Interactions/PortEmissionDirection.cs`\n- Modify: routers + tests\n\n**Verify:** `dotnet test && grep -rn \"PortEmissionDirection\" src/ tests/` (empty)\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Interactions/BezierRouter.cs\",\"src/NodiumGraph/Interactions/StepRouter.cs\",\"src/NodiumGraph/Interactions/StraightRouter.cs\"],\"verifyCommand\":\"dotnet test\",\"acceptanceCriteria\":[\"PortEmissionDirection deleted\",\"Routers use port.EmissionDirection\",\"Ellipse emission test\"]}\n```"
     },
     {
       "id": 16,
       "subject": "Task 9: Canvas refactor — drop ILayoutAwarePortProvider; add W/H/Shape invalidation",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [14],
       "description": "**Goal:** Delete the interface; add the W/H/Shape case in `OnNodePropertyChanged`.\n\n**Files:**\n- Delete: `src/NodiumGraph/Model/ILayoutAwarePortProvider.cs`\n- Modify: `src/NodiumGraph/Controls/NodiumGraphCanvas.cs`\n- Add: canvas resize-invalidation tests\n\n**Verify:** `dotnet test && grep -rn \"ILayoutAwarePortProvider|LayoutInvalidated|OnLayoutAwareProviderInvalidated\" src/ tests/` (empty)\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Controls/NodiumGraphCanvas.cs\"],\"verifyCommand\":\"dotnet test\",\"acceptanceCriteria\":[\"ILayoutAwarePortProvider deleted\",\"Canvas wiring removed\",\"W/H/Shape case added\",\"Resize invalidation test\",\"Shape-swap invalidation test\"]}\n```"
     },
     {
       "id": 17,
       "subject": "Task 10: Migrate sample apps",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [14],
       "description": "**Goal:** Switch sample port-construction to anchor form.\n\n**Files:**\n- Modify: `samples/GettingStarted/`, `samples/NodiumGraph.Sample/`\n\n**Verify:** `dotnet build samples/`; manual launch + smoke test.\n\n```json:metadata\n{\"files\":[\"samples/\"],\"verifyCommand\":\"dotnet build samples/\",\"acceptanceCriteria\":[\"No point-based port construction in samples\",\"Builds clean\",\"Manual smoke test passes\"]}\n```"
     },
     {
       "id": 18,
       "subject": "Task 11: User guide migration + sweep",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [14, 15, 16],
       "description": "**Goal:** Update enumerated docs pages; sweep for stragglers.\n\n**Files:**\n- Modify: enumerated set under `docs/userguide/` (see plan)\n\n**Verify:** Manual review + `grep -rn` patterns return empty.\n\n```json:metadata\n{\"files\":[\"docs/userguide/\"],\"verifyCommand\":\"grep -rn \\\"layoutAware|ILayoutAwarePortProvider|PortEmissionDirection\\\" docs/userguide/\",\"acceptanceCriteria\":[\"No old-API references in userguide\",\"Persistence guide uses anchors\",\"Router doc invalidation accurate\",\"Model reference ctor updated\"]}\n```"
     }
