@@ -1,0 +1,47 @@
+{
+  "planPath": "docs/plans/2026-05-14-declarative-axaml-ports.md",
+  "tasks": [
+    {
+      "id": 1,
+      "subject": "Task 1: PortSpec record + PortDefinition POCO",
+      "status": "completed",
+      "description": "**Goal:** Add PortSpec public record struct and PortDefinition POCO.\n\n**Files:** Create src/NodiumGraph/PortSpec.cs, src/NodiumGraph/Controls/PortDefinition.cs\n\n**Verify:** dotnet build src/NodiumGraph/NodiumGraph.csproj\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/PortSpec.cs\",\"src/NodiumGraph/Controls/PortDefinition.cs\"],\"verifyCommand\":\"dotnet build src/NodiumGraph/NodiumGraph.csproj\",\"planPath\":\"docs/plans/2026-05-14-declarative-axaml-ports.md\"}\n```"
+    },
+    {
+      "id": 2,
+      "subject": "Task 2: NodePortRegistry with full unit-test coverage",
+      "status": "completed",
+      "blockedBy": [1],
+      "description": "**Goal:** Static thread-safe registry. Exact-type lookup; atomic conflict policy; immutable snapshots; full TDD coverage.\n\n**Files:** Create src/NodiumGraph/NodePortRegistry.cs, tests/NodiumGraph.Tests/NodePortRegistryTests.cs\n\n**Verify:** dotnet test --filter FullyQualifiedName~NodePortRegistryTests\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/NodePortRegistry.cs\",\"tests/NodiumGraph.Tests/NodePortRegistryTests.cs\"],\"verifyCommand\":\"dotnet test tests/NodiumGraph.Tests/NodiumGraph.Tests.csproj --filter FullyQualifiedName~NodePortRegistryTests\",\"planPath\":\"docs/plans/2026-05-14-declarative-axaml-ports.md\"}\n```"
+    },
+    {
+      "id": 3,
+      "subject": "Task 3: Node.Ports + Node.PortProvider lazy materialization",
+      "status": "completed",
+      "blockedBy": [2],
+      "description": "**Goal:** Add Node.Ports; lazy materialization on PortProvider getter; _portProviderExplicit sentinel; TDD coverage.\n\n**Files:** Modify src/NodiumGraph/Model/Node.cs, Create tests/NodiumGraph.Tests/NodeRegistryMaterializationTests.cs\n\n**Verify:** dotnet test --filter FullyQualifiedName~NodeRegistryMaterializationTests\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Model/Node.cs\",\"tests/NodiumGraph.Tests/NodeRegistryMaterializationTests.cs\"],\"verifyCommand\":\"dotnet test tests/NodiumGraph.Tests/NodiumGraph.Tests.csproj --filter FullyQualifiedName~NodeRegistryMaterializationTests\",\"planPath\":\"docs/plans/2026-05-14-declarative-axaml-ports.md\"}\n```"
+    },
+    {
+      "id": 4,
+      "subject": "Task 4: NodiumGraphCanvas reorder + AttachProvider idempotency",
+      "status": "completed",
+      "blockedBy": [3],
+      "description": "**Goal:** Prevent canvas double-attach from lazy getter. Reorder AddNodeContainer; idempotency guard on AttachProvider; regression test.\n\n**Files:** Modify src/NodiumGraph/Controls/NodiumGraphCanvas.cs, Create tests/NodiumGraph.Tests/CanvasMaterializationTests.cs\n\n**Verify:** dotnet test --filter FullyQualifiedName~CanvasMaterializationTests + full suite green\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Controls/NodiumGraphCanvas.cs\",\"tests/NodiumGraph.Tests/CanvasMaterializationTests.cs\"],\"verifyCommand\":\"dotnet test tests/NodiumGraph.Tests/NodiumGraph.Tests.csproj --filter FullyQualifiedName~CanvasMaterializationTests\",\"planPath\":\"docs/plans/2026-05-14-declarative-axaml-ports.md\"}\n```"
+    },
+    {
+      "id": 5,
+      "subject": "Task 5: NodeTemplate IDataTemplate + AXAML integration tests",
+      "status": "completed",
+      "blockedBy": [4],
+      "description": "**Goal:** Add <ng:NodeTemplate> with EndInit-time registration; exact-type Match; full Avalonia headless integration tests.\n\n**Files:** Create src/NodiumGraph/Controls/NodeTemplate.cs; Modify src/NodiumGraph/NodePortRegistry.cs (add overload); Create test window + axaml + tests file.\n\n**Verify:** dotnet test --filter FullyQualifiedName~DeclarativeNodeTemplateTests + full suite green\n\n```json:metadata\n{\"files\":[\"src/NodiumGraph/Controls/NodeTemplate.cs\",\"src/NodiumGraph/NodePortRegistry.cs\",\"tests/NodiumGraph.Tests/Helpers/DeclarativePortsTestWindow.axaml\",\"tests/NodiumGraph.Tests/Helpers/DeclarativePortsTestWindow.axaml.cs\",\"tests/NodiumGraph.Tests/DeclarativeNodeTemplateTests.cs\"],\"verifyCommand\":\"dotnet test tests/NodiumGraph.Tests/NodiumGraph.Tests.csproj --filter FullyQualifiedName~DeclarativeNodeTemplateTests\",\"planPath\":\"docs/plans/2026-05-14-declarative-axaml-ports.md\"}\n```"
+    },
+    {
+      "id": 6,
+      "subject": "Task 6: Documentation — declare-ports-in-axaml + 3 updates",
+      "status": "completed",
+      "blockedBy": [5],
+      "description": "**Goal:** New how-to + 3 cross-reference updates.\n\n**Files:** Create docs/userguide/2-how-to/declare-ports-in-axaml.md; Modify custom-node-template.md, custom-port-provider.md, strategies.md\n\n**Verify:** Read each file; no broken wikilinks.\n\n```json:metadata\n{\"files\":[\"docs/userguide/2-how-to/declare-ports-in-axaml.md\",\"docs/userguide/2-how-to/custom-node-template.md\",\"docs/userguide/2-how-to/custom-port-provider.md\",\"docs/userguide/3-reference/strategies.md\"],\"verifyCommand\":\"\",\"planPath\":\"docs/plans/2026-05-14-declarative-axaml-ports.md\"}\n```"
+    }
+  ],
+  "lastUpdated": "2026-05-14T13:40:00+02:00"
+}
