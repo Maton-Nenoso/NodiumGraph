@@ -39,6 +39,18 @@ public static class NodePortRegistry
         }
     }
 
+    /// <summary>
+    /// Convenience overload used by <see cref="Controls.NodeTemplate"/>. Equivalent to
+    /// <c>Register(template.DataType, template.Ports)</c> with null checks.
+    /// </summary>
+    public static void Register(Controls.NodeTemplate template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        if (template.DataType is null)
+            throw new ArgumentException("NodeTemplate.DataType must be set before registration.", nameof(template));
+        Register(template.DataType, template.Ports);
+    }
+
     public static bool TryGet(Type nodeType, out IReadOnlyList<PortSpec> snapshot)
     {
         if (_store.TryGetValue(nodeType, out var stored))

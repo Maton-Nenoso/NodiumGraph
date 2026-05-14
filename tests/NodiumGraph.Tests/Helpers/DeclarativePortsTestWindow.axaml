@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ng="clr-namespace:NodiumGraph.Controls;assembly=NodiumGraph"
+        xmlns:tst="clr-namespace:NodiumGraph.Tests.Helpers"
+        x:Class="NodiumGraph.Tests.Helpers.DeclarativePortsTestWindow"
+        Title="Declarative Ports Test"
+        Width="200" Height="100">
+
+  <Window.DataTemplates>
+
+    <ng:NodeTemplate DataType="tst:DeclarativeNodeA">
+      <ng:NodeTemplate.Ports>
+        <ng:PortDefinition Name="in"  Flow="Input"  Edge="Left"  Fraction="0.5" />
+        <ng:PortDefinition Name="out" Flow="Output" Edge="Right" Fraction="0.5" Label="result" />
+      </ng:NodeTemplate.Ports>
+      <ng:NodePresenter HeaderBackground="#10B981">
+        <TextBlock Text="Node A" />
+      </ng:NodePresenter>
+    </ng:NodeTemplate>
+
+    <ng:NodeTemplate DataType="tst:DeclarativeNodeVisualOnly">
+      <ng:NodePresenter HeaderBackground="#3B82F6">
+        <TextBlock Text="Visual only" />
+      </ng:NodePresenter>
+    </ng:NodeTemplate>
+
+  </Window.DataTemplates>
+
+  <ng:NodiumGraphCanvas x:Name="Canvas" />
+</Window>
