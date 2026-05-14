@@ -1,5 +1,8 @@
 using Avalonia;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace NodiumGraph.Model;
@@ -22,6 +25,7 @@ public class Node : INotifyPropertyChanged, IGraphElement
     private NodeStyle? _style;
     private INodeShape _shape = new RectangleShape();
     private IPortProvider? _portProvider;
+    private bool _portProviderExplicit;
 
     public Node()
     {
@@ -56,8 +60,30 @@ public class Node : INotifyPropertyChanged, IGraphElement
 
     public IPortProvider? PortProvider
     {
-        get => _portProvider;
-        set => SetField(ref _portProvider, value);
+        get
+        {
+            EnsureMaterialized();
+            return _portProvider;
+        }
+        set
+        {
+            _portProviderExplicit = true;     // any assignment (including null) suppresses registry defaults
+            SetField(ref _portProvider, value);
+        }
+    }
+
+    /// <summary>
+    /// All ports owned by this node. Equivalent to <c>PortProvider?.Ports</c> — but also
+    /// triggers lazy materialization from <see cref="NodePortRegistry"/> on first access
+    /// when the consumer has not assigned a provider in code.
+    /// </summary>
+    public IReadOnlyList<Port> Ports
+    {
+        get
+        {
+            EnsureMaterialized();
+            return _portProvider?.Ports ?? Array.Empty<Port>();
+        }
     }
 
     /// <summary>
@@ -158,6 +184,21 @@ public class Node : INotifyPropertyChanged, IGraphElement
     {
         get => _style;
         set => SetField(ref _style, value);
+    }
+
+    private void EnsureMaterialized()
+    {
+        if (_portProviderExplicit) return;
+        if (!NodePortRegistry.TryGet(GetType(), out var specs)) return;
+
+        var ports = specs.Select(s => new Port(this, s.Name, s.Flow, new PortAnchor(s.Edge, s.Fraction))
+        {
+            Label = s.Label,
+            MaxConnections = s.MaxConnections,
+            DataType = s.DataType,
+        }).ToList();
+
+        PortProvider = new FixedPortProvider(ports);   // routes through setter → sets sentinel, fires PropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
