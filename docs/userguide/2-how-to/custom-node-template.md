@@ -1,4 +1,24 @@
+---
+title: Define a Custom Node DataTemplate
+tags: [how-to]
+status: active
+created: 2026-05-14
+updated: 2026-05-14
+---
+
 # Define a Custom Node DataTemplate
+
+## Two template forms
+
+NodiumGraph supports two `IDataTemplate` forms for nodes:
+
+- `<DataTemplate DataType="local:MyNode">` — Avalonia's standard template. Polymorphic
+  matching (`IsInstanceOfType`), no port metadata. This page covers it.
+- `<ng:NodeTemplate DataType="local:MyNode">` — adds declarative port topology under
+  `<NodeTemplate.Ports>`. Exact-type matching. See [[declare-ports-in-axaml]].
+
+Use the form that fits your scenario. The two can coexist in the same `Window.DataTemplates`
+collection.
 
 ## Goal
 

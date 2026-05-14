@@ -1,4 +1,26 @@
+---
+title: Write a Custom IPortProvider
+tags: [how-to]
+status: active
+created: 2026-05-14
+updated: 2026-05-14
+---
+
 # Write a Custom IPortProvider
+
+## When to write a custom port provider
+
+For node types with a **fixed set of ports**, prefer declaring them in AXAML — see
+[[declare-ports-in-axaml]]. AXAML declarations materialize a `FixedPortProvider` on first
+port access without you writing the construction code.
+
+Reach for a code-side custom provider when you need:
+
+- Dynamic ports (created on demand, e.g., on connection drag) — use `DynamicPortProvider`.
+- Per-instance variation that AXAML's per-type declaration can't express.
+- A provider implementation other than `FixedPortProvider` or `DynamicPortProvider`.
+
+The rest of this page covers those cases.
 
 ## Goal
 

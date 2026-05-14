@@ -1,3 +1,11 @@
+---
+title: Strategy Interfaces Reference
+tags: [reference]
+status: active
+created: 2026-05-14
+updated: 2026-05-14
+---
+
 # Strategy Interfaces Reference
 
 Strategies let you swap algorithm implementations without subclassing the canvas. NodiumGraph exposes four: connection routing, connection validation, connection styling, and port provision. Each has a built-in default that `NodiumGraphCanvas` uses when the corresponding property is not set, so you can start with zero wiring and replace pieces as your application grows. The first three live in `NodiumGraph.Interactions`; port providers live in `NodiumGraph.Model` because they are part of a node's state rather than a canvas setting.
@@ -165,6 +173,20 @@ public DynamicPortProvider(
 - `CancelResolve` removes the last port that `ResolvePort` created (if any), detaching it and raising `PortRemoved`. No-op if the last resolve reused an existing port.
 - `AutoPruneOnDisconnect` (writable `bool`) — when `true`, calling `NotifyDisconnected(port, graph)` after removing a connection removes the port if it has no remaining edges. Consumer must drive this call; the canvas does not.
 - `PruneUnconnected(graph)` removes every port in the provider that has no connection in `graph` — useful as a one-shot cleanup.
+
+## NodePortRegistry
+
+A static, process-wide registry mapping `Type` → `IReadOnlyList<PortSpec>`. Populated by
+`<ng:NodeTemplate>` at XAML parse time; consulted by `Node.Ports` and `Node.PortProvider`
+on first read.
+
+- Registration happens during `InitializeComponent()`. Nodes constructed afterward
+  auto-materialize a `FixedPortProvider` on first port access.
+- Lookups are exact-type — no inheritance walk-up. See [[declare-ports-in-axaml]].
+- "Code wins": any explicit `node.PortProvider = …` assignment (including `= null`)
+  suppresses registry consultation for that node instance permanently.
+- `NodePortRegistry.Clear()` empties the registry; already-materialized nodes keep their
+  providers (no live updates).
 
 ## See also
 
