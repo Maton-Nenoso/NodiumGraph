@@ -7,6 +7,38 @@
 
     <Window.DataTemplates>
 
+        <!-- ConstantNode: fully declarative — visual AND port topology defined here.
+             Code-behind only creates the instance; the "out" port comes from <NodeTemplate.Ports>. -->
+        <ng:NodeTemplate DataType="local:ConstantNode">
+            <ng:NodeTemplate.Ports>
+                <ng:PortDefinition Name="out"
+                                   Flow="Output"
+                                   Edge="Right"
+                                   Fraction="0.5"
+                                   Label="value"
+                                   DataType="string" />
+            </ng:NodeTemplate.Ports>
+
+            <ng:NodePresenter HeaderBackground="#0EA5E9"
+                              HeaderForeground="White"
+                              HeaderPadding="12,8"
+                              CornerRadius="10">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Emits a fixed string"
+                               Foreground="#64748B"
+                               FontSize="11" />
+                    <Border Background="#0F172A"
+                            CornerRadius="4"
+                            Padding="8,4">
+                        <TextBlock Text="&quot;/^.*$/&quot;"
+                                   Foreground="#F1F5F9"
+                                   FontFamily="Cascadia Code"
+                                   FontSize="11" />
+                    </Border>
+                </StackPanel>
+            </ng:NodePresenter>
+        </ng:NodeTemplate>
+
         <!-- InputSourceNode: green header, CSV format info -->
         <DataTemplate DataType="local:InputSourceNode">
 			<ng:NodePresenter HeaderBackground="#10B981"

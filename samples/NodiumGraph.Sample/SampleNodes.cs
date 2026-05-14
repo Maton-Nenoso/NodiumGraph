@@ -11,3 +11,6 @@ public class FilterNode : Node { }
 public class MergeNode : Node { }
 
 public class OutputSinkNode : Node { }
+
+// Ports for ConstantNode are declared entirely in MainWindow.axaml via <ng:NodeTemplate>.
+public class ConstantNode : Node { }

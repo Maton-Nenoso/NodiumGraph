@@ -102,6 +102,12 @@ public partial class MainWindow : Window
         var comment = new CommentNode { X = 100, Y = 50 };
         comment.Comment = "This is the pipeline entry point";
 
+        // -- 7. Constant --
+        // Defined entirely in MainWindow.axaml via <ng:NodeTemplate> — the "out" port
+        // (string DataType) comes from <NodeTemplate.Ports>, materialized lazily on first
+        // Ports access. No FixedPortProvider construction here.
+        var constantNode = new ConstantNode { Title = "Constant", X = 100, Y = 400 };
+
         // -- Add nodes to graph --
         graph.AddNode(inputNode);
         graph.AddNode(transformNode);
@@ -109,6 +115,7 @@ public partial class MainWindow : Window
         graph.AddNode(mergeNode);
         graph.AddNode(outputNode);
         graph.AddNode(comment);
+        graph.AddNode(constantNode);
 
         // -- Connections --
         // Input -> Transform (out -> in)
@@ -119,9 +126,15 @@ public partial class MainWindow : Window
         graph.AddConnection(new Connection(transformOut2, mergeIn2));
         // Merge -> Output (out -> in)
         graph.AddConnection(new Connection(mergeOut, outputIn));
-        // Filter is intentionally left unconnected — its "string" DataType
-        // demonstrates the default validator rejecting type-mismatched drags
-        // from the "number" transform outputs.
+        // Constant -> Filter (out -> in) — both "string", a valid connection.
+        // Ports reached by name from the AXAML-declared topology, no manual Port refs.
+        graph.AddConnection(new Connection(
+            constantNode.Ports.First(p => p.Name == "out"),
+            filterNode.Ports.First(p => p.Name == "in")));
+
+        // The Filter -> {downstream} side is intentionally left unconnected — its "string"
+        // output DataType demonstrates the default validator rejecting type-mismatched drags
+        // toward the "number" transform/merge ports.
 
         // Don't set Canvas.NodeTemplate — let DataTemplate resolution from Window work
         Canvas.Graph = graph;
