@@ -33,6 +33,7 @@ namespace NodiumGraph.Controls;
 /// </remarks>
 public sealed class NodeTemplate : IDataTemplate, ISupportInitialize
 {
+    private readonly object _registerLock = new();
     private bool _registered;
 
     /// <summary>The exact CLR type this template targets.</summary>
@@ -67,10 +68,17 @@ public sealed class NodeTemplate : IDataTemplate, ISupportInitialize
 
     private void EnsureRegistered()
     {
-        if (_registered) return;
-        if (DataType is null) return;
-        if (Ports.Count == 0) return;
-        NodePortRegistry.Register(this);
-        _registered = true;
+        // Synchronized so two concurrent Match/Build callers can't both call Register —
+        // benign in practice (the registry's conflict policy would silently no-op on
+        // identical lists) but makes idempotency true unconditionally, not by caller
+        // thread-affinity.
+        lock (_registerLock)
+        {
+            if (_registered) return;
+            if (DataType is null) return;
+            if (Ports.Count == 0) return;
+            NodePortRegistry.Register(this);
+            _registered = true;
+        }
     }
 }

@@ -18,6 +18,15 @@ public static class NodePortRegistry
     private static readonly ConcurrentDictionary<Type, IReadOnlyList<PortSpec>> _store = new();
     private static readonly object _writeLock = new();
 
+    /// <summary>
+    /// Registers a port topology for <paramref name="nodeType"/>. Validates inputs, projects each
+    /// <see cref="PortDefinition"/> into an immutable <see cref="PortSpec"/>, and stores the result
+    /// as a non-downcastable snapshot keyed by exact CLR type.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">If <paramref name="nodeType"/> or <paramref name="definitions"/> is null.</exception>
+    /// <exception cref="ArgumentException">If <paramref name="nodeType"/> isn't a <see cref="Node"/> subtype, a definition has an invalid <c>Name</c>, or a <c>DataType</c> is a non-<c>string</c>/<c>Type</c> reference type.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">If a definition has an out-of-range <c>Fraction</c> or undefined <c>Edge</c>.</exception>
+    /// <exception cref="InvalidOperationException">If a structurally-different list is already registered for the same type.</exception>
     public static void Register(Type nodeType, IEnumerable<PortDefinition> definitions)
     {
         ArgumentNullException.ThrowIfNull(nodeType);
@@ -51,6 +60,11 @@ public static class NodePortRegistry
         Register(template.DataType, template.Ports);
     }
 
+    /// <summary>
+    /// Exact-type lookup. Returns <c>true</c> and the registered snapshot when an entry exists
+    /// for the given <paramref name="nodeType"/>; returns <c>false</c> and an empty snapshot otherwise.
+    /// Does <b>not</b> walk base types — derived types must register independently.
+    /// </summary>
     public static bool TryGet(Type nodeType, out IReadOnlyList<PortSpec> snapshot)
     {
         if (_store.TryGetValue(nodeType, out var stored))
@@ -62,6 +76,11 @@ public static class NodePortRegistry
         return false;
     }
 
+    /// <summary>
+    /// Removes all registrations. Already-materialized <see cref="Node"/> instances keep their
+    /// providers — no live updates. Intended for test isolation and consumers that genuinely
+    /// need to swap registrations at runtime.
+    /// </summary>
     public static void Clear()
     {
         lock (_writeLock) _store.Clear();

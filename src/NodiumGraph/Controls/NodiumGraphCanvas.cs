@@ -1804,6 +1804,9 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         {
             node.PropertyChanged -= OnNodePropertyChanged;
 
+            // PortProvider's lazy getter is safe to read here. By the time we get to remove
+            // a node, AddNodeContainer has already touched the getter and the sentinel has
+            // flipped — the getter is now a plain field read.
             if (node.PortProvider != null)
                 DetachProvider(node, node.PortProvider);
 
