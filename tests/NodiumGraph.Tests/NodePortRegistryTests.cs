@@ -138,11 +138,19 @@ public class NodePortRegistryTests
     }
 
     [Fact]
-    public void Snapshot_is_not_castable_to_writable_List()
+    public void Snapshot_is_read_only()
     {
         NodePortRegistry.Register(typeof(NodeA), new[] { Def("in") });
         NodePortRegistry.TryGet(typeof(NodeA), out var snapshot);
+
         Assert.IsNotType<List<PortSpec>>(snapshot);
+
+        // The underlying object also exposes IList<T> — verify it reports as read-only.
+        if (snapshot is IList<PortSpec> asList)
+        {
+            Assert.True(asList.IsReadOnly);
+            Assert.Throws<NotSupportedException>(() => asList.Add(default));
+        }
     }
 
     [Fact]

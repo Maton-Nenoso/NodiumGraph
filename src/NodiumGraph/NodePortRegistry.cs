@@ -2,7 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Text;
 using NodiumGraph.Controls;
 using NodiumGraph.Model;
@@ -11,8 +10,8 @@ namespace NodiumGraph;
 
 /// <summary>
 /// Static, process-wide registry mapping a concrete <see cref="Node"/> subtype to its
-/// declared port topology. Populated by NodeTemplate at XAML parse time (added in a later task)
-/// and consulted by <see cref="Node.PortProvider"/>/Node.Ports on first read.
+/// declared port topology. Populated by NodeTemplate at XAML parse time and consulted by
+/// <see cref="Node.PortProvider"/>/<c>Node.Ports</c> on first read.
 /// </summary>
 public static class NodePortRegistry
 {
@@ -36,7 +35,7 @@ public static class NodePortRegistry
                     throw new InvalidOperationException(BuildConflictMessage(nodeType, existing, snapshot));
                 return;
             }
-            _store[nodeType] = snapshot;
+            _store.TryAdd(nodeType, snapshot);
         }
     }
 
@@ -56,7 +55,7 @@ public static class NodePortRegistry
         lock (_writeLock) _store.Clear();
     }
 
-    private static ReadOnlyCollection<PortSpec> BuildSnapshot(IEnumerable<PortDefinition> definitions)
+    private static IReadOnlyList<PortSpec> BuildSnapshot(IEnumerable<PortDefinition> definitions)
     {
         var specs = new List<PortSpec>();
         var names = new HashSet<string>(StringComparer.Ordinal);
