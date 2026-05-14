@@ -1771,10 +1771,16 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         LogicalChildren.Add(container);
         VisualChildren.Add(container);
 
+        // Read PortProvider BEFORE subscribing to PropertyChanged. The lazy getter on Node
+        // may materialize a registry-backed provider here, which fires PropertyChanged. If
+        // our subscription were already in place, OnNodePropertyChanged would attach the
+        // provider and the explicit AttachProvider call below would double-attach.
+        var provider = node.PortProvider;
+
         node.PropertyChanged += OnNodePropertyChanged;
 
-        if (node.PortProvider != null)
-            AttachProvider(node, node.PortProvider);
+        if (provider != null)
+            AttachProvider(node, provider);
 
         InvalidateMeasure();
     }
@@ -1810,6 +1816,12 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
 
     private void AttachProvider(Node node, IPortProvider provider)
     {
+        // Defense in depth: any code path that reads node.PortProvider while a
+        // PropertyChanged subscription is live can route here a second time for the same
+        // (node, provider) pair. Short-circuit when already attached.
+        if (_nodeProviders.TryGetValue(node, out var existing) && ReferenceEquals(existing, provider))
+            return;
+
         foreach (var port in provider.Ports)
             SubscribeToPort(port);
 
