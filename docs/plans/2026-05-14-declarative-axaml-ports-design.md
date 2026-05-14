@@ -17,8 +17,8 @@ The mental model: **port topology is a per-type fact**, expressed alongside the 
 - Declare a node's fixed port set in AXAML, on the same per-type artifact that themes the node body.
 - Once `InitializeComponent()` returns, `new MyNode().Ports.First(p => p.Name == "out")` works without any UI realization — connections can be built in code from declared ports.
 - Materialization lives on the model (`Node`), not the view. View realization is unaffected.
-- **Code wins**: if `Node.PortProvider` is already set, registry defaults do nothing.
-- No model semantics change. `Port`, `PortAnchor`, `FixedPortProvider`, `Node.PortProvider` are unchanged.
+- **Code wins**: any explicit `Node.PortProvider = …` assignment (including `= null`) suppresses registry defaults from that point on.
+- No signature changes to existing model types. `Port`, `PortAnchor`, `FixedPortProvider`, `Node.PortProvider` keep their public shape; the `Node.PortProvider` getter's behavior is extended to lazy-materialize (called out in the Public surface delta).
 
 ## Non-goals
 
@@ -108,7 +108,7 @@ public static class NodePortRegistry
 {
     public static void Register(NodeTemplate template);
     public static void Register(Type nodeType, IEnumerable<PortDefinition> definitions);
-    public static bool TryGet(Type nodeType, out IReadOnlyList<PortDefinition> definitions);
+    public static bool TryGet(Type nodeType, out IReadOnlyList<PortSpec> snapshot);
     public static void Clear();   // for tests / hot-reload scenarios
 }
 ```
@@ -128,6 +128,18 @@ public static class NodePortRegistry
 - All `Name` values must be unique within the registered list.
 - Each `Fraction` must be in `[0, 1]`; each `Edge` must be a defined `PortEdge` value. (Already enforced by `PortAnchor`, but surfaced at registration so structural AXAML errors fail at parse time, not lazily on first node construction.)
 
+#### Immutable snapshot at register time
+
+The registry stores immutable snapshots of each registered definition list, not references to `PortDefinition` instances. Internally:
+
+```csharp
+internal readonly record struct PortSpec(
+    string Name, PortFlow Flow, PortEdge Edge, double Fraction,
+    string? Label, uint? MaxConnections, object? DataType);
+```
+
+`Register(Type, IEnumerable<PortDefinition>)` validates, then projects each `PortDefinition` into a `PortSpec` and stores an `IReadOnlyList<PortSpec>`. Subsequent mutations to the original `PortDefinition` instances or to the `NodeTemplate.Ports` collection do not affect the registry. `TryGet` returns the snapshot.
+
 #### Conflict policy
 
 Re-registration for the same `nodeType`:
@@ -140,15 +152,51 @@ This rule is forgiving for benign duplication (the same XAML loaded twice across
 
 #### Thread safety
 
-The registry is backed by a `ConcurrentDictionary<Type, IReadOnlyList<PortDefinition>>`. `TryGet` is lock-free. `Register` and `Clear` are atomic against concurrent readers — readers see either the pre-state or the post-state, never a torn intermediate. The conflict-policy check inside `Register` is performed under the dictionary's own write lock so two concurrent identical registrations don't race past the equality check.
+Concrete algorithm:
+
+```csharp
+private static readonly ConcurrentDictionary<Type, IReadOnlyList<PortSpec>> _store = new();
+private static readonly object _writeLock = new();
+
+public static void Register(Type t, IEnumerable<PortDefinition> defs)
+{
+    var snapshot = ValidateAndSnapshot(t, defs);  // throws on validation failure
+    lock (_writeLock)
+    {
+        if (_store.TryGetValue(t, out var existing))
+        {
+            if (!StructurallyEqual(existing, snapshot)) throw new InvalidOperationException(/* both lists */);
+            return;                                         // identical → no-op
+        }
+        _store[t] = snapshot;
+    }
+}
+
+public static void Clear()
+{
+    lock (_writeLock) _store.Clear();
+}
+
+public static bool TryGet(Type t, out IReadOnlyList<PortSpec> snapshot)
+{
+    for (Type? cur = t; cur != null; cur = cur.BaseType)
+        if (_store.TryGetValue(cur, out snapshot)) return true;
+    snapshot = Array.Empty<PortSpec>();
+    return false;
+}
+```
+
+`TryGet` is lock-free (single-key reads on `ConcurrentDictionary` are atomic and lock-free; the walk-up is a sequence of independent lock-free reads). `Register` and `Clear` serialize through `_writeLock` so the "read existing → compare → throw or accept" sequence is atomic against other writers. Readers see either the pre-state or the post-state on any given key, never a torn intermediate.
 
 Tests that mutate the registry (call `Register` or `Clear`) run inside a non-parallel xUnit collection (`[Collection("NodePortRegistry")]`) so they don't interleave with one another. Tests that only read are unaffected.
 
 ### `Node.Ports` (new), `Node.PortProvider` (lazy), and materialization
 
-Both `Node.Ports` (new) and `Node.PortProvider` (existing) trigger lazy materialization on read. The materializer is shared and idempotent, so consumers using either the old `node.PortProvider!.Ports` pattern or the new `node.Ports` shorthand see the same behavior.
+Both `Node.Ports` (new) and `Node.PortProvider` (existing) trigger lazy materialization on read. A `_portProviderExplicit` sentinel records that the consumer has touched the setter at any point — including `= null` — so explicit assignment fully suppresses registry consultation thereafter. The materializer is shared and idempotent.
 
 ```csharp
+private bool _portProviderExplicit;
+
 public IReadOnlyList<Port> Ports
 {
     get
@@ -165,12 +213,16 @@ public IPortProvider? PortProvider
         EnsureMaterialized();
         return _portProvider;
     }
-    set => SetField(ref _portProvider, value);
+    set
+    {
+        _portProviderExplicit = true;     // any assignment (including null) suppresses registry defaults
+        SetField(ref _portProvider, value);
+    }
 }
 
 private void EnsureMaterialized()
 {
-    if (_portProvider != null) return;
+    if (_portProviderExplicit) return;                       // code wins, including explicit null
     if (!NodePortRegistry.TryGet(GetType(), out var defs)) return;
 
     var ports = defs.Select(d => new Port(this, d.Name, d.Flow,
@@ -180,20 +232,56 @@ private void EnsureMaterialized()
         MaxConnections = d.MaxConnections,
         DataType = d.DataType,
     }).ToList();
-    PortProvider = new FixedPortProvider(ports);   // setter raises PropertyChanged
+    PortProvider = new FixedPortProvider(ports);             // goes through setter, sets flag, raises PropertyChanged
 }
 ```
 
 Properties of this rule:
-- **Lazy and idempotent.** First access (via either getter) materializes once; subsequent accesses return the existing provider's ports.
-- **Code wins.** If a consumer has assigned `PortProvider` (in a ctor, in code-behind, anywhere) the registry is never consulted on subsequent reads.
+- **Lazy and idempotent.** First access (via either getter) materializes once; the sentinel flips to true and subsequent accesses early-out.
+- **Code wins, including explicit null.** Any setter call — `node.PortProvider = customProvider` or `node.PortProvider = null` — flips the sentinel, suppressing the registry from that point on. `= null` is now a permanent "this node has no ports," not a temporary clear that the registry will undo on the next read.
 - **Existing API surface keeps working.** Code that reads `node.PortProvider?.Ports` or subscribes to `PortProvider` changes does not need migration — it sees the materialized provider on first access. `node.Ports` is sugar over the same path.
-- **No live updates.** Re-parsing AXAML or calling `NodePortRegistry.Clear()`/`Register()` after a node has materialized leaves the existing node's ports untouched. New nodes constructed afterward see the new registry state.
-- **Side effect on getter is bounded.** At most one `PortProvider` assignment per node instance, gated by the `_portProvider != null` early-out.
+- **No live updates.** Re-parsing AXAML or calling `NodePortRegistry.Clear()`/`Register()` after a node has materialized leaves the existing node's ports untouched. The sentinel is true after auto-materialization, so subsequent reads never reconsult the registry.
+- **Side effect on getter is bounded.** At most one `PortProvider` assignment per node instance, gated by the sentinel.
 
-#### Canvas-side render path
+#### Canvas-side render path — required changes
 
-The existing canvas code already subscribes to `PortProvider` changes and renders from `PortProvider.Ports`. With the lazy getter, the first time the canvas reads `node.PortProvider` after the node enters the graph, the materializer fires, the setter raises `PropertyChanged`, and the canvas's existing change handler attaches its listeners. No new wiring needed; the canvas does not need to know about the registry.
+The lazy getter interacts badly with the current order in `NodiumGraphCanvas.AddNodeContainer` (lines 1753–1780). Today it does:
+
+```csharp
+node.PropertyChanged += OnNodePropertyChanged;        // (1) subscribe
+if (node.PortProvider != null)                         // (2) read — would now materialize
+    AttachProvider(node, node.PortProvider);           // (3) attach
+```
+
+With the lazy getter, step (2) materializes via the setter, which raises `PropertyChanged`. The subscription from step (1) routes that through `OnNodePropertyChanged`, which calls `AttachProvider`. Then step (3) calls `AttachProvider` again — port subscriptions and provider lambdas double up, `_providerAddedHandlers` overwrites its own first registration while leaving the orphaned lambda subscribed.
+
+Two changes fix this:
+
+1. **Reorder `AddNodeContainer` so the read happens before the subscription:**
+
+```csharp
+var provider = node.PortProvider;                      // may auto-materialize; no subscriber yet
+node.PropertyChanged += OnNodePropertyChanged;
+if (provider != null)
+    AttachProvider(node, provider);
+```
+
+The `PropertyChanged` raised by auto-materialization passes with no subscriber. The subsequent explicit `AttachProvider` call is the only one.
+
+2. **Make `AttachProvider` idempotent** (defense in depth):
+
+```csharp
+private void AttachProvider(Node node, IPortProvider provider)
+{
+    if (_nodeProviders.TryGetValue(node, out var existing) && existing == provider)
+        return;                                        // already attached
+    // ... existing body ...
+}
+```
+
+This guards against any other code path that ends up reading `node.PortProvider` while a `PropertyChanged` subscription is live (extensions, headless test harnesses, future callers).
+
+No other canvas changes are needed.
 
 ### Registration timing — the rule, plainly
 
@@ -230,22 +318,25 @@ xUnit v3 + Avalonia headless. Three test files:
 All tests that mutate the registry live in xUnit collection `[Collection("NodePortRegistry")]` to serialize against each other. Each such test starts with `NodePortRegistry.Clear()`.
 
 **`NodePortRegistryTests.cs`** (pure model, no Avalonia):
-- Register valid definitions → `TryGet` returns them.
+- Register valid definitions → `TryGet` returns a matching `IReadOnlyList<PortSpec>`.
 - Re-register structurally identical list → no-op, no throw.
 - Re-register with any difference → throws `InvalidOperationException`.
 - Empty `Name` → throws at `Register`.
 - Duplicate `Name` → throws at `Register`.
 - Out-of-range `Fraction` → throws at `Register`.
-- `TryGet` for a derived type with no entry but a registered base → returns the base's defs. (walk-up)
-- `TryGet` for a derived type with its own entry → returns the derived defs, not the base's. (most-specific wins)
+- `TryGet` for a derived type with no entry but a registered base → returns the base's snapshot. (walk-up)
+- `TryGet` for a derived type with its own entry → returns the derived snapshot, not the base's. (most-specific wins)
 - `TryGet` for a type whose chain has no entries → returns false.
 - `DataType` value equality: two registrations with `DataType = "x"` (string) → identical, no throw. Two registrations with `DataType = typeof(int)` → identical, no throw. Two registrations with distinct `new object()` values → throws (documents the ref-equality footgun).
+- **Snapshot immutability:** register a `PortDefinition`, then mutate its `Name`/`Fraction`/etc. after the fact and re-call `TryGet` → returned snapshot reflects the original values, not the mutated ones. Also: mutate or clear the original `IList<PortDefinition>` after register → registry state is unaffected.
+- **Concurrent Register:** two threads racing `Register` for the same type with different defs → one wins, the other throws `InvalidOperationException`. Two threads with identical defs → both succeed (one inserts, one no-ops).
 - `Clear()` empties the registry; existing materialized nodes unaffected (covered in materialization tests).
 
 **`NodeRegistryMaterializationTests.cs`** (pure model):
 - Register defs for `TypeA`. Construct `new TypeA()`. Access `.Ports` → returns ports matching the defs, `PortProvider` is a `FixedPortProvider`.
 - Same scenario but read `node.PortProvider` (the existing API) instead of `.Ports` → also triggers materialization; returns the new provider.
-- Pre-assign `node.PortProvider = …` before any read → registry is never consulted on subsequent reads; existing provider wins.
+- Pre-assign `node.PortProvider = customProvider` before any read → registry never consulted; `customProvider` wins.
+- **Explicit null suppresses registry:** register defs for `TypeA`, construct `new TypeA()`, assign `node.PortProvider = null`, then access `.Ports` → returns empty, `PortProvider` stays null. The sentinel makes `= null` a permanent choice.
 - No registration for `TypeB`. Construct `new TypeB()`. Access `.Ports` → returns empty; `PortProvider` stays null. Then `Register(typeof(TypeB), …)`; access `.Ports` again → late registration takes effect on this access.
 - Optional fields (`Label`, `MaxConnections`, `DataType`) propagate to the materialized `Port`.
 - Repeated `.Ports` access returns the same list reference; no re-materialization.
@@ -257,6 +348,7 @@ All tests that mutate the registry live in xUnit collection `[Collection("NodePo
 - Load a `Window` whose XAML has `<ng:NodeTemplate>` with `<ng:NodeTemplate.Ports>` → after `InitializeComponent`, registry contains the entries.
 - Construct a node of the templated type → `.Ports` is populated.
 - Bind a graph to a canvas in that window; node renders with the declared ports (canvas-level integration: the canvas attaches the materialized provider, ports hit-test, drag-to-connect resolves to the declared ports).
+- **No canvas double-attach:** add a node whose registry entry causes lazy materialization during `AddNodeContainer`; assert `provider.PortAdded` has exactly one subscriber after attach (counts handlers via the `_providerAddedHandlers` snapshot or via `Delegate.GetInvocationList()` on a probe).
 - Invalid `PortDefinition` (bad `Fraction`) in XAML → window load surfaces the exception cleanly.
 
 ## Documentation impact
@@ -281,11 +373,16 @@ Added in `NodiumGraph.Controls`:
 
 Added in `NodiumGraph`:
 - `NodePortRegistry` (static).
+- `PortSpec` (immutable record; the registry's snapshot element type).
 
 Added on `NodiumGraph.Model.Node`:
 - `Ports` (`IReadOnlyList<Port>`, lazy-materializing read-only property).
 
 Behavior change on `NodiumGraph.Model.Node`:
-- `PortProvider` getter now triggers the same lazy materialization as `Ports` (first read consults `NodePortRegistry` if no provider is set). Type and setter signature are unchanged.
+- `PortProvider` getter triggers lazy materialization (first read consults `NodePortRegistry` if the setter has never been called). Setter signature unchanged; setter now also flips a private sentinel so explicit assignment (including `= null`) permanently suppresses registry consultation.
+
+Internal change in `NodiumGraph.Controls.NodiumGraphCanvas`:
+- `AddNodeContainer` reorders to read `PortProvider` before subscribing to `PropertyChanged`.
+- `AttachProvider` short-circuits if `_nodeProviders` already holds the same provider for the node.
 
 No removals. No changes to `Port`, `PortAnchor`, `FixedPortProvider`, or any handler/strategy interface.
