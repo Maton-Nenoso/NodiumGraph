@@ -106,92 +106,83 @@ Always use the `mcp__avalonia-docs` MCP tools (`search_avalonia_docs`, `lookup_a
 <claude-mem-context>
 # Memory Context
 
-# [NodiumGraph] recent context, 2026-05-13 5:52pm GMT+2
+# [NodiumGraph] recent context, 2026-05-14 1:43pm GMT+2
 
 Legend: 🎯session 🔴bugfix 🟣feature 🔄refactor ✅change 🔵discovery ⚖️decision 🚨security_alert 🔐security_note
 Format: ID TIME TYPE TITLE
 Fetch details: get_observations([IDs]) | Search: mem-search skill
 
-Stats: 50 obs (20,294t read) | 385,082t work | 95% savings
+Stats: 50 obs (23,100t read) | 450,200t work | 95% savings
 
-### May 13, 2026
-1252 5:21p ✅ Clarified breaking changes summary to list both deleted Port constructors
-1253 " ✅ Expanded test strategy with canvas invalidation chain coverage and user guide migration tasks
-1254 " ✅ Finalized done criteria with concrete test specifications and documentation validation
-1256 5:25p 🔵 Code review findings: Canvas invalidation, arc-length formula, and test strategy gaps
-1257 5:26p 🔵 P1 validation: InvalidateConnectionGeometryForNode exists but uncalled on Port.AbsolutePosition change
-1258 " ✅ P2 fix: Corrected RoundedRectangleShape arc-length formula in design doc
-1259 " ✅ P1 fix: Clarified canvas invalidation chain and explicit connection-geometry cache invalidation
-1260 " ✅ P3 fix: Updated RoundedRectangleShapeTests strategy from corner-snap to corner-arc round-trip contract
-1261 5:27p ✅ Minor fix: Clarified that rounded-rectangle corner-arc ports are reachable via both dynamic and fixed anchors
-1262 " ✅ Design document rev 3 committed with all code-review corrections
-1263 5:29p ⚖️ Added canonical anchor rule for shared boundary endpoints
-1264 " ✅ Added EmissionDirection re-fire to Port invalidation chain for Width/Height/Shape changes
-1265 " ✅ Clarified PortTests strategy for EmissionDirection INPC firing
-1266 5:30p ✅ Design document rev 4 committed with canonical anchor tie-break and EmissionDirection INPC
-1267 " ✅ Design document updated with canonical anchor and emission direction property-change fixes
-1268 5:31p ✅ Expanded round-trip property test strategy with three explicit canonicalization cases
-1269 " ✅ Expanded done criteria #2 with explicit canonicalization test cases
-1270 " ✅ Design document rev 5 committed with round-trip test wording alignment
-S401 Review design document for anchor-based port positioning system in NodiumGraph (May 13, 5:31 PM)
-S402 Design review refinements for anchor-based port positioning — address P1/P2/P3 issues: enum validation, null policy, zero-dimension fallbacks, ellipse orientation mapping, rounded-rectangle parameterization (May 13, 5:34 PM)
-1271 5:35p ⚖️ Added explicit PortEdge enum validation to PortAnchor constructor
-1272 5:36p ⚖️ Specified ellipse edge fraction orientation and rounded-rectangle radius clamping in design
-1273 " ⚖️ Added null validation and zero-dimension fallback contract to Node.Shape and shape methods
-1274 " ✅ Expanded test strategy with explicit enum validation, null-rejection, and zero-dimension test cases
-1275 " ✅ Refined shape test criteria with endpoint validation and capsule-case coverage
-1276 5:37p ✅ Committed anchor-based port positioning design plan (revision 6) with all P1/P2 refinements
-S403 Review of anchor-based port positioning design document (2026-05-13) (May 13, 5:37 PM)
-S404 Memory agent checkpoint: design plan revision 7 committed with per-edge capsule specification, PortAnchor in shape API, and Width/Height property clarification (May 13, 5:39 PM)
-1277 5:39p ⚖️ INodeShape interface refactored to accept PortAnchor instead of raw (edge, fraction) pairs
-1278 " ✅ Node class forwarding methods updated to accept PortAnchor instead of raw (edge, fraction)
-1279 " 🔵 Found three locations in design doc still decomposing PortAnchor into (Edge, Fraction) for shape calls
-1280 " ✅ Fixed code examples in design document: replaced decomposed (Anchor.Edge, Anchor.Fraction) with validated PortAnchor
-1281 5:40p ✅ Completed API consistency fixes: all decomposed (Anchor.Edge, Anchor.Fraction) calls now use PortAnchor directly
-1282 " ✅ Refined RoundedRectangleShape specification with per-edge dimension table and degenerate case clarity
-1283 " ✅ Clarified Node dimension mutation scope: Width/Height are internal-only, Shape is public consumer action
-S405 Review anchor-based port positioning design document and conduct codebase impact analysis to identify all sites requiring migration (May 13, 5:41 PM)
-1284 5:44p ⚖️ Anchor-based port positioning architecture for NodiumGraph
-1285 " 🔵 User guide documentation omitted from migration list
-1286 " 🔵 Test migration scope underestimates affected test suites
-1287 " ✅ Zero-dimension table documentation uses outdated API method signatures
-1288 " ⚖️ Architecture design approved for implementation
-S406 Review and refine anchor-based port positioning migration plan based on scope analysis findings (May 13, 5:45 PM)
-1289 5:45p 🔵 22 test files use deleted Point-based Port constructor
-1290 " 🔵 User guide model.md still documents Point-based Port constructors
-1291 " ✅ Design plan updated with correct PortAnchor method signatures
-1292 " ✅ Test strategy expanded to cover all 22 affected test suites
-1293 " ✅ Done criteria clarified to include comprehensive userguide sweep
-1294 " ⚖️ Migration plan finalized with broadened scope and test strategy
-S407 Verify and refine anchor-based port positioning design document; address identified gaps from impact analysis and confirm implementation readiness (May 13, 5:45 PM)
-1295 5:47p ✅ Anchor-based port positioning design document refined with expanded test strategy and doc scope
-S408 Analyze and refine anchor-based port positioning migration plan; complete specification design and prepare for implementation phase (May 13, 5:47 PM)
-1296 5:48p ✅ RectangleShape boundary parameterization fully specified
-1297 " ✅ Plan updated with rectangle parameterization specification and committed
-S409 Comprehensive review of design document completeness and identification of documentation scope gaps for anchor-based port positioning implementation (May 13, 5:48 PM)
-1298 5:49p ✅ RectangleShape boundary parameterization table added to design specification
-1300 5:50p 🔵 custom-router.md documents AbsolutePosition invalidation partially
-1301 " ✅ Plan expanded to include additional userguide pages discovered during documentation audit
-1302 " ✅ Done criterion 6 specified with concrete failure conditions and comprehensive sweep scope
-1303 " ✅ Plan finalized with comprehensive documentation migration scope and testable done criteria
-S410 Complete anchor-based port positioning migration plan specification through comprehensive scope discovery and documentation audit (May 13, 5:50 PM)
-**Investigated**: • Initial findings from code review: P2 gaps in model.md and test migration scope; P3 zero-dimension wording inconsistency
-    • Grep analysis of documentation: found 22 test files using deleted Point-based Port constructors; confirmed model.md lines 100–101 document deleted API
-    • Additional documentation audit: identified persist-graph-state.md, custom-router.md, and rendering-pipeline.md as affected pages with specific guidance needs
-    • Plan specification: all three shape boundary parameterizations (Rectangle, Ellipse, RoundedRectangle) with complete formulas and round-trip contracts
+### May 14, 2026
+1399 12:22p 🔵 AXAML files exist but contain no port declarations
+1400 " 🔵 Node ports are not defined in AXAML DataTemplates; only visual appearance
+S415 Design AXAML-based port definition capability for NodiumGraph nodes; initial investigation and architectural sketch (May 14, 12:22 PM)
+1401 12:23p 🔵 Port and FixedPortProvider architecture prevents XAML declarability
+1402 " 🔵 PortAnchor.cs file exists; additional port-related infrastructure identified
+1403 12:24p 🔵 PortAnchor-based architecture enables declarative port positioning on node edges
+S416 Design decisions for PortDefinition and AXAML node port declaration in a node-based UI library (May 14, 12:24 PM)
+S417 Design and formalize specification for declarative AXAML port definitions in NodiumGraph (May 14, 12:29 PM)
+1404 12:32p 🟣 Declarative AXAML port definitions specification
+S418 User asked whether ports can be defined on nodes from within AXAML file definitions; Claude performed triage of code review comments against the port declaration feature specification. (May 14, 12:32 PM)
+S419 Architectural decision: how should port definitions declared in AXAML become accessible to code? User asserted that "the presenter is per node type definition" and "ports shouldn't be defined in AXAML if they aren't usable afterwards." Claude analyzed three viable approaches and recommended one. (May 14, 12:36 PM)
+S420 Redesign NodiumGraph AXAML port declaration architecture: move from rendering-side-effect model (ports materialized in NodePresenter.OnAttachedToVisualTree) to declarative per-type model with registry-backed lazy materialization (May 14, 12:42 PM)
+1405 12:48p ⚖️ Node graph topology decoupled from rendering via declarative NodeTemplate registry
+1406 12:50p ⚖️ Declarative AXAML port definitions via NodeTemplate registry (revised architecture)
+S421 Design review and refinement for declarative AXAML port definitions — answer whether ports can be defined inline in AXAML node templates, and finalize the specification with complete design, testing strategy, and implementation contract. (May 14, 12:51 PM)
+1407 12:55p ⚖️ NodePortRegistry type-hierarchy lookup and thread-safety specifications
+1408 12:56p ⚖️ Lazy materialization on both Node.Ports and Node.PortProvider getters
+1409 " 🔵 Registry lookup retry semantics and late registration behavior clarified
+1410 12:57p ✅ Design decision matrix finalized with backward compatibility and concurrency details
+1411 " ✅ Comprehensive test specification for registry type-hierarchy lookup, late registration, and materialization
+1412 " ✅ Registration timing table clarified for access-time semantics and retry behavior
+1413 12:58p ✅ Removed obsolete non-goal: Pre-InitializeComponent access
+1414 " ✅ Removed type-hierarchy lookup from future/out-of-scope — now core feature
+1415 " ✅ Public surface delta clarified: PortProvider getter behavior change documented
+1416 " ✅ Declarative AXAML ports design specification committed
+S422 Design review findings addressed: five critical issues (P1×2, P2×2, P3×1) in declarative Axaml ports plan resolved through design clarifications and concrete implementation specifications (May 14, 12:58 PM)
+1417 1:18p 🔵 Critical design issues identified in declarative Axaml ports plan
+1418 1:19p 🔵 Confirmed double-subscription vulnerability in AddNodeContainer canvas code
+1419 1:20p ✅ Design document clarified to address P1 and P3 review findings
+1420 " ✅ Design document specified immutable snapshot implementation for registry
+1421 " ✅ NodePortRegistry.TryGet signature updated to return PortSpec snapshots
+1422 1:21p ✅ Replaced hand-wavy thread safety with concrete locking algorithm
+1423 " ✅ Implemented _portProviderExplicit sentinel to enforce null assignment semantics
+1424 " ✅ Specified required NodiumGraphCanvas changes to fix double-subscription in AddNodeContainer
+1425 1:22p ✅ Added explicit immutability and concurrency tests to NodePortRegistryTests specification
+1426 " ✅ Added explicit null suppression test to NodeRegistryMaterializationTests
+1427 " ✅ Added canvas double-attach prevention test to DeclarativeNodeTemplateTests
+1428 " ✅ Expanded Public surface delta to document PortSpec and canvas changes
+S423 Design review response: address P1 (PortSpec visibility), P2 (empty-Ports behavior and template matching semantics), and P3 (shallow-snapshot immutability) findings in declarative AXAML ports specification. (May 14, 1:23 PM)
+1429 1:28p 🔵 Design review findings on declarative AXAML ports specification
+1430 1:29p ✅ Design specification updated to address template matching and empty-ports issues
+1431 1:30p ✅ Design documentation clarified for exact-type matching and empty-ports handling
+1432 " ⚖️ Registry lookup changed from type-hierarchy walk-up to exact-type matching only
+1433 " ✅ DataType validation constraint added to enforce immutability safety
+1434 " ✅ PortSpec promoted to public API with immutability clarification
+1435 " ✅ Open question resolutions table updated with final design decisions
+1436 " ✅ Test specifications updated for exact-type-only registry lookup
+1437 1:31p ✅ Integration tests added for edge cases: visual-only templates, exact-type matching, and DataType validation
+1438 " ✅ Conflict policy documentation simplified by DataType validation constraint
+1439 " ✅ Open questions table updated: conflict policy row simplified by DataType validation
+1440 " ✅ Out-of-scope documentation added for type-hierarchy lookup walk-up
+1441 1:32p ✅ Declarative AXAML ports design specification finalized and committed
+1442 1:38p 🔵 Design contradictions identified in declarative AXAML ports registry document
+1443 " ✅ Fixed exact-type matching contradiction in NodePortRegistry.TryGet
+1444 " ✅ Specified storage immutability guarantees for registry snapshots
+1445 " ✅ Tightened test isolation contract for registry state observability
+1446 " ✅ Documented hot-reload conflict policy and Clear() requirement
+1447 " ✅ Added explicit test case for non-downcastable snapshot returns
+1448 1:39p ✅ Finalized declarative XAML ports design with all review issues resolved
+S424 Review and resolve design contradictions in declarative XAML ports registry specification; address exact-type matching logic, immutability guarantees, hot-reload behavior, and test isolation assumptions. (May 14, 1:39 PM)
+**Investigated**: Examined declarative AXAML ports design document (docs/plans/2026-05-14-declarative-axaml-ports-design.md) and identified four design contradictions: TryGet method claiming exact-only but algorithm walking base types; hot-reload section not documenting NodePortRegistry.Clear() requirement; immutable snapshot claim contradicted by IReadOnlyList return type allowing downcasting; test isolation assumptions ignoring parallelism race conditions on shared static registry state.
 
-**Learned**: • Migration scope encompasses 22 test files across model, rendering, routing, and canvas domains — much broader than initially-named rows; test helper (TestNodes.WithPorts) can reduce churn
-    • Documentation gaps extend beyond Port construction examples to persistence guidance (should serialize anchors, not derived Position), routing documentation (incomplete invalidation contract), and rendering notes (Position derivation)
-    • Specification rigor: all three shapes require symmetric per-edge endpoint tables, canonical ownership rules, and clockwise parameterization consistency; Bottom/Left edges use (1-Fraction) formulas
-    • Done criteria must be swept and specific: enumerating four failure conditions (old API references, Point examples, world-unit persistence, node-move-only invalidation) is more testable than generic "no stale references"
+**Learned**: Design specification had internal inconsistencies between prose documentation and concrete algorithm descriptions. IReadOnlyList interface alone provides insufficient protection against downcasting attacks if underlying implementation uses mutable collections. Test isolation on shared static state requires explicit contract that includes all observing tests, not just mutating tests. Exact-type matching must be enforced consistently across both NodeTemplate.Match and NodePortRegistry.TryGet to prevent visual/port topology drift based on template declaration order under Avalonia's order-dependent selection.
 
-**Completed**: • Commit 759d253 (rev 8): Broadened userguide to include 3-reference/model.md; added explicit 22-file test row with TestNodes helper; updated done criteria #6 to comprehensive sweep; fixed zero-dim signatures to (anchor, w, h)
-    • Commit 0577114 (rev 9): Added explicit RectangleShape boundary parameterization table with formulas and endpoints for all four edges
-    • Commit fa6c7ad (rev 10): Expanded userguide targets to 10 pages (added persist-graph-state.md, custom-router.md, rendering-pipeline.md with specific guidance); rewrote done criteria #6 as enumerated sweep conditions
-    • Plan specification now complete through revision 10 with symmetric shape specs, comprehensive test strategy (22 files + new tests), explicit documentation targets with guidance, and testable done criteria
+**Completed**: Fixed all four design issues in specification: (1) Removed walk-up loop from TryGet algorithm, now single exact-type key lookup; (2) Explicitly specified storage as ReadOnlyCollection<PortSpec> or ImmutableArray<PortSpec> over private backing array to prevent downcasting; (3) Updated hot-reload registration timing table to require explicit NodePortRegistry.Clear() call before re-parsing changed templates; (4) Broadened test isolation contract to include all registry-observing tests in non-parallel xUnit collection; (5) Added new test case "Snapshot non-downcastable" with explicit assertion guidance. Changes committed to main branch as 534d62c with comprehensive commit message summarizing all fixes.
 
-**Next Steps**: Plan specification is complete and locked at revision 10. The user indicated they are ready to proceed. Next phase is converting comprehensive design spec into granular implementation tasks via writing-plans skill. This will break the plan into specific tasks for: PortAnchor value type, INodeShape method implementations per shape, Port position caching/invalidation, provider updates, router integration, canvas invalidation chain, 22-file test migration, documentation updates to 10 pages, and sample app updates.
+**Next Steps**: Primary session is at decision point: either conduct another design review pass to catch remaining gaps, or transition to implementation planning phase (writing-plans) to begin detailed task breakdown for coding the registry, Node materialization, NodeTemplate, and canvas integration changes.
 
 
-Access 385k tokens of past work via get_observations([IDs]) or mem-search skill.
+Access 450k tokens of past work via get_observations([IDs]) or mem-search skill.
 </claude-mem-context>
