@@ -1,0 +1,164 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ng="clr-namespace:NodiumGraph.Controls;assembly=NodiumGraph"
+        xmlns:local="clr-namespace:UnrealBlueprintSample"
+        x:Class="UnrealBlueprintSample.MainWindow"
+        Title="UE Blueprint Style — NodiumGraph"
+        Width="1600" Height="900"
+        Background="#1A1A1A">
+
+    <Window.DataTemplates>
+
+        <!-- 1. On Component Begin Overlap (Box) — event node, red header,
+             one exec out + six data outputs. -->
+        <ng:NodeTemplate DataType="local:BeginOverlapNode">
+            <ng:NodeTemplate.Ports>
+                <ng:PortDefinition Name="exec"               Flow="Output" Edge="Right" Fraction="0.08" DataType="exec" />
+                <ng:PortDefinition Name="OverlappedComponent" Flow="Output" Edge="Right" Fraction="0.22" Label="Overlapped Component" DataType="object" />
+                <ng:PortDefinition Name="OtherActor"          Flow="Output" Edge="Right" Fraction="0.36" Label="Other Actor"          DataType="object" />
+                <ng:PortDefinition Name="OtherComp"           Flow="Output" Edge="Right" Fraction="0.50" Label="Other Comp"           DataType="object" />
+                <ng:PortDefinition Name="OtherBodyIndex"      Flow="Output" Edge="Right" Fraction="0.64" Label="Other Body Index"     DataType="int" />
+                <ng:PortDefinition Name="FromSweep"           Flow="Output" Edge="Right" Fraction="0.78" Label="From Sweep"           DataType="bool" />
+                <ng:PortDefinition Name="SweepResult"         Flow="Output" Edge="Right" Fraction="0.92" Label="Sweep Result"         DataType="struct" />
+            </ng:NodeTemplate.Ports>
+
+            <ng:NodePresenter HeaderBackground="#8B1F1F"
+                              HeaderForeground="White"
+                              HeaderFontWeight="Bold"
+                              HeaderPadding="12,8"
+                              Background="#252525"
+                              BorderBrush="#0A0A0A"
+                              CornerRadius="6"
+                              MinWidth="280"
+                              BaseBoxShadow="0 4 12 0 #80000000">
+                <!-- Body height padding so the seven ports have vertical room -->
+                <Border Height="170" />
+            </ng:NodePresenter>
+        </ng:NodeTemplate>
+
+        <!-- 2. Branch — flow control, red header. Exec in + bool condition,
+             True/False exec outs. -->
+        <ng:NodeTemplate DataType="local:BranchNode">
+            <ng:NodeTemplate.Ports>
+                <ng:PortDefinition Name="exec"      Flow="Input"  Edge="Left"  Fraction="0.30" DataType="exec" />
+                <ng:PortDefinition Name="Condition" Flow="Input"  Edge="Left"  Fraction="0.70" Label="Condition" DataType="bool" />
+                <ng:PortDefinition Name="True"      Flow="Output" Edge="Right" Fraction="0.30" Label="True"      DataType="exec" />
+                <ng:PortDefinition Name="False"     Flow="Output" Edge="Right" Fraction="0.70" Label="False"     DataType="exec" />
+            </ng:NodeTemplate.Ports>
+
+            <ng:NodePresenter HeaderBackground="#8B1F1F"
+                              HeaderForeground="White"
+                              HeaderFontWeight="Bold"
+                              HeaderPadding="12,8"
+                              Background="#252525"
+                              BorderBrush="#0A0A0A"
+                              CornerRadius="6"
+                              MinWidth="160"
+                              BaseBoxShadow="0 4 12 0 #80000000">
+                <Border Height="60" />
+            </ng:NodePresenter>
+        </ng:NodeTemplate>
+
+        <!-- 3. Get Player Pawn — pure function, green header (no exec pins). -->
+        <ng:NodeTemplate DataType="local:GetPlayerPawnNode">
+            <ng:NodeTemplate.Ports>
+                <ng:PortDefinition Name="PlayerIndex" Flow="Input"  Edge="Left"  Fraction="0.55" Label="Player Index" DataType="int" />
+                <ng:PortDefinition Name="ReturnValue" Flow="Output" Edge="Right" Fraction="0.55" Label="Return Value" DataType="object" />
+            </ng:NodeTemplate.Ports>
+
+            <ng:NodePresenter HeaderBackground="#2E7D32"
+                              HeaderForeground="White"
+                              HeaderFontWeight="Bold"
+                              HeaderPadding="12,8"
+                              Background="#252525"
+                              BorderBrush="#0A0A0A"
+                              CornerRadius="6"
+                              MinWidth="200"
+                              BaseBoxShadow="0 4 12 0 #80000000">
+                <Border Height="40" />
+            </ng:NodePresenter>
+        </ng:NodeTemplate>
+
+        <!-- 4. == — comparison, no real header. Two object inputs, bool output. -->
+        <ng:NodeTemplate DataType="local:EqualsNode">
+            <ng:NodeTemplate.Ports>
+                <ng:PortDefinition Name="A"      Flow="Input"  Edge="Left"  Fraction="0.30" DataType="object" />
+                <ng:PortDefinition Name="B"      Flow="Input"  Edge="Left"  Fraction="0.70" DataType="object" />
+                <ng:PortDefinition Name="Result" Flow="Output" Edge="Right" Fraction="0.50" DataType="bool" />
+            </ng:NodeTemplate.Ports>
+
+            <ng:NodePresenter HeaderBackground="#2C2C2C"
+                              HeaderForeground="#E8E8E8"
+                              HeaderFontWeight="Bold"
+                              HeaderFontSize="16"
+                              HeaderPadding="20,6"
+                              Background="#1F1F1F"
+                              BorderBrush="#0A0A0A"
+                              CornerRadius="14"
+                              MinWidth="100"
+                              BaseBoxShadow="0 4 12 0 #80000000">
+                <Border Height="30" />
+            </ng:NodePresenter>
+        </ng:NodeTemplate>
+
+        <!-- 5. Cast To Character — cast node, cyan/teal header. -->
+        <ng:NodeTemplate DataType="local:CastToCharacterNode">
+            <ng:NodeTemplate.Ports>
+                <ng:PortDefinition Name="exec"        Flow="Input"  Edge="Left"  Fraction="0.30" DataType="exec" />
+                <ng:PortDefinition Name="Object"      Flow="Input"  Edge="Left"  Fraction="0.70" Label="Object" DataType="object" />
+                <ng:PortDefinition Name="Then"        Flow="Output" Edge="Right" Fraction="0.22" DataType="exec" />
+                <ng:PortDefinition Name="CastFailed"  Flow="Output" Edge="Right" Fraction="0.55" Label="Cast Failed"  DataType="exec" />
+                <ng:PortDefinition Name="AsCharacter" Flow="Output" Edge="Right" Fraction="0.85" Label="As Character" DataType="object" />
+            </ng:NodeTemplate.Ports>
+
+            <ng:NodePresenter HeaderBackground="#2A7AAA"
+                              HeaderForeground="White"
+                              HeaderFontWeight="Bold"
+                              HeaderPadding="12,8"
+                              Background="#252525"
+                              BorderBrush="#0A0A0A"
+                              CornerRadius="6"
+                              MinWidth="200"
+                              BaseBoxShadow="0 4 12 0 #80000000">
+                <Border Height="100" />
+            </ng:NodePresenter>
+        </ng:NodeTemplate>
+
+        <!-- 6. Launch Character — function, blue header. Inline X/Y/Z editor for
+             Launch Velocity is omitted; rendered as a single struct pin to keep the
+             sample dependency-free. -->
+        <ng:NodeTemplate DataType="local:LaunchCharacterNode">
+            <ng:NodeTemplate.Ports>
+                <ng:PortDefinition Name="exec"           Flow="Input"  Edge="Left"  Fraction="0.18" DataType="exec" />
+                <ng:PortDefinition Name="Target"         Flow="Input"  Edge="Left"  Fraction="0.36" Label="Target"          DataType="object" />
+                <ng:PortDefinition Name="LaunchVelocity" Flow="Input"  Edge="Left"  Fraction="0.56" Label="Launch Velocity" DataType="struct" />
+                <ng:PortDefinition Name="XYOverride"     Flow="Input"  Edge="Left"  Fraction="0.76" Label="XY Override"     DataType="bool" />
+                <ng:PortDefinition Name="ZOverride"      Flow="Input"  Edge="Left"  Fraction="0.92" Label="Z Override"      DataType="bool" />
+                <ng:PortDefinition Name="execOut"        Flow="Output" Edge="Right" Fraction="0.18" DataType="exec" />
+            </ng:NodeTemplate.Ports>
+
+            <ng:NodePresenter HeaderBackground="#1F4E9B"
+                              HeaderForeground="White"
+                              HeaderFontWeight="Bold"
+                              HeaderPadding="12,8"
+                              Background="#252525"
+                              BorderBrush="#0A0A0A"
+                              CornerRadius="6"
+                              MinWidth="240"
+                              BaseBoxShadow="0 4 12 0 #80000000">
+                <TextBlock Text="Target is Character"
+                           Foreground="#A0A0A0"
+                           FontStyle="Italic"
+                           FontSize="11"
+                           Margin="0,0,0,90" />
+            </ng:NodePresenter>
+        </ng:NodeTemplate>
+
+    </Window.DataTemplates>
+
+    <ng:NodiumGraphCanvas x:Name="Canvas"
+                          ShowGrid="True"
+                          GridStyle="Dots"
+                          GridSize="20"
+                          SnapToGrid="False" />
+</Window>
