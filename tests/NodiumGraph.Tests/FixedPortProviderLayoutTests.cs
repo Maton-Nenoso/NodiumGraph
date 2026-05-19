@@ -138,13 +138,37 @@ public class FixedPortProviderLayoutTests
     }
 
     [Fact]
-    public void RemovePort_last_auto_on_edge_no_op()
+    public void RemovePort_down_to_one_auto_on_edge_resolves_to_half()
     {
+        // Verifies that DistributeAuto handles the autoCount==1 case after a removal:
+        // the survivor must land at 0.5 (== (0+1)/(1+1)), and the layout pass must not
+        // throw when called on the post-removal port list.
+        var node = MakeNode();
+        var auto1 = new Port(node, "A1", PortFlow.Input, PortEdge.Left);
+        var auto2 = new Port(node, "A2", PortFlow.Input, PortEdge.Left);
+        var provider = new FixedPortProvider(new[] { auto1, auto2 });
+        // Sanity: ctor laid them out at 1/3, 2/3.
+        Assert.Equal(1.0 / 3.0, auto1.Anchor.Fraction, 9);
+        Assert.Equal(2.0 / 3.0, auto2.Anchor.Fraction, 9);
+
+        Assert.True(provider.RemovePort(auto1));
+
+        // Survivor re-laid-out to 0.5 with N_auto==1.
+        Assert.Equal(0.5, auto2.Anchor.Fraction);
+    }
+
+    [Fact]
+    public void RemovePort_only_auto_on_edge_no_throw()
+    {
+        // Edge case: removing the sole auto port reduces autoCount to 0, so DistributeAuto
+        // early-returns without iterating. Confirms no exception is thrown when the post-
+        // removal list contains no auto ports on the affected edge.
         var node = MakeNode();
         var port = new Port(node, "Only", PortFlow.Input, PortEdge.Left);
         var provider = new FixedPortProvider(new[] { port });
         var removed = provider.RemovePort(port);
         Assert.True(removed);
+        Assert.Empty(provider.Ports);
     }
 
     [Fact]
