@@ -98,7 +98,7 @@ public static class NodePortRegistry
                 throw new ArgumentException("PortDefinition.Name must be non-null and non-empty.", nameof(definitions));
             if (!names.Add(d.Name))
                 throw new ArgumentException($"Duplicate port name '{d.Name}'.", nameof(definitions));
-            if (double.IsNaN(d.Fraction) || d.Fraction < 0.0 || d.Fraction > 1.0)
+            if (d.Fraction is double f && (double.IsNaN(f) || f < 0.0 || f > 1.0))
                 throw new ArgumentOutOfRangeException(nameof(definitions), $"Fraction {d.Fraction} for '{d.Name}' is not in [0,1].");
             if (d.Edge is not (PortEdge.Left or PortEdge.Top or PortEdge.Right or PortEdge.Bottom))
                 throw new ArgumentOutOfRangeException(nameof(definitions), $"Undefined PortEdge value {(int)d.Edge} for '{d.Name}'.");

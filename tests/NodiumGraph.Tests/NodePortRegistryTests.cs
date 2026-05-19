@@ -182,6 +182,54 @@ public class NodePortRegistryTests
         Assert.True(NodePortRegistry.TryGet(typeof(NodeA), out var snapshot));
         Assert.Single(snapshot);
     }
+
+    [Fact]
+    public void Register_PortDefinitionWithNullFraction_PassesValidation()
+    {
+        NodePortRegistry.Clear();
+        try
+        {
+            var def = new PortDefinition
+            {
+                Name = "In",
+                Flow = PortFlow.Input,
+                Edge = PortEdge.Left,
+                Fraction = null,
+            };
+            NodePortRegistry.Register(typeof(NullFractionTestNode), new[] { def });
+            Assert.True(NodePortRegistry.TryGet(typeof(NullFractionTestNode), out var specs));
+            var spec = Assert.Single(specs);
+            Assert.Null(spec.Fraction);
+        }
+        finally
+        {
+            NodePortRegistry.Clear();
+        }
+    }
+
+    [Fact]
+    public void Register_PortDefinitionWithOutOfRangeFraction_StillThrows()
+    {
+        NodePortRegistry.Clear();
+        try
+        {
+            var def = new PortDefinition
+            {
+                Name = "In",
+                Flow = PortFlow.Input,
+                Edge = PortEdge.Left,
+                Fraction = 1.5,
+            };
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                NodePortRegistry.Register(typeof(NullFractionTestNode), new[] { def }));
+        }
+        finally
+        {
+            NodePortRegistry.Clear();
+        }
+    }
+
+    private sealed class NullFractionTestNode : Node { }
 }
 
 [CollectionDefinition("NodePortRegistry", DisableParallelization = true)]

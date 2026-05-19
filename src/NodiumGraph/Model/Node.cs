@@ -191,7 +191,7 @@ public class Node : INotifyPropertyChanged, IGraphElement
         if (_portProviderExplicit) return;
         if (!NodePortRegistry.TryGet(GetType(), out var specs)) return;
 
-        var ports = specs.Select(s => new Port(this, s.Name, s.Flow, new PortAnchor(s.Edge, s.Fraction))
+        var ports = specs.Select(s => new Port(this, s.Name, s.Flow, new PortAnchor(s.Edge, s.Fraction ?? 0.5))
         {
             Label = s.Label,
             MaxConnections = s.MaxConnections,
