@@ -1896,7 +1896,11 @@ public class NodiumGraphCanvas : TemplatedControl, Avalonia.Rendering.ICustomHit
         else if (e.PropertyName is nameof(Port.AbsolutePosition) or nameof(Port.Label))
         {
             if (sender is Port p)
+            {
+                if (e.PropertyName == nameof(Port.AbsolutePosition))
+                    InvalidateConnectionGeometryForNode(p.Owner);
                 InvalidateNodeAdornments(p.Owner);
+            }
         }
     }
 
