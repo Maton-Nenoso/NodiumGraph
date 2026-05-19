@@ -27,7 +27,14 @@ public class Port : INotifyPropertyChanged
     public Node Owner { get; }
     public string Name { get; }
     public PortFlow Flow { get; }
-    public PortAnchor Anchor { get; }
+    public PortAnchor Anchor { get; private set; }
+
+    /// <summary>
+    /// True when this port's <see cref="Anchor"/> Fraction is managed by its owning
+    /// <see cref="FixedPortProvider"/> (distributed evenly along the edge). False when
+    /// the Fraction was pinned at construction. Immutable post-construction.
+    /// </summary>
+    public bool IsAutoFraction { get; }
 
     public Port(Node owner, string name, PortFlow flow, PortAnchor anchor)
     {
@@ -35,6 +42,23 @@ public class Port : INotifyPropertyChanged
         Name   = name  ?? throw new ArgumentNullException(nameof(name));
         Flow   = flow;
         Anchor = anchor;
+        IsAutoFraction = false;
+        Owner.PropertyChanged += OnOwnerPropertyChanged;
+    }
+
+    /// <summary>
+    /// Constructs an auto-layout port. The owning <see cref="FixedPortProvider"/>
+    /// will overwrite <see cref="Anchor"/>'s Fraction at provider construction (or on
+    /// runtime add/remove) by calling <see cref="SetAnchor"/>. Until a provider runs
+    /// layout, the port's Fraction is a placeholder of <c>0.5</c>.
+    /// </summary>
+    public Port(Node owner, string name, PortFlow flow, PortEdge edge)
+    {
+        Owner  = owner ?? throw new ArgumentNullException(nameof(owner));
+        Name   = name  ?? throw new ArgumentNullException(nameof(name));
+        Flow   = flow;
+        Anchor = new PortAnchor(edge, 0.5);
+        IsAutoFraction = true;
         Owner.PropertyChanged += OnOwnerPropertyChanged;
     }
 
@@ -144,6 +168,32 @@ public class Port : INotifyPropertyChanged
             _absolutePositionDirty = true;
             OnPropertyChanged(nameof(AbsolutePosition));
         }
+    }
+
+    /// <summary>
+    /// Sole entry point for layout-driven Anchor mutation. Throws if the port is
+    /// pinned (<see cref="IsAutoFraction"/> == false) or if <paramref name="newAnchor"/>
+    /// targets a different Edge — Anchor.Edge is immutable post-construction.
+    /// No-op when <paramref name="newAnchor"/> equals the current Anchor.
+    /// </summary>
+    internal void SetAnchor(PortAnchor newAnchor)
+    {
+        if (!IsAutoFraction)
+            throw new InvalidOperationException(
+                $"Port '{Name}' is pinned; SetAnchor is reserved for auto-layout ports.");
+        if (newAnchor.Edge != Anchor.Edge)
+            throw new InvalidOperationException(
+                $"Port '{Name}'.Anchor.Edge is immutable; SetAnchor must preserve the edge " +
+                $"(current: {Anchor.Edge}, requested: {newAnchor.Edge}).");
+        if (newAnchor == Anchor) return;
+
+        Anchor = newAnchor;
+        _positionDirty = true;
+        _absolutePositionDirty = true;
+        OnPropertyChanged(nameof(Anchor));
+        OnPropertyChanged(nameof(Position));
+        OnPropertyChanged(nameof(AbsolutePosition));
+        OnPropertyChanged(nameof(EmissionDirection));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
