@@ -1,3 +1,11 @@
+---
+title: Model Reference
+tags: [reference]
+status: active
+created: 2026-05-14
+updated: 2026-05-19
+---
+
 # Model Reference
 
 The NodiumGraph model is four concrete, unsealed base classes — `Graph`, `Node`, `Port`, `Connection` — plus a handful of supporting types. All live in `NodiumGraph.Model`. Consumers typically subclass `Node` (and occasionally `Connection`) to attach domain data; `Graph` and `Port` are normally used as-is. `Node` and `Port` implement `INotifyPropertyChanged`; the canvas listens to those notifications to keep its rendering in sync.
@@ -94,13 +102,22 @@ Namespace: `NodiumGraph.Model`
 
 The connection attachment point on a node.
 
-### Constructor
+### Constructors
 
 ```csharp
+// Pinned — fraction is fixed at construction. IsAutoFraction == false.
 public Port(Node owner, string name, PortFlow flow, PortAnchor anchor);
+
+// Auto — fraction is managed by the owning layout provider. IsAutoFraction == true.
+public Port(Node owner, string name, PortFlow flow, PortEdge edge);
 ```
 
-Subscribes to the owner node's `PropertyChanged` so that `Position` and `AbsolutePosition` invalidate when the node moves, resizes, or its `Shape` changes.
+Both constructors subscribe to the owner node's `PropertyChanged` so that `Position` and
+`AbsolutePosition` invalidate when the node moves, resizes, or its `Shape` changes.
+
+The auto constructor seeds `Anchor` to `(edge, 0.5)`; a layout provider (e.g.
+`FixedPortProvider`) overwrites the fraction at provider construction or on subsequent
+add/remove of an auto port on the same edge.
 
 ### Properties
 
@@ -110,7 +127,8 @@ Subscribes to the owner node's `PropertyChanged` so that `Position` and `Absolut
 | `Owner` | `Node` | (ctor) | The node this port belongs to. Read-only. |
 | `Name` | `string` | (ctor) | Stable string identifier scoped to the owner. Read-only. |
 | `Flow` | `PortFlow` | (ctor) | `Input` or `Output`. Read-only and semantic only — it does not dictate position on the node. |
-| `Anchor` | `PortAnchor` | (ctor) | The immutable edge + fraction declaration. `PortAnchor.Left(0.5)` means the midpoint of the left edge. Read-only. |
+| `Anchor` | `PortAnchor` | (ctor) | The edge + fraction declaration. `PortAnchor.Left(0.5)` means the midpoint of the left edge. Mutable internally for auto-layout; immutable to consumers. |
+| `IsAutoFraction` | `bool` | (ctor) | `true` if the port's `Anchor.Fraction` is managed by a layout provider (auto-layout). `false` if the fraction was pinned at construction. Immutable post-construction. Set by which constructor was used: pinned-ctor → `false`; edge-only-ctor → `true`. |
 | `Position` | `Point` | derived | Node-local coordinates (relative to the node's top-left). Derived from `Anchor` + `Owner.Width`/`Height`/`Shape`. Cached and invalidated when any of those change. Read-only. |
 | `AbsolutePosition` | `Point` | derived | World-space position: `Owner.X + Position.X`, `Owner.Y + Position.Y`. Cached and invalidated on owner move, resize, or shape change. Read-only. |
 | `Label` | `string?` | `null` | Optional text label rendered next to the port when no custom `PortTemplate` is set. |
@@ -159,6 +177,35 @@ public record NodeMoveInfo(Node Node, Point OldPosition, Point NewPosition);
 ```
 
 A snapshot of a node's position before and after a drag. Passed to `INodeInteractionHandler.OnNodesMoved` after a drag completes, carrying the information an undo/redo stack needs without the library having to retain any history itself. The `Node` reference may outlive its presence in the graph — consumers storing these for undo must be prepared for the node to have been removed before the undo is applied.
+
+## PortDefinition
+
+Namespace: `NodiumGraph.Model`
+
+The AXAML-facing declaration type used inside `<ng:NodeTemplate.Ports>`. One
+`PortDefinition` per port; the template registry converts them to `PortSpec` at parse
+time.
+
+| Property | Type | Description |
+|---|---|---|
+| `Name` | `string` | Stable string identifier for the port, scoped to its node type. |
+| `Flow` | `PortFlow` | `Input` or `Output`. Semantic only. |
+| `Edge` | `PortEdge` | Which edge the port sits on (`Left`, `Right`, `Top`, `Bottom`). |
+| `Fraction` | `double?` | Pinned position on the edge in `[0, 1]`, or `null` to declare intent to auto-layout. Null defers fraction selection to the owning `FixedPortProvider`, which distributes auto ports along their edge via the formula `(i + 1) / (N_auto + 1)`. |
+
+## PortSpec
+
+Namespace: `NodiumGraph.Model`
+
+The internal form stored in `NodePortRegistry` after an AXAML `PortDefinition` is
+parsed. Also constructable in code when wiring the registry manually.
+
+| Property | Type | Description |
+|---|---|---|
+| `Name` | `string` | Port name, copied from `PortDefinition.Name`. |
+| `Flow` | `PortFlow` | Copied from `PortDefinition.Flow`. |
+| `Edge` | `PortEdge` | Copied from `PortDefinition.Edge`. |
+| `Fraction` | `double?` | `null` for auto-layout ports; a value in `[0, 1]` for pinned ports. Same semantics as `PortDefinition.Fraction`. |
 
 ## See also
 

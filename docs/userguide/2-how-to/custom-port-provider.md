@@ -3,7 +3,7 @@ title: Write a Custom IPortProvider
 tags: [how-to]
 status: active
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-19
 ---
 
 # Write a Custom IPortProvider
@@ -174,6 +174,17 @@ graph.AddNode(node);
 ```
 
 Every node has its own `PortProvider`. You can mix provider types freely on the same graph — one node with a `FixedPortProvider`, another with a `DynamicPortProvider`, a third with a `SchemaPortProvider`.
+
+### 6. Extending add/remove behavior
+
+`FixedPortProvider.AddPort` and `RemovePort` are **not virtual**. The extension model
+is implementing `IPortProvider`, not subclassing.
+
+If you write a custom `IPortProvider` that opts into auto-layout-style behavior
+(distributing or re-positioning ports on add/remove), preserve the **layout-before-
+events** ordering: complete any layout pass *before* firing the corresponding
+add/remove event. Subscribers observing a half-laid-out collection mid-event is a
+class of bug worth ruling out at the API level.
 
 ## Gotchas
 

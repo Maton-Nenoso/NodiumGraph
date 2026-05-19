@@ -1,3 +1,11 @@
+---
+title: Persist and Restore Graph State
+tags: [how-to]
+status: active
+created: 2026-05-14
+updated: 2026-05-19
+---
+
 # Persist and Restore Graph State
 
 ## Goal
@@ -169,6 +177,51 @@ Canvas.ViewportOffset = new Point(dto.Viewport.OffsetX, dto.Viewport.OffsetY);
 - **`DynamicPortProvider` needs more care.** Unlike `FixedPortProvider`, its ports are created at runtime in response to connection attempts. Decide whether to snapshot the current port set (simple) or persist only the configuration and let the provider recreate ports on the first connection attempt after load (cleaner, but user-visible port identities change).
 - **Assembly-qualified type names are a trap.** Storing `n.GetType().FullName` locks your save format to your current assembly layout. A short `Kind` string you own is safer across refactors.
 - **Versioning is non-optional.** Even a tiny app eventually adds a field. Put `version` in the root object from day one, even if it's always `1` for a while.
+
+## Persisting ports declared with auto-layout
+
+Auto-layout ports express an intent at registration time, not just a value on the live
+`Port`. If you serialize a graph by storing only each port's `Anchor.Fraction`, auto
+ports reload as **pinned at the saved fraction** — the `IsAutoFraction` bit is lost.
+This silently breaks runtime re-layout: a later `AddPort` / `RemovePort` on the same
+edge will skip the reloaded port (because the library believes it is pinned), and the
+visual distribution drifts.
+
+Two recommended approaches:
+
+### 1. Persist by spec, not by port (recommended)
+
+Store the original `PortDefinition` / `PortSpec` shape — including `null` `Fraction`
+for auto ports — and rehydrate the graph by re-registering through `NodePortRegistry`,
+then letting `Node.EnsureMaterialized` rebuild the ports. Layout re-runs naturally on
+load.
+
+This approach works naturally if you declare ports in AXAML: the `NodePortRegistry` is
+populated when the AXAML window loads, so re-running `Node.EnsureMaterialized` on each
+loaded node gets you fully-laid-out ports without storing any fraction values.
+
+### 2. Persist `IsAutoFraction` alongside `Fraction`
+
+If you have a custom port serializer, include the bit explicitly:
+
+```csharp
+public record SerializedPort(string Name, PortFlow Flow, PortEdge Edge,
+                              double? Fraction, bool IsAutoFraction);
+```
+
+On rehydrate, branch on `IsAutoFraction`:
+
+```csharp
+var port = serialized.IsAutoFraction
+    ? new Port(owner, serialized.Name, serialized.Flow, serialized.Edge)
+    : new Port(owner, serialized.Name, serialized.Flow,
+               new PortAnchor(serialized.Edge, serialized.Fraction!.Value));
+```
+
+Then hand the rehydrated ports to `new FixedPortProvider(ports)`. The provider's
+constructor runs the layout pass; any saved auto `Fraction` is overwritten by the
+distribution formula — which is the correct behavior, since the saved value was a
+snapshot, not the intent.
 
 ## See also
 

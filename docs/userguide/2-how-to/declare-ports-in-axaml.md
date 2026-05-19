@@ -3,7 +3,7 @@ title: Declare ports in AXAML
 tags: [how-to]
 status: active
 created: 2026-05-14
-updated: 2026-05-14
+updated: 2026-05-19
 ---
 
 # Declare ports in AXAML
@@ -66,6 +66,63 @@ from the registry on first read. The materialization happens once per node insta
   declare a `<ng:NodeTemplate>` per concrete derived type.
 - **Visual-only `<ng:NodeTemplate>`.** Omit `<NodeTemplate.Ports>` and the template behaves
   like a plain `<DataTemplate>` — no registration, no port materialization.
+
+## Auto-layout (omit `Fraction`)
+
+Omitting `Fraction` declares intent to auto-layout. The library distributes auto ports
+evenly along their edge using the formula `(i + 1) / (N_auto + 1)`, where `i` is the
+port's index among auto ports on that edge (in declaration order) and `N_auto` is the
+total count of auto ports on that edge.
+
+```xml
+<ng:NodeTemplate DataType="local:MyNode">
+  <ng:NodeTemplate.Ports>
+    <ng:PortDefinition Name="In1" Flow="Input" Edge="Left"/>
+    <ng:PortDefinition Name="In2" Flow="Input" Edge="Left"/>
+    <ng:PortDefinition Name="In3" Flow="Input" Edge="Left"/>
+  </ng:NodeTemplate.Ports>
+  <!-- visual template here -->
+</ng:NodeTemplate>
+```
+
+The three ports above end up at fractions `0.25`, `0.5`, `0.75` — interior to the edge,
+never on a corner.
+
+Distribution examples:
+
+| Auto count | Fractions |
+|-----------:|---|
+| 1 | 0.5 |
+| 2 | 0.333, 0.667 |
+| 3 | 0.25, 0.5, 0.75 |
+| 4 | 0.2, 0.4, 0.6, 0.8 |
+
+### Mixed pinned and auto on the same edge
+
+Pinned ports (explicit `Fraction`) and auto ports can coexist on the same edge. The
+semantic is **independent**: pinned ports keep their declared fraction, auto ports
+distribute using only the count of auto ports on that edge. Pinned ports do not
+participate in the auto math, and auto ports may share a fraction with a pinned port
+if you set one up that way — the library accepts the overlap.
+
+```xml
+<ng:PortDefinition Name="Top"    Edge="Left" Fraction="0.1"/>
+<ng:PortDefinition Name="Mid1"   Edge="Left"/>
+<ng:PortDefinition Name="Mid2"   Edge="Left"/>
+<ng:PortDefinition Name="Bottom" Edge="Left" Fraction="0.9"/>
+```
+
+`Mid1` and `Mid2` distribute over the whole edge using `(i+1)/3` → `0.333` and
+`0.667`. They sit between the two pinned ports because the formula naturally places
+them in that range when there are only two auto ports, but the library does not look
+at the pinned positions to compute auto fractions.
+
+### Runtime add/remove
+
+Adding or removing an auto port through `FixedPortProvider.AddPort` / `RemovePort`
+re-runs the distribution on that edge. The provider fires `PortAdded` / `PortRemoved`
+after the layout pass completes, so subscribers always observe a fully-laid-out
+collection.
 
 ## See also
 
