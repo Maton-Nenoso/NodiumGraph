@@ -7,8 +7,10 @@ using System.Runtime.CompilerServices;
 namespace NodiumGraph.Model;
 
 /// <summary>
-/// A connection endpoint on a node. Position is derived from the immutable Anchor
-/// and the owner's current geometry (Width, Height, Shape).
+/// A connection endpoint on a node. Position is derived from the Anchor (whose Edge
+/// is immutable post-construction; Fraction may be overwritten by a layout provider
+/// via <see cref="SetAnchor"/> when <see cref="IsAutoFraction"/> is true) and the
+/// owner's current geometry (Width, Height, Shape).
 /// </summary>
 public class Port : INotifyPropertyChanged
 {
@@ -30,9 +32,9 @@ public class Port : INotifyPropertyChanged
     public PortAnchor Anchor { get; private set; }
 
     /// <summary>
-    /// True when this port's <see cref="Anchor"/> Fraction is managed by its owning
-    /// <see cref="FixedPortProvider"/> (distributed evenly along the edge). False when
-    /// the Fraction was pinned at construction. Immutable post-construction.
+    /// True when this port's <see cref="Anchor"/>.Fraction was not pinned at construction
+    /// and may be overwritten by a layout provider via <see cref="SetAnchor"/>. False when
+    /// the Fraction was fixed at construction. Immutable post-construction.
     /// </summary>
     public bool IsAutoFraction { get; }
 
