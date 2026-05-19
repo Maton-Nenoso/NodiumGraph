@@ -1,0 +1,47 @@
+{
+  "planPath": "docs/plans/2026-05-19-portlayout.md",
+  "tasks": [
+    {
+      "id": 7,
+      "subject": "Task 1: Nullable Fraction through PortDefinition → PortSpec → Registry",
+      "status": "completed",
+      "description": "**Goal:** Propagate `double?` through the declarative chain so omitting Fraction compiles, validates, and round-trips through the registry. Leave `Node.EnsureMaterialized` with a `?? 0.5` placeholder for now — Task 4 will replace it.\n\n**Verify:** `dotnet test --filter \"FullyQualifiedName~NodePortRegistryTests\"`\n\nSee full Goal/Files/Acceptance Criteria/Verify/Steps in docs/plans/2026-05-19-portlayout.md (Task 1).\n\n```json:metadata\n{\"files\": [\"src/NodiumGraph/Controls/PortDefinition.cs\", \"src/NodiumGraph/PortSpec.cs\", \"src/NodiumGraph/NodePortRegistry.cs\", \"src/NodiumGraph/Model/Node.cs\", \"tests/NodiumGraph.Tests/NodePortRegistryTests.cs\"], \"verifyCommand\": \"dotnet test --filter \\\"FullyQualifiedName~NodePortRegistryTests\\\"\", \"acceptanceCriteria\": [\"PortDefinition.Fraction is double? with default null\", \"PortSpec.Fraction is double?\", \"BuildSnapshot accepts null, rejects out-of-range non-null\", \"existing tests pass with nullable adjustments\", \"Register_PortDefinitionWithNullFraction_PassesValidation passes\", \"Register_PortDefinitionWithOutOfRangeFraction_StillThrows passes\"]}\n```"
+    },
+    {
+      "id": 8,
+      "subject": "Task 2: Port — IsAutoFraction, auto-ctor, internal SetAnchor with guards",
+      "status": "completed",
+      "blockedBy": [7],
+      "description": "**Goal:** Add `Port.IsAutoFraction`, a new `Port(Node, string, PortFlow, PortEdge)` overload for auto ports, and an `internal SetAnchor(PortAnchor)` with pinned-port + different-edge guards.\n\n**Verify:** `dotnet test --filter \"FullyQualifiedName~PortSetAnchorTests\"`\n\nSee full Goal/Files/Acceptance Criteria/Verify/Steps in docs/plans/2026-05-19-portlayout.md (Task 2).\n\n```json:metadata\n{\"files\": [\"src/NodiumGraph/Model/Port.cs\", \"tests/NodiumGraph.Tests/PortSetAnchorTests.cs\"], \"verifyCommand\": \"dotnet test --filter \\\"FullyQualifiedName~PortSetAnchorTests\\\"\", \"acceptanceCriteria\": [\"IsAutoFraction property exists and is correctly set by both ctors\", \"new Port(Node, string, PortFlow, PortEdge) ctor exists, seeds Anchor to (edge, 0.5)\", \"Anchor has private set\", \"internal SetAnchor throws on pinned port\", \"internal SetAnchor throws on different-edge anchor\", \"SetAnchor with equal anchor fires no INPC\", \"SetAnchor with new anchor fires INPC for Anchor/Position/AbsolutePosition/EmissionDirection\", \"7 new tests pass and full suite passes\"]}\n```"
+    },
+    {
+      "id": 9,
+      "subject": "Task 3: FixedPortProvider — DistributeAuto, ctor batch, layout-before-events",
+      "status": "completed",
+      "blockedBy": [8],
+      "description": "**Goal:** Add private static `DistributeAuto(IReadOnlyList<Port>, PortEdge)` to `FixedPortProvider`. Run in IEnumerable ctor per affected edge. Re-run on auto add/remove before firing `PortAdded`/`PortRemoved`.\n\n**Verify:** `dotnet test --filter \"FullyQualifiedName~FixedPortProviderLayoutTests\"`\n\nSee full Goal/Files/Acceptance Criteria/Verify/Steps in docs/plans/2026-05-19-portlayout.md (Task 3).\n\n```json:metadata\n{\"files\": [\"src/NodiumGraph/Model/FixedPortProvider.cs\", \"tests/NodiumGraph.Tests/FixedPortProviderLayoutTests.cs\"], \"verifyCommand\": \"dotnet test --filter \\\"FullyQualifiedName~FixedPortProviderLayoutTests\\\"\", \"acceptanceCriteria\": [\"DistributeAuto helper exists with (i+1)/(N+1) math\", \"IEnumerable ctor runs initial layout per affected edge without firing PortAdded\", \"AddPort runs DistributeAuto before PortAdded when port is auto\", \"RemovePort runs DistributeAuto before PortRemoved when removed port was auto\", \"pinned-only add/remove skips the layout pass\", \"13 new tests pass and existing FixedPortProviderTests still pass\"]}\n```"
+    },
+    {
+      "id": 10,
+      "subject": "Task 4: Node.EnsureMaterialized — branch on Fraction.HasValue for auto Port ctor",
+      "status": "completed",
+      "blockedBy": [9],
+      "description": "**Goal:** Replace the temporary `?? 0.5` placeholder from Task 1 with a `Fraction.HasValue` branch — pinned ctor for non-null, edge-only auto ctor for null. End-to-end: declaring auto ports in AXAML produces evenly-laid-out `Node.Ports` on first read.\n\n**Verify:** `dotnet test --filter \"FullyQualifiedName~NodeRegistryMaterializationTests\"`\n\nSee full Goal/Files/Acceptance Criteria/Verify/Steps in docs/plans/2026-05-19-portlayout.md (Task 4).\n\n```json:metadata\n{\"files\": [\"src/NodiumGraph/Model/Node.cs\", \"tests/NodiumGraph.Tests/NodeRegistryMaterializationTests.cs\"], \"verifyCommand\": \"dotnet test --filter \\\"FullyQualifiedName~NodeRegistryMaterializationTests\\\"\", \"acceptanceCriteria\": [\"EnsureMaterialized branches on Fraction.HasValue\", \"no ?? 0.5 placeholder remains\", \"3 auto-spec ports materialize at 0.25/0.5/0.75\", \"mixed pinned+auto materializes correctly with independent semantic\", \"auto-spec port has IsAutoFraction=true\", \"pinned-spec port has IsAutoFraction=false\"]}\n```"
+    },
+    {
+      "id": 11,
+      "subject": "Task 5: Canvas — invalidate connection geometry on Port.AbsolutePosition",
+      "status": "completed",
+      "blockedBy": [10],
+      "description": "**Goal:** When a port's `AbsolutePosition` changes (DistributeAuto moved it while the node was stationary), the canvas drops cached connection geometry for that port's owner. Without this, existing connections render against stale endpoints.\n\n**Verify:** `dotnet test --filter \"FullyQualifiedName~NodiumGraphCanvasPortLayoutCacheTests\"`\n\nSee full Goal/Files/Acceptance Criteria/Verify/Steps in docs/plans/2026-05-19-portlayout.md (Task 5).\n\n```json:metadata\n{\"files\": [\"src/NodiumGraph/Controls/NodiumGraphCanvas.cs\", \"tests/NodiumGraph.Tests/NodiumGraphCanvasPortLayoutCacheTests.cs\"], \"verifyCommand\": \"dotnet test --filter \\\"FullyQualifiedName~NodiumGraphCanvasPortLayoutCacheTests\\\"\", \"acceptanceCriteria\": [\"OnPortPropertyChanged invalidates connection geometry on AbsolutePosition\", \"Label change does not invalidate connection cache\", \"isolated AvaloniaFact test passes\", \"unrelated cached connection remains after auto re-layout\", \"NodiumGraphCanvasConnectionCacheTests continue to pass\"]}\n```"
+    },
+    {
+      "id": 12,
+      "subject": "Task 6: User-guide documentation updates",
+      "status": "completed",
+      "blockedBy": [11],
+      "description": "**Goal:** Document the new auto-layout behavior in four user-guide pages so consumers can discover it and avoid the persistence footgun.\n\n**Verify:** Manual review of the four files. No automated test gate.\n\nSee full Goal/Files/Acceptance Criteria/Verify/Steps in docs/plans/2026-05-19-portlayout.md (Task 6).\n\n```json:metadata\n{\"files\": [\"docs/userguide/2-how-to/declare-ports-in-axaml.md\", \"docs/userguide/3-reference/model.md\", \"docs/userguide/2-how-to/persist-graph-state.md\", \"docs/userguide/2-how-to/custom-port-provider.md\"], \"verifyCommand\": \"\", \"acceptanceCriteria\": [\"declare-ports-in-axaml has Auto-layout section with formula, mixed-case example, runtime note\", \"model.md documents IsAutoFraction and nullable Fraction semantics\", \"persist-graph-state has persistence callout with both recommended approaches\", \"custom-port-provider notes non-virtual AddPort/RemovePort and IPortProvider extension model\", \"all four files have updated: 2026-05-19\"]}\n```"
+    }
+  ],
+  "lastUpdated": "2026-05-19T16:25:00Z"
+}
