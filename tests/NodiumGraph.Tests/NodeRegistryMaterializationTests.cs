@@ -149,4 +149,62 @@ public class NodeRegistryMaterializationTests
 
         Assert.Same(providerBefore, node.PortProvider);
     }
+
+    [Fact]
+    public void EnsureMaterialized_three_auto_specs_produce_evenly_distributed_ports()
+    {
+        var defs = new[]
+        {
+            new PortDefinition { Name = "In1", Flow = PortFlow.Input, Edge = PortEdge.Left },
+            new PortDefinition { Name = "In2", Flow = PortFlow.Input, Edge = PortEdge.Left },
+            new PortDefinition { Name = "In3", Flow = PortFlow.Input, Edge = PortEdge.Left },
+        };
+        NodePortRegistry.Register(typeof(TypeA), defs);
+        var node = new TypeA { Width = 100, Height = 50 };
+
+        var ports = node.Ports.ToList();
+
+        Assert.Equal(3, ports.Count);
+        Assert.Equal(0.25, ports[0].Anchor.Fraction);
+        Assert.Equal(0.50, ports[1].Anchor.Fraction);
+        Assert.Equal(0.75, ports[2].Anchor.Fraction);
+    }
+
+    [Fact]
+    public void EnsureMaterialized_mixed_spec_respects_pinned_and_distributes_auto()
+    {
+        var defs = new[]
+        {
+            new PortDefinition { Name = "Top",    Flow = PortFlow.Input, Edge = PortEdge.Left, Fraction = 0.1 },
+            new PortDefinition { Name = "Mid1",   Flow = PortFlow.Input, Edge = PortEdge.Left },
+            new PortDefinition { Name = "Mid2",   Flow = PortFlow.Input, Edge = PortEdge.Left },
+            new PortDefinition { Name = "Bottom", Flow = PortFlow.Input, Edge = PortEdge.Left, Fraction = 0.9 },
+        };
+        NodePortRegistry.Register(typeof(TypeB), defs);
+        var node = new TypeB { Width = 100, Height = 50 };
+
+        var byName = node.Ports.ToDictionary(p => p.Name);
+
+        Assert.Equal(0.1, byName["Top"].Anchor.Fraction);
+        Assert.Equal(0.9, byName["Bottom"].Anchor.Fraction);
+        Assert.Equal(1.0 / 3.0, byName["Mid1"].Anchor.Fraction, 9);
+        Assert.Equal(2.0 / 3.0, byName["Mid2"].Anchor.Fraction, 9);
+    }
+
+    [Fact]
+    public void EnsureMaterialized_auto_spec_port_has_IsAutoFraction_true()
+    {
+        var defs = new[]
+        {
+            new PortDefinition { Name = "Auto",   Flow = PortFlow.Input,  Edge = PortEdge.Left },
+            new PortDefinition { Name = "Pinned", Flow = PortFlow.Input,  Edge = PortEdge.Right, Fraction = 0.5 },
+        };
+        NodePortRegistry.Register(typeof(TypeA), defs);
+        var node = new TypeA { Width = 100, Height = 50 };
+
+        var byName = node.Ports.ToDictionary(p => p.Name);
+
+        Assert.True(byName["Auto"].IsAutoFraction);
+        Assert.False(byName["Pinned"].IsAutoFraction);
+    }
 }

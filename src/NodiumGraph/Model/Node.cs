@@ -191,11 +191,15 @@ public class Node : INotifyPropertyChanged, IGraphElement
         if (_portProviderExplicit) return;
         if (!NodePortRegistry.TryGet(GetType(), out var specs)) return;
 
-        var ports = specs.Select(s => new Port(this, s.Name, s.Flow, new PortAnchor(s.Edge, s.Fraction ?? 0.5))
+        var ports = specs.Select(s =>
         {
-            Label = s.Label,
-            MaxConnections = s.MaxConnections,
-            DataType = s.DataType,
+            var port = s.Fraction.HasValue
+                ? new Port(this, s.Name, s.Flow, new PortAnchor(s.Edge, s.Fraction.Value))
+                : new Port(this, s.Name, s.Flow, s.Edge);
+            port.Label = s.Label;
+            port.MaxConnections = s.MaxConnections;
+            port.DataType = s.DataType;
+            return port;
         }).ToList();
 
         PortProvider = new FixedPortProvider(ports);   // routes through setter → sets sentinel, fires PropertyChanged
