@@ -19,7 +19,7 @@ public class NodePortRegistryTests
     private sealed class DerivedA : NodeA { }
 
     private static PortDefinition Def(string name, PortFlow flow = PortFlow.Input,
-                                      PortEdge edge = PortEdge.Left, double fraction = 0.5,
+                                      PortEdge edge = PortEdge.Left, double? fraction = null,
                                       string? label = null, uint? maxConnections = null,
                                       object? dataType = null)
         => new() { Name = name, Flow = flow, Edge = edge, Fraction = fraction,
@@ -184,52 +184,34 @@ public class NodePortRegistryTests
     }
 
     [Fact]
-    public void Register_PortDefinitionWithNullFraction_PassesValidation()
+    public void Register_null_fraction_passes_validation()
     {
-        NodePortRegistry.Clear();
-        try
+        var def = new PortDefinition
         {
-            var def = new PortDefinition
-            {
-                Name = "In",
-                Flow = PortFlow.Input,
-                Edge = PortEdge.Left,
-                Fraction = null,
-            };
-            NodePortRegistry.Register(typeof(NullFractionTestNode), new[] { def });
-            Assert.True(NodePortRegistry.TryGet(typeof(NullFractionTestNode), out var specs));
-            var spec = Assert.Single(specs);
-            Assert.Null(spec.Fraction);
-        }
-        finally
-        {
-            NodePortRegistry.Clear();
-        }
+            Name = "In",
+            Flow = PortFlow.Input,
+            Edge = PortEdge.Left,
+            Fraction = null,
+        };
+        NodePortRegistry.Register(typeof(NodeA), new[] { def });
+        Assert.True(NodePortRegistry.TryGet(typeof(NodeA), out var specs));
+        var spec = Assert.Single(specs);
+        Assert.Null(spec.Fraction);
     }
 
     [Fact]
-    public void Register_PortDefinitionWithOutOfRangeFraction_StillThrows()
+    public void Register_null_change_did_not_remove_out_of_range_guard()
     {
-        NodePortRegistry.Clear();
-        try
+        var def = new PortDefinition
         {
-            var def = new PortDefinition
-            {
-                Name = "In",
-                Flow = PortFlow.Input,
-                Edge = PortEdge.Left,
-                Fraction = 1.5,
-            };
-            Assert.Throws<ArgumentOutOfRangeException>(() =>
-                NodePortRegistry.Register(typeof(NullFractionTestNode), new[] { def }));
-        }
-        finally
-        {
-            NodePortRegistry.Clear();
-        }
+            Name = "In",
+            Flow = PortFlow.Input,
+            Edge = PortEdge.Left,
+            Fraction = 1.5,
+        };
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            NodePortRegistry.Register(typeof(NodeA), new[] { def }));
     }
-
-    private sealed class NullFractionTestNode : Node { }
 }
 
 [CollectionDefinition("NodePortRegistry", DisableParallelization = true)]

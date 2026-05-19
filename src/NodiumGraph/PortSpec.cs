@@ -9,7 +9,7 @@ namespace NodiumGraph;
 /// </summary>
 /// <remarks>
 /// <see cref="Fraction"/> is nullable. <c>null</c> means "auto-layout" — the consumer
-/// (<see cref="Model.Node.EnsureMaterialized"/>) constructs the port via the auto ctor,
+/// (<c>Node</c>'s lazy materializer) constructs the port via the auto ctor,
 /// and <c>FixedPortProvider</c> resolves the actual fraction at provider construction.
 /// </remarks>
 public readonly record struct PortSpec(
